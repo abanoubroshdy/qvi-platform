@@ -85,7 +85,8 @@ export default function HomePage() {
         <div className="mb-6">
           <h2 className="text-2xl font-extrabold">كل الأدوات</h2>
           <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-            ابدأ بأداة ضغط الصور الجاهزة الآن، وباقي الأدوات في الطريق على نفس الأساس الآمن.
+            أربع أدوات جاهزة الآن: ضغط الصور، تحويل WEBP إلى JPG، تحويل PNG إلى PDF، ومولد QR.
+            البقية قريباً على نفس الأساس الآمن.
           </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

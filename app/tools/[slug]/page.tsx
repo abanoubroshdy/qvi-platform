@@ -14,7 +14,7 @@ type PageProps = {
 export const dynamicParams = false;
 
 export function generateStaticParams() {
-  return tools.filter((tool) => tool.slug !== "image-compressor").map((tool) => ({ slug: tool.slug }));
+  return tools.filter((tool) => !tool.available).map((tool) => ({ slug: tool.slug }));
 }
 
 export function generateMetadata({ params }: PageProps): Metadata {
@@ -49,9 +49,6 @@ export default function UpcomingToolPage({ params }: PageProps) {
         </p>
         <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
           <Button asChild size="lg">
-            <Link href="/tools/image-compressor">جرّب ضغط الصور المتاح الآن</Link>
-          </Button>
-          <Button asChild size="lg" variant="outline">
             <Link href="/#tools">العودة إلى كل الأدوات</Link>
           </Button>
         </div>

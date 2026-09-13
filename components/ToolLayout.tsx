@@ -9,7 +9,9 @@ import { cn } from "@/lib/utils";
 type ToolLayoutProps = {
   accept?: string;
   multiple?: boolean;
-  onFiles: (files: File[]) => void;
+  onFiles?: (files: File[]) => void;
+  hideDropzone?: boolean;
+  leading?: ReactNode;
   preview?: ReactNode;
   extra?: ReactNode;
   actionLabel: string;
@@ -21,6 +23,7 @@ type ToolLayoutProps = {
   downloadDisabled?: boolean;
   dropTitle?: string;
   dropHint?: string;
+  emptyPreviewText?: string;
   error?: string | null;
 };
 
@@ -28,6 +31,8 @@ export function ToolLayout({
   accept,
   multiple = false,
   onFiles,
+  hideDropzone = false,
+  leading,
   preview,
   extra,
   actionLabel,
@@ -39,6 +44,7 @@ export function ToolLayout({
   downloadDisabled,
   dropTitle = "اسحب الملف هنا أو اضغط للاختيار",
   dropHint = "المعالجة تتم على جهازك فقط. لا يُرفع أي ملف إلى الخادم.",
+  emptyPreviewText = "ستظهر معاينة الملف هنا بعد اختياره.",
   error,
 }: ToolLayoutProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -46,7 +52,7 @@ export function ToolLayout({
 
   function handleFiles(fileList: FileList | File[]) {
     const files = Array.from(fileList);
-    if (files.length) onFiles(files);
+    if (files.length) onFiles?.(files);
   }
 
   function onDrop(event: DragEvent<HTMLButtonElement>) {
@@ -61,37 +67,41 @@ export function ToolLayout({
     <div className="space-y-4">
       <AdPlaceholder position="top" />
 
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        onDragOver={(event) => {
-          event.preventDefault();
-          setIsDragging(true);
-        }}
-        onDragLeave={() => setIsDragging(false)}
-        onDrop={onDrop}
-        className={cn(
-          "flex w-full flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-10 text-center transition",
-          isDragging
-            ? "border-primary bg-primary/10"
-            : "border-primary/30 bg-card hover:border-primary hover:bg-primary/5",
-        )}
-      >
-        <UploadCloud className="mb-3 h-10 w-10 text-primary" aria-hidden />
-        <p className="text-base font-bold">{dropTitle}</p>
-        <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">{dropHint}</p>
-        <input
-          ref={inputRef}
-          type="file"
-          className="sr-only"
-          accept={accept}
-          multiple={multiple}
-          onChange={(event) => {
-            if (event.target.files?.length) handleFiles(event.target.files);
-            event.target.value = "";
+      {leading}
+
+      {hideDropzone ? null : (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          onDragOver={(event) => {
+            event.preventDefault();
+            setIsDragging(true);
           }}
-        />
-      </button>
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={onDrop}
+          className={cn(
+            "flex w-full flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-10 text-center transition",
+            isDragging
+              ? "border-primary bg-primary/10"
+              : "border-primary/30 bg-card hover:border-primary hover:bg-primary/5",
+          )}
+        >
+          <UploadCloud className="mb-3 h-10 w-10 text-primary" aria-hidden />
+          <p className="text-base font-bold">{dropTitle}</p>
+          <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">{dropHint}</p>
+          <input
+            ref={inputRef}
+            type="file"
+            className="sr-only"
+            accept={accept}
+            multiple={multiple}
+            onChange={(event) => {
+              if (event.target.files?.length) handleFiles(event.target.files);
+              event.target.value = "";
+            }}
+          />
+        </button>
+      )}
 
       {error ? (
         <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
@@ -103,7 +113,7 @@ export function ToolLayout({
         <div className="rounded-xl border bg-card p-4 shadow-sm">{preview}</div>
       ) : (
         <div className="rounded-xl border border-dashed bg-muted/30 p-6 text-center text-sm text-muted-foreground">
-          ستظهر معاينة الملف هنا بعد اختياره.
+          {emptyPreviewText}
         </div>
       )}
 

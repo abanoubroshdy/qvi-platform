@@ -43,7 +43,7 @@ export const tools: Tool[] = [
     description: "حوّل صور WEBP إلى JPG متوافقة مع كل المنصات والتطبيقات.",
     href: "/tools/webp-to-jpg",
     icon: Images,
-    available: false,
+    available: true,
     category: "images",
   },
   {
@@ -53,7 +53,7 @@ export const tools: Tool[] = [
     description: "اجمع صورة PNG في ملف PDF جاهز للمشاركة أو الطباعة.",
     href: "/tools/png-to-pdf",
     icon: FileImage,
-    available: false,
+    available: true,
     category: "pdf",
   },
   {
@@ -83,7 +83,7 @@ export const tools: Tool[] = [
     description: "أنشئ رمز QR لأي رابط أو نص وحمّله كصورة عالية الجودة.",
     href: "/tools/qr-generator",
     icon: QrCode,
-    available: false,
+    available: true,
     category: "qr",
   },
   {
