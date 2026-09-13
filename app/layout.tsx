@@ -68,6 +68,7 @@ export default function RootLayout({
     <html lang="en" className={outfit.variable}>
       <body className="min-h-screen font-sans">
         {/* Static public CSS so phones on tunnels still get a usable layout if Next CSS is blocked. */}
+        {/* eslint-disable-next-line @next/next/no-css-tags */}
         <link rel="stylesheet" href="/brand.css?v=2" />
         <style
           dangerouslySetInnerHTML={{
