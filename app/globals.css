@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 150 33% 97%;
+    --foreground: 174 42% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 174 42% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 174 42% 12%;
+    --primary: 173 72% 29%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 160 20% 93%;
+    --secondary-foreground: 174 42% 16%;
+    --muted: 150 20% 93%;
+    --muted-foreground: 170 10% 38%;
+    --accent: 38 92% 50%;
+    --accent-foreground: 30 40% 12%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 165 18% 86%;
+    --input: 165 18% 86%;
+    --ring: 173 72% 29%;
+    --chart-1: 173 72% 29%;
+    --chart-2: 38 92% 50%;
+    --chart-3: 199 70% 38%;
+    --chart-4: 150 40% 36%;
+    --chart-5: 20 80% 55%;
+    --radius: 0.75rem;
+    --sidebar: 150 33% 97%;
+    --sidebar-foreground: 174 42% 12%;
+    --sidebar-primary: 173 72% 29%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 160 20% 93%;
+    --sidebar-accent-foreground: 174 42% 16%;
+    --sidebar-border: 165 18% 86%;
+    --sidebar-ring: 173 72% 29%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-cairo), "Segoe UI", Tahoma, sans-serif;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .hero-grid {
+    background-image:
+      radial-gradient(circle at 12% 18%, hsl(173 72% 29% / 0.12), transparent 42%),
+      radial-gradient(circle at 88% 8%, hsl(38 92% 50% / 0.14), transparent 36%),
+      linear-gradient(hsl(165 18% 86% / 0.45) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(165 18% 86% / 0.45) 1px, transparent 1px);
+    background-size: auto, auto, 28px 28px, 28px 28px;
+  }
+}
