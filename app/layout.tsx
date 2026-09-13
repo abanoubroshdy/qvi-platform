@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { Outfit } from "next/font/google";
+import { Cairo, Outfit } from "next/font/google";
+import { AppProviders } from "@/components/AppProviders";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { siteConfig } from "@/lib/site";
@@ -9,6 +10,12 @@ const outfit = Outfit({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-outfit",
+});
+
+const cairo = Cairo({
+  subsets: ["arabic", "latin"],
+  display: "swap",
+  variable: "--font-cairo",
 });
 
 export const metadata: Metadata = {
@@ -54,10 +61,15 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#041016",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#F6F4EF" },
+    { media: "(prefers-color-scheme: dark)", color: "#121C28" },
+  ],
   width: "device-width",
   initialScale: 1,
 };
+
+const localeBootScript = `(function(){try{var l=localStorage.getItem("qvi-locale");if(l!=="ar"&&l!=="en"){l=(navigator.language||"").toLowerCase().indexOf("ar")===0?"ar":"en"}var d=document.documentElement;d.lang=l;d.dir=l==="ar"?"rtl":"ltr";d.dataset.locale=l;}catch(e){}})();`;
 
 export default function RootLayout({
   children,
@@ -65,22 +77,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={outfit.variable}>
+    <html lang="en" suppressHydrationWarning className={`${outfit.variable} ${cairo.variable}`}>
       <body className="min-h-screen font-sans">
-        {/* Static public CSS so phones on tunnels still get a usable layout if Next CSS is blocked. */}
+        <script dangerouslySetInnerHTML={{ __html: localeBootScript }} />
         {/* eslint-disable-next-line @next/next/no-css-tags */}
-        <link rel="stylesheet" href="/brand.css?v=2" />
-        <style
-          dangerouslySetInnerHTML={{
-            __html:
-              "html,body{margin:0;background:#05070d;color:#f8fafc}a{color:#67e8f9;text-decoration:none}",
-          }}
-        />
-        <div className="qvi-shell flex min-h-screen flex-col">
-          <Header />
-          <main className="flex-1">{children}</main>
-          <Footer />
-        </div>
+        <link rel="stylesheet" href="/brand.css?v=3" />
+        <AppProviders>
+          <div className="qvi-shell flex min-h-screen flex-col">
+            <Header />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </div>
+        </AppProviders>
       </body>
     </html>
   );

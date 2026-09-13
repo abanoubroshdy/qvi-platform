@@ -2,12 +2,14 @@
 
 import { useState, type FormEvent } from "react";
 import { Send } from "lucide-react";
+import { useI18n } from "@/components/i18n/I18nProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { siteConfig } from "@/lib/site";
 
 export function ContactForm() {
+  const { copy } = useI18n();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
@@ -27,13 +29,13 @@ export function ContactForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4 rounded-xl border border-white/10 bg-card p-5 shadow-sm">
+    <form onSubmit={onSubmit} className="space-y-4 rounded-xl border border-border bg-card p-5 shadow-sm">
       <div className="space-y-2">
-        <Label htmlFor="name">Name</Label>
+        <Label htmlFor="name">{copy.contactForm.name}</Label>
         <Input id="name" name="name" value={name} onChange={(event) => setName(event.target.value)} required />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{copy.contactForm.email}</Label>
         <Input
           id="email"
           name="email"
@@ -44,7 +46,7 @@ export function ContactForm() {
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="message">Message</Label>
+        <Label htmlFor="message">{copy.contactForm.message}</Label>
         <textarea
           id="message"
           name="message"
@@ -57,15 +59,13 @@ export function ContactForm() {
       </div>
       {status === "error" ? (
         <p className="text-sm text-destructive" role="alert">
-          Please fill in every field before sending.
+          {copy.contactForm.error}
         </p>
       ) : null}
-      {status === "ready" ? (
-        <p className="text-sm text-primary">Your mail app should open with the message ready to send.</p>
-      ) : null}
+      {status === "ready" ? <p className="text-sm text-primary">{copy.contactForm.ready}</p> : null}
       <Button type="submit" size="lg" className="w-full sm:w-auto">
         <Send />
-        Send message
+        {copy.contactForm.send}
       </Button>
     </form>
   );

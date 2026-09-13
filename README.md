@@ -40,6 +40,8 @@ Optional: copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_SITE_URL` bef
 
 Free tools stay 100% client-side. Waitlist emails are stored in `localStorage` until a backend is connected.
 
+The header lets you switch **English / Arabic** (RTL) and **Light / Dark / System** appearance. Colors follow the QVI logo: cream paper, navy wordmark, teal-to-violet wave.
+
 ## Stack
 
 Next.js 14 App Router, TypeScript, Tailwind CSS, ESLint, shadcn/ui, lucide-react, browser-image-compression, pdf-lib, qrcode.

@@ -6,12 +6,14 @@ import { Stat } from "@/components/Stat";
 import { ToolLayout } from "@/components/ToolLayout";
 import { downloadBlob } from "@/lib/download";
 import { formatBytes } from "@/lib/format";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 function isPng(file: File) {
   return file.type === "image/png" || file.name.toLowerCase().endsWith(".png");
 }
 
 export function PngToPdf() {
+  const { copy } = useI18n();
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
@@ -60,16 +62,16 @@ export function PngToPdf() {
     } catch {
       if (current !== requestId.current) return;
       setPdfBlob(null);
-      setError("Could not build a PDF. Use valid, uncorrupted PNG files.");
+      setError(copy.png.failed);
     } finally {
       if (current === requestId.current) setIsConverting(false);
     }
-  }, []);
+  }, [copy.png.failed]);
 
   function onFiles(incoming: File[]) {
     const pngs = incoming.filter(isPng);
     if (!pngs.length) {
-      setError("No PNG images found. Choose one or more PNG files.");
+      setError(copy.png.badFormat);
       return;
     }
 
@@ -99,11 +101,11 @@ export function PngToPdf() {
       accept="image/png,.png"
       multiple
       onFiles={onFiles}
-      actionLabel="Convert to PDF"
+      actionLabel={copy.png.action}
       onAction={() => files.length && convert(files)}
       actionDisabled={!files.length}
       actionLoading={isConverting}
-      downloadLabel="Download PDF"
+      downloadLabel={copy.png.download}
       onDownload={() => {
         if (!pdfBlob) return;
         const baseName = files[0]?.name.replace(/\.[^.]+$/, "") || "image";
@@ -111,20 +113,20 @@ export function PngToPdf() {
         downloadBlob(pdfBlob, filename);
       }}
       downloadDisabled={!pdfBlob || isConverting}
-      dropTitle="Drop PNG images here or click to choose"
-      dropHint="Pick one image or several. Each image becomes a PDF page. Processing stays on this device."
+      dropTitle={copy.png.dropTitle}
+      dropHint={copy.png.dropHint}
       error={error}
       preview={
         files.length ? (
           <div className="space-y-4">
             <div className="grid grid-cols-2 content-start gap-3 sm:grid-cols-4">
-              <Stat label="Images" value={`${files.length}`} />
-              <Stat label="PNG size" value={formatBytes(files.reduce((sum, file) => sum + file.size, 0))} />
-              <Stat label="PDF size" value={pdfBlob ? formatBytes(pdfBlob.size) : isConverting ? "Building..." : "—"} />
-              <Stat label="Status" value={isConverting ? "Converting" : pdfBlob ? "Ready to download" : "Waiting for images"} />
+              <Stat label={copy.png.images} value={`${files.length}`} />
+              <Stat label={copy.png.pngSize} value={formatBytes(files.reduce((sum, file) => sum + file.size, 0))} />
+              <Stat label={copy.png.pdfSize} value={pdfBlob ? formatBytes(pdfBlob.size) : isConverting ? copy.png.building : "—"} />
+              <Stat label={copy.compressor.status} value={isConverting ? copy.png.converting : pdfBlob ? copy.png.ready : copy.png.waiting} />
             </div>
             <div>
-              <p className="mb-2 text-sm font-bold">Selected images</p>
+              <p className="mb-2 text-sm font-bold">{copy.png.selected}</p>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {files.map((file, index) => (
                   <figure key={`${file.name}-${index}`} className="overflow-hidden rounded-lg border bg-muted/40">
@@ -137,8 +139,8 @@ export function PngToPdf() {
             </div>
             {pdfUrl ? (
               <div>
-                <p className="mb-2 text-sm font-bold">PDF preview</p>
-                <iframe title="PDF preview" src={pdfUrl} className="h-80 w-full rounded-lg border bg-muted/30" />
+                <p className="mb-2 text-sm font-bold">{copy.png.pdfPreview}</p>
+                <iframe title={copy.png.pdfPreview} src={pdfUrl} className="h-80 w-full rounded-lg border bg-muted/30" />
               </div>
             ) : null}
           </div>

@@ -10,7 +10,8 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-outfit)", "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ["var(--font-outfit)", "var(--font-cairo)", "ui-sans-serif", "system-ui", "sans-serif"],
+        cairo: ["var(--font-cairo)", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       colors: {
         background: "hsl(var(--background))",

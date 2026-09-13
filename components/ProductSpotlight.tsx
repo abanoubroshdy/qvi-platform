@@ -28,14 +28,14 @@ export function ProductSpotlight({
   return (
     <article
       className={cn(
-        "relative qvi-card overflow-hidden rounded-3xl border border-white/10 bg-[#070b14] p-6 sm:p-8",
+        "relative qvi-card overflow-hidden rounded-3xl border border-border bg-card p-6 sm:p-8",
         tone === "cyan" ? "glow-cyan" : "glow-violet",
       )}
     >
       <div
         className={cn(
           "pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full blur-3xl",
-          tone === "cyan" ? "bg-cyan-400/20" : "bg-violet-500/25",
+          tone === "cyan" ? "bg-primary/15" : "bg-accent/15",
         )}
       />
       <div className="relative space-y-5">
@@ -58,7 +58,7 @@ export function ProductSpotlight({
         <Button asChild size="lg" className="qvi-btn" variant={tone === "cyan" ? "default" : "secondary"}>
           <Link href={href}>
             {cta}
-            <ArrowRight />
+            <ArrowRight className="rtl:rotate-180" />
           </Link>
         </Button>
       </div>

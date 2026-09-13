@@ -1,35 +1,38 @@
+"use client";
+
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
+import { useI18n } from "@/components/i18n/I18nProvider";
 import { siteConfig } from "@/lib/site";
 
-const productLinks = [
-  { href: "/products/qv1", label: "QV1" },
-  { href: "/products/neyora", label: "Neyora Lab" },
-];
-
-const legalLinks = [
-  { href: "/about", label: "About" },
-  { href: "/privacy-policy", label: "Privacy Policy" },
-  { href: "/contact", label: "Contact" },
-  { href: "/terms", label: "Terms" },
-];
-
 export function Footer() {
+  const { copy } = useI18n();
   const year = new Date().getFullYear();
 
+  const productLinks = [
+    { href: "/products/qv1", label: copy.products.qv1.name },
+    { href: "/products/neyora", label: `${copy.products.neyora.name}` },
+  ];
+
+  const legalLinks = [
+    { href: "/about", label: copy.footer.about },
+    { href: "/privacy-policy", label: copy.footer.privacy },
+    { href: "/contact", label: copy.footer.contact },
+    { href: "/terms", label: copy.footer.terms },
+  ];
+
   return (
-    <footer className="qvi-footer mt-auto border-t border-white/10 bg-black/30">
+    <footer className="qvi-footer mt-auto border-t border-border bg-muted/40">
       <div className="qvi-footer-inner mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:grid-cols-2 lg:grid-cols-4">
         <div className="space-y-3 lg:col-span-2">
           <Logo />
           <p className="max-w-md text-sm leading-7 text-muted-foreground">
-            {siteConfig.fullName}. {siteConfig.tagline}. Intelligent audio software that runs on your
-            device, plus free browser utilities that never upload your files.
+            {siteConfig.fullName}. {copy.home.kicker}. {copy.footer.blurb}
           </p>
         </div>
 
         <div>
-          <h2 className="mb-3 text-sm font-semibold tracking-wide text-foreground">Products</h2>
+          <h2 className="mb-3 text-sm font-semibold tracking-wide text-foreground">{copy.footer.products}</h2>
           <ul className="space-y-2 text-sm">
             {productLinks.map((link) => (
               <li key={link.href}>
@@ -40,14 +43,14 @@ export function Footer() {
             ))}
             <li>
               <Link href="/#tools" className="text-muted-foreground transition hover:text-primary">
-                Free Tools
+                {copy.footer.freeTools}
               </Link>
             </li>
           </ul>
         </div>
 
         <div>
-          <h2 className="mb-3 text-sm font-semibold tracking-wide text-foreground">Company</h2>
+          <h2 className="mb-3 text-sm font-semibold tracking-wide text-foreground">{copy.footer.company}</h2>
           <ul className="space-y-2 text-sm">
             {legalLinks.map((link) => (
               <li key={link.href}>
@@ -60,9 +63,9 @@ export function Footer() {
         </div>
       </div>
 
-      <div className="border-t border-white/10">
-        <p className="mx-auto max-w-6xl px-4 py-4 text-center text-xs text-muted-foreground sm:text-left">
-          © {year} {siteConfig.fullName}. All rights reserved.
+      <div className="border-t border-border">
+        <p className="mx-auto max-w-6xl px-4 py-4 text-center text-xs text-muted-foreground sm:text-start">
+          © {year} {siteConfig.fullName}. {copy.footer.rights}
         </p>
       </div>
     </footer>

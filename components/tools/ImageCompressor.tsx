@@ -7,6 +7,7 @@ import { ToolLayout } from "@/components/ToolLayout";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { formatBytes, formatPercent } from "@/lib/format";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/bmp", "image/jpg"];
 
@@ -16,6 +17,7 @@ function isSupportedImage(file: File) {
 }
 
 export function ImageCompressor() {
+  const { copy } = useI18n();
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [quality, setQuality] = useState(80);
@@ -58,18 +60,18 @@ export function ImageCompressor() {
     } catch {
       if (current !== requestId.current) return;
       setCompressedBlob(null);
-      setError("Could not compress this image. Try another file or a different quality.");
+      setError(copy.compressor.failed);
     } finally {
       if (current === requestId.current) setIsCompressing(false);
     }
-  }, []);
+  }, [copy.compressor.failed]);
 
   function onFiles(files: File[]) {
     const next = files[0];
     if (!next) return;
 
     if (!isSupportedImage(next)) {
-      setError("Unsupported format. Use JPG, PNG, WEBP, or BMP.");
+      setError(copy.compressor.badFormat);
       return;
     }
 
@@ -117,21 +119,21 @@ export function ImageCompressor() {
     <ToolLayout
       accept="image/jpeg,image/png,image/webp,image/bmp,.jpg,.jpeg,.png,.webp,.bmp"
       onFiles={onFiles}
-      actionLabel="Compress image"
+      actionLabel={copy.compressor.action}
       onAction={() => file && compress(file, quality)}
       actionDisabled={!file}
       actionLoading={isCompressing}
-      downloadLabel="Download image"
+      downloadLabel={copy.compressor.download}
       onDownload={download}
       downloadDisabled={!compressedBlob || isCompressing}
-      dropTitle="Drop an image here or click to choose"
-      dropHint="JPG, PNG, WEBP, and BMP. Compression runs in the browser — nothing is uploaded."
+      dropTitle={copy.compressor.dropTitle}
+      dropHint={copy.compressor.dropHint}
       error={error}
       extra={
         <div className="rounded-xl border bg-card p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between gap-3">
             <Label htmlFor="quality" className="text-sm font-bold">
-              Compression quality
+              {copy.compressor.quality}
             </Label>
             <span className="text-sm font-semibold tabular-nums text-primary">{quality}%</span>
           </div>
@@ -143,11 +145,11 @@ export function ImageCompressor() {
               step={5}
               value={[quality]}
               onValueChange={(value) => setQuality(value[0] ?? 80)}
-              aria-label="Compression quality"
+              aria-label={copy.compressor.quality}
             />
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
-            Lower quality means a smaller file. Start at 80%, then drop it if you need it lighter.
+            {copy.compressor.qualityHint}
           </p>
         </div>
       }
@@ -155,23 +157,23 @@ export function ImageCompressor() {
         file ? (
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <p className="mb-2 text-sm font-bold">Preview</p>
+              <p className="mb-2 text-sm font-bold">{copy.compressor.preview}</p>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={compressedUrl || previewUrl || ""}
-                alt="Compressed image preview"
+                alt={copy.compressor.alt}
                 className="max-h-72 w-full rounded-lg border object-contain bg-muted/40"
               />
               <p className="mt-2 truncate text-xs text-muted-foreground">{file.name}</p>
             </div>
             <div className="grid grid-cols-2 gap-3 content-start">
-              <Stat label="Original size" value={formatBytes(file.size)} />
+              <Stat label={copy.compressor.original} value={formatBytes(file.size)} />
               <Stat
-                label="Compressed"
-                value={compressedBlob ? formatBytes(compressedBlob.size) : isCompressing ? "Calculating..." : "—"}
+                label={copy.compressor.compressed}
+                value={compressedBlob ? formatBytes(compressedBlob.size) : isCompressing ? copy.compressor.calculating : "—"}
               />
               <Stat
-                label="Saved"
+                label={copy.compressor.saved}
                 value={
                   savings
                     ? `${formatBytes(Math.max(savings.saved, 0))} (${formatPercent(Math.max(savings.percent, 0))})`
@@ -179,8 +181,8 @@ export function ImageCompressor() {
                 }
               />
               <Stat
-                label="Status"
-                value={isCompressing ? "Compressing" : compressedBlob ? "Ready to download" : "Waiting for an image"}
+                label={copy.compressor.status}
+                value={isCompressing ? copy.compressor.compressing : compressedBlob ? copy.compressor.ready : copy.compressor.waiting}
               />
             </div>
           </div>

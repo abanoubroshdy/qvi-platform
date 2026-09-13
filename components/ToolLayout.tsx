@@ -4,6 +4,7 @@ import { useRef, useState, type DragEvent, type ReactNode } from "react";
 import { Download, Loader2, UploadCloud } from "lucide-react";
 import { AdPlaceholder } from "@/components/AdPlaceholder";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/components/i18n/I18nProvider";
 import { cn } from "@/lib/utils";
 
 type ToolLayoutProps = {
@@ -42,13 +43,17 @@ export function ToolLayout({
   downloadLabel,
   onDownload,
   downloadDisabled,
-  dropTitle = "Drop a file here or click to choose",
-  dropHint = "Processing stays on your device. Nothing is uploaded to a server.",
-  emptyPreviewText = "File preview will appear here after you choose one.",
+  dropTitle,
+  dropHint,
+  emptyPreviewText,
   error,
 }: ToolLayoutProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const { copy } = useI18n();
+  const resolvedDropTitle = dropTitle ?? copy.layout.dropTitle;
+  const resolvedDropHint = dropHint ?? copy.layout.dropHint;
+  const resolvedEmpty = emptyPreviewText ?? copy.layout.emptyPreview;
 
   function handleFiles(fileList: FileList | File[]) {
     const files = Array.from(fileList);
@@ -87,8 +92,8 @@ export function ToolLayout({
           )}
         >
           <UploadCloud className="mb-3 h-10 w-10 text-primary" aria-hidden />
-          <p className="text-base font-bold">{dropTitle}</p>
-          <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">{dropHint}</p>
+          <p className="text-base font-bold">{resolvedDropTitle}</p>
+          <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">{resolvedDropHint}</p>
           <input
             ref={inputRef}
             type="file"
@@ -113,7 +118,7 @@ export function ToolLayout({
         <div className="rounded-xl border bg-card p-4 shadow-sm">{preview}</div>
       ) : (
         <div className="rounded-xl border border-dashed bg-muted/30 p-6 text-center text-sm text-muted-foreground">
-          {emptyPreviewText}
+          {resolvedEmpty}
         </div>
       )}
 

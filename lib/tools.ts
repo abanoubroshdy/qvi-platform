@@ -13,9 +13,10 @@ import {
   Type,
   type LucideIcon,
 } from "lucide-react";
+import type { ToolSlug } from "@/lib/i18n";
 
 export type Tool = {
-  slug: string;
+  slug: ToolSlug;
   title: string;
   description: string;
   href: string;

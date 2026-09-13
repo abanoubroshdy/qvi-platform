@@ -8,10 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { downloadBlob } from "@/lib/download";
 import { formatBytes } from "@/lib/format";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 const MAX_CHARS = 1200;
 
 export function QrGenerator() {
+  const { copy, t } = useI18n();
   const [text, setText] = useState("");
   const [size, setSize] = useState(512);
   const [dataUrl, setDataUrl] = useState<string | null>(null);
@@ -30,7 +32,7 @@ export function QrGenerator() {
     }
 
     if (content.length > MAX_CHARS) {
-      setError(`Text is longer than the ${MAX_CHARS}-character limit. Shorten it and try again.`);
+      setError(t(copy.qr.tooLong, { max: MAX_CHARS }));
       return;
     }
 
@@ -56,11 +58,11 @@ export function QrGenerator() {
       if (current !== requestId.current) return;
       setDataUrl(null);
       setBlob(null);
-      setError("Could not create a QR code. Try shorter text or remove unsupported characters.");
+      setError(copy.qr.failed);
     } finally {
       if (current === requestId.current) setIsGenerating(false);
     }
-  }, []);
+  }, [copy.qr.failed, copy.qr.tooLong, t]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -72,12 +74,12 @@ export function QrGenerator() {
   return (
     <ToolLayout
       hideDropzone
-      emptyPreviewText="Enter a URL or some text above to generate a QR code here."
-      actionLabel="Create code"
+      emptyPreviewText={copy.qr.empty}
+      actionLabel={copy.qr.action}
       onAction={() => generate(text, size)}
       actionDisabled={!text.trim() || text.trim().length > MAX_CHARS}
       actionLoading={isGenerating}
-      downloadLabel="Download PNG"
+      downloadLabel={copy.qr.download}
       onDownload={() => {
         if (!blob) return;
         downloadBlob(blob, "qr-code.png");
@@ -87,18 +89,18 @@ export function QrGenerator() {
       leading={
         <div className="rounded-xl border bg-card p-4 shadow-sm">
           <Label htmlFor="qr-text" className="text-sm font-bold">
-            Text or URL
+            {copy.qr.label}
           </Label>
           <textarea
             id="qr-text"
             rows={5}
             value={text}
             onChange={(event) => setText(event.target.value)}
-            placeholder="https://example.com or any text"
+            placeholder={copy.qr.placeholder}
             className="mt-2 flex min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm outline-none placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring"
           />
           <p className="mt-2 text-xs text-muted-foreground">
-            {text.trim().length} / {MAX_CHARS} characters · Generated on your device only. Nothing is sent to a server.
+            {t(copy.qr.counter, { count: text.trim().length, max: MAX_CHARS })}
           </p>
         </div>
       }
@@ -106,7 +108,7 @@ export function QrGenerator() {
         <div className="rounded-xl border bg-card p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between gap-3">
             <Label htmlFor="qr-size" className="text-sm font-bold">
-              Image size
+              {copy.qr.size}
             </Label>
             <span className="text-sm font-semibold tabular-nums text-primary">{size} px</span>
           </div>
@@ -118,7 +120,7 @@ export function QrGenerator() {
               step={64}
               value={[size]}
               onValueChange={(value) => setSize(value[0] ?? 512)}
-              aria-label="QR code size"
+              aria-label={copy.qr.size}
             />
           </div>
         </div>
@@ -129,14 +131,14 @@ export function QrGenerator() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={dataUrl}
-              alt="Generated QR code"
+              alt={copy.qr.alt}
               className="mx-auto h-56 w-56 rounded-lg border bg-white object-contain p-2"
             />
             <div className="grid grid-cols-2 content-start gap-3">
-              <Stat label="Size" value={`${size}×${size}`} />
-              <Stat label="File size" value={blob ? formatBytes(blob.size) : "—"} />
-              <Stat label="Correction" value="Medium (M)" />
-              <Stat label="Status" value={isGenerating ? "Generating" : "Ready to download"} />
+              <Stat label={copy.qr.size} value={`${size}×${size}`} />
+              <Stat label={copy.qr.fileSize} value={blob ? formatBytes(blob.size) : "—"} />
+              <Stat label={copy.qr.correction} value={copy.qr.correctionValue} />
+              <Stat label={copy.compressor.status} value={isGenerating ? copy.qr.generating : copy.qr.ready} />
             </div>
           </div>
         ) : undefined

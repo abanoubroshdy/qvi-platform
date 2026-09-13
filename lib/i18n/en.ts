@@ -1,0 +1,568 @@
+export const en = {
+  meta: {
+    languageName: "English",
+    languageShort: "EN",
+  },
+  nav: {
+    products: "Products",
+    tools: "Free Tools",
+    lab: "Lab",
+    about: "About",
+    exploreQv1: "Explore QV1",
+    primary: "Primary",
+    mobile: "Mobile",
+    openMenu: "Open menu",
+    closeMenu: "Close menu",
+  },
+  theme: {
+    label: "Appearance",
+    light: "Light",
+    dark: "Dark",
+    system: "System",
+  },
+  locale: {
+    label: "Language",
+    switchToEnglish: "Switch to English",
+    switchToArabic: "التبديل إلى العربية",
+  },
+  common: {
+    faq: "FAQ",
+    lastUpdated: "Last updated: {date}",
+    live: "Live",
+    soon: "Soon",
+    freeUtility: "Free utility",
+    openTool: "Open tool",
+    comingSoon: "Coming Soon",
+    inDevelopment: "In Development",
+    joinWaitlist: "Join waitlist",
+    exploreLab: "Explore Lab",
+  },
+  home: {
+    kicker: "The Future of Intelligent Audio",
+    title: "QVI — Quality Virtual Instruments",
+    lead:
+      "We build intelligent audio tools that run on your device. From stem separation to DDSP instrument synthesis.",
+    exploreQv1: "Explore QV1",
+    tryTools: "Try Free Tools",
+    productsKicker: "Flagship products",
+    productsTitle: "Audio software, not just utilities",
+    productsLead:
+      "QV1 and Neyora are the core of the QVI ecosystem — professional instruments designed to stay on your machine.",
+    qv1Cta: "Join waitlist",
+    neyoraCta: "Explore Lab",
+    toolsKicker: "Utilities",
+    toolsTitle: "Free online tools — powered by QVI",
+    toolsLead:
+      "Fast browser utilities that process files locally. Use them freely while the flagship audio engines come online.",
+  },
+  footer: {
+    blurb:
+      "Intelligent audio software that runs on your device, plus free browser utilities that never upload your files.",
+    products: "Products",
+    company: "Company",
+    freeTools: "Free Tools",
+    about: "About",
+    privacy: "Privacy Policy",
+    contact: "Contact",
+    terms: "Terms",
+    rights: "All rights reserved.",
+  },
+  products: {
+    qv1: {
+      name: "QV1",
+      status: "Coming Soon",
+      title: "QV1 — Stem Separation & Audio Processing Engine",
+      description:
+        "Professional AI engine for vocal/instrumental separation and track processing.",
+      features: [
+        "Split mixed tracks into vocals, instruments, and supporting stems",
+        "Clean noise and artifacts without hollowing the source",
+        "Rebuild balance for remix, sample, and scoring workflows",
+      ],
+      kicker: "Flagship engine",
+      extra:
+        "Built for producers, mixers, and composers who need clean sources without sending a session to someone else’s GPU.",
+      specsTitle: "Tech specs",
+      waitlistHeading: "Join the QV1 waitlist",
+      specs: [
+        ["Target formats", "WAV, AIFF, FLAC, MP3"],
+        ["Processing", "On-device inference roadmap"],
+        ["Workflow", "Studio batch, not live-stage latency"],
+        ["Privacy", "Source audio stays on your machine"],
+        ["Status", "Coming soon"],
+        ["Platform", "Desktop-class first, web companion later"],
+      ],
+      cards: [
+        {
+          title: "Stem Separation",
+          text: "Pull vocals, drums, bass, and accompaniment out of a mixed recording so you can edit, sample, or score with isolated sources.",
+        },
+        {
+          title: "De-noise",
+          text: "Reduce hiss, rumble, and room noise while protecting the musical core of the take.",
+        },
+        {
+          title: "Re-mix",
+          text: "Rebuild balance, space, and presence after stems are split — without starting the mix from a blank session.",
+        },
+      ],
+      faqs: [
+        {
+          q: "When will QV1 ship?",
+          a: "QV1 is on the waitlist. Join with your email and we will notify you as private builds open. There is no public download yet.",
+        },
+        {
+          q: "Does QV1 upload my tracks?",
+          a: "The product is designed so separation and processing run on your device. We are not building a cloud-upload stem service as the default path.",
+        },
+        {
+          q: "How is QV1 different from the free tools?",
+          a: "The free utilities on this site are browser helpers for images, PDFs, and QR codes. QV1 is a dedicated audio engine for stem separation and track processing.",
+        },
+        {
+          q: "Will there be a free tier?",
+          a: "We will share licensing details with the waitlist. The goal is a professional tool with a clear, honest path to try it.",
+        },
+      ],
+    },
+    neyora: {
+      name: "Neyora",
+      status: "In Development",
+      title: "Neyora — DDSP Instrument Synthesis",
+      description:
+        "Transform text, voice, or MIDI into realistic instrument performance using DDSP technology.",
+      features: [
+        "Prompt an instrument performance from text or sung input",
+        "Map MIDI into expressive, physically informed timbre",
+        "Designed for composers who want studio-ready phrases, not generic loops",
+      ],
+      kicker: "QVI Lab",
+      extra:
+        "Built for composers who want an instrument that understands phrasing, not another text-to-noise toy.",
+      ddspTitle: "What DDSP changes",
+      ddspBody:
+        "Classic samplers play back recordings. Pure neural vocoders often smear pitch and lose editability. DDSP sits between them: the network estimates musical controls, then a differentiable synth renders tone you can still reason about — breath, bow, reed, room. Neyora uses that idea for solo instrument performance from text, voice, or MIDI.",
+      demoTitle: "Demo",
+      waitlistHeading: "Join the Neyora lab list",
+      steps: [
+        {
+          title: "Condition",
+          text: "Start from a text prompt, a hummed take, or MIDI. Neyora reads intent, pitch contour, and timing — not a canned loop library.",
+        },
+        {
+          title: "Model",
+          text: "Differentiable DSP separates what should be learned (timbre, noise, expression) from what should stay physical (oscillators, filters, envelopes).",
+        },
+        {
+          title: "Perform",
+          text: "The engine renders a playable phrase you can drop into a score or session, with control instead of a one-shot sample dump.",
+        },
+      ],
+      faqs: [
+        {
+          q: "What is DDSP?",
+          a: "Differentiable Digital Signal Processing combines neural networks with classic DSP blocks. Instead of generating raw waveforms blindly, the model predicts musical parameters that a synthesizer can render with more realistic control.",
+        },
+        {
+          q: "Can I try Neyora now?",
+          a: "The public demo is a placeholder. You can save a prompt locally and join the waitlist. Real synthesis is still in the lab.",
+        },
+        {
+          q: "Is this a cloud generator?",
+          a: "Neyora is being designed as part of the QVI on-device ecosystem. Prompts you type here are not sent to a training cluster.",
+        },
+      ],
+    },
+  },
+  waitlist: {
+    hint: "Leave your email and we will notify you when this instrument is ready. Saved on this device for now — cloud waitlist comes next.",
+    placeholder: "you@studio.com",
+    submit: "Join waitlist",
+    error: "Enter a valid email address.",
+    doneTitle: "You are on the {product} waitlist",
+    doneBody:
+      "Saved on this device{email}. We will notify you when the instrument is ready. Cloud waitlist comes next.",
+    forEmail: " for {email}",
+  },
+  demo: {
+    label: "Text prompt → instrument",
+    hint: "Describe a phrase. Neyora will turn language, voice, or MIDI into a physically informed performance when the lab engine ships.",
+    placeholder: "A slow ney phrase in maqam rast, breathy attack, ornamental slides",
+    render: "Render preview",
+    empty: "Write a short performance prompt first.",
+    stored:
+      "Prompt stored on this device. The DDSP engine is still in the lab — synthesis is not live yet.",
+  },
+  toolsIndex: {
+    "image-compressor": {
+      title: "Image Compressor",
+      description: "Shrink JPG, PNG, and WEBP files in your browser with a live size comparison.",
+    },
+    "webp-to-jpg": {
+      title: "WEBP to JPG",
+      description: "Convert WEBP images to compatible JPG files without uploading anything.",
+    },
+    "png-to-pdf": {
+      title: "PNG to PDF",
+      description: "Turn one or more PNG images into a shareable PDF, one page per image.",
+    },
+    "pdf-compressor": {
+      title: "PDF Compressor",
+      description: "Reduce PDF file size for faster sending while keeping the document readable.",
+    },
+    "pdf-merger": {
+      title: "PDF Merger",
+      description: "Combine several PDFs into a single ordered document in seconds.",
+    },
+    "qr-generator": {
+      title: "QR Generator",
+      description: "Create a high-quality QR code from any link or text and download it as PNG.",
+    },
+    "image-resizer": {
+      title: "Image Resizer",
+      description: "Change image dimensions in pixels, with or without locking aspect ratio.",
+    },
+    "word-counter": {
+      title: "Word Counter",
+      description: "Count words, characters, and paragraphs in any text instantly.",
+    },
+    "password-generator": {
+      title: "Password Generator",
+      description: "Generate strong random passwords with the length and symbols you choose.",
+    },
+    base64: {
+      title: "Base64 Tool",
+      description: "Encode and decode text or files as Base64 entirely on your device.",
+    },
+    "color-picker": {
+      title: "Color Picker",
+      description: "Pick precise colors and copy HEX, RGB, and HSL values instantly.",
+    },
+    "qr-reader": {
+      title: "QR Reader",
+      description: "Read a QR code from an uploaded image without needing a camera.",
+    },
+  },
+  upcoming: {
+    kicker: "QVI free utility",
+    body: "This utility is still being wired into the same local-processing foundation as the live tools.",
+    back: "Back to free tools",
+    other: "Other tools",
+  },
+  layout: {
+    dropTitle: "Drop a file here or click to choose",
+    dropHint: "Processing stays on your device. Nothing is uploaded to a server.",
+    emptyPreview: "File preview will appear here after you choose one.",
+    ads: {
+      top: "Ad slot — top",
+      middle: "Ad slot — middle",
+      bottom: "Ad slot — bottom",
+    },
+  },
+  compressor: {
+    action: "Compress image",
+    download: "Download image",
+    dropTitle: "Drop an image here or click to choose",
+    dropHint: "JPG, PNG, WEBP, and BMP. Compression runs in the browser — nothing is uploaded.",
+    quality: "Compression quality",
+    qualityHint: "Lower quality means a smaller file. Start at 80%, then drop it if you need it lighter.",
+    preview: "Preview",
+    original: "Original size",
+    compressed: "Compressed",
+    saved: "Saved",
+    status: "Status",
+    calculating: "Calculating...",
+    compressing: "Compressing",
+    ready: "Ready to download",
+    waiting: "Waiting for an image",
+    badFormat: "Unsupported format. Use JPG, PNG, WEBP, or BMP.",
+    failed: "Could not compress this image. Try another file or a different quality.",
+    alt: "Compressed image preview",
+  },
+  webp: {
+    action: "Convert to JPG",
+    download: "Download JPG",
+    dropTitle: "Drop a WEBP image here or click to choose",
+    dropHint: "Conversion uses Canvas in your browser. Nothing is uploaded.",
+    quality: "JPG quality",
+    qualityHint: "WEBP transparency is filled with white because JPG has no alpha channel.",
+    preview: "Preview",
+    webpSize: "WEBP size",
+    jpgSize: "JPG size",
+    dimensions: "Dimensions",
+    unchanged: "Unchanged",
+    converting: "Converting...",
+    convertingStatus: "Converting",
+    ready: "Ready to download",
+    waiting: "Waiting for an image",
+    badFormat: "Unsupported format. Choose a WEBP file.",
+    failed: "Could not convert this image. Make sure the file is a valid WEBP.",
+    alt: "Converted JPG preview",
+  },
+  png: {
+    action: "Convert to PDF",
+    download: "Download PDF",
+    dropTitle: "Drop PNG images here or click to choose",
+    dropHint: "Pick one image or several. Each image becomes a PDF page. Processing stays on this device.",
+    images: "Images",
+    pngSize: "PNG size",
+    pdfSize: "PDF size",
+    building: "Building...",
+    converting: "Converting",
+    ready: "Ready to download",
+    waiting: "Waiting for images",
+    selected: "Selected images",
+    pdfPreview: "PDF preview",
+    badFormat: "No PNG images found. Choose one or more PNG files.",
+    failed: "Could not build a PDF. Use valid, uncorrupted PNG files.",
+  },
+  qr: {
+    action: "Create code",
+    download: "Download PNG",
+    empty: "Enter a URL or some text above to generate a QR code here.",
+    label: "Text or URL",
+    placeholder: "https://example.com or any text",
+    counter: "{count} / {max} characters · Generated on your device only. Nothing is sent to a server.",
+    size: "Image size",
+    fileSize: "File size",
+    correction: "Correction",
+    correctionValue: "Medium (M)",
+    generating: "Generating",
+    ready: "Ready to download",
+    tooLong: "Text is longer than the {max}-character limit. Shorten it and try again.",
+    failed: "Could not create a QR code. Try shorter text or remove unsupported characters.",
+    alt: "Generated QR code",
+  },
+  toolPages: {
+    "image-compressor": {
+      category: "Image tools",
+      title: "Compress images online — no upload",
+      description:
+        "Shrink photos in seconds while keeping enough detail to share or send. Processing stays on your device.",
+      howToTitle: "How do I compress an image?",
+      howToNote:
+        "We do not keep copies of your photos and we do not ask for an account. Close the tab and the files leave browser memory.",
+      howToSteps: [
+        "Choose an image or drop it on the upload area.",
+        "Set the quality slider for the size you need.",
+        "Wait for instant compression or tap Compress image.",
+        "Compare original vs compressed size, then download.",
+      ],
+      faqs: [
+        {
+          q: "Is my image uploaded to a server?",
+          a: "No. QVI’s image compressor runs entirely in your browser. The file is not sent to our servers and is not stored.",
+        },
+        {
+          q: "Which formats are supported?",
+          a: "JPG, JPEG, PNG, WEBP, and BMP. After compression you can download the result immediately.",
+        },
+        {
+          q: "Will quality drop after compression?",
+          a: "You control quality with the slider. 80% is a solid default. Lower it for a smaller file, or raise it if sharpness matters more.",
+        },
+        {
+          q: "Is it free with no limits?",
+          a: "Yes. No account, no daily cap. Use it whenever you need it.",
+        },
+        {
+          q: "Does it work on mobile?",
+          a: "Yes. The page is responsive on phones, tablets, and desktops.",
+        },
+      ],
+    },
+    "webp-to-jpg": {
+      category: "Image tools",
+      title: "Convert WEBP to JPG — no upload",
+      description:
+        "Make WEBP files work in apps and sites that prefer JPG. Conversion is instant and stays on your device.",
+      howToTitle: "How do I convert WEBP to JPG?",
+      howToNote: "We do not keep a copy of your image. Close the page and it leaves browser memory.",
+      howToSteps: [
+        "Drop a WEBP file or choose it from your device.",
+        "Adjust JPG quality if you want a smaller or sharper file.",
+        "Wait for instant conversion or tap Convert to JPG.",
+        "Preview the result, then download the JPG.",
+      ],
+      faqs: [
+        {
+          q: "Is the WEBP file uploaded?",
+          a: "No. Conversion happens in the browser with Canvas. The file stays on your device.",
+        },
+        {
+          q: "Why does transparency become white?",
+          a: "JPG has no alpha channel. The image is drawn on a white background so transparent areas do not turn black.",
+        },
+        {
+          q: "Are dimensions preserved?",
+          a: "Yes. Width and height stay the same. You only change format and JPEG quality.",
+        },
+        {
+          q: "Which browsers work?",
+          a: "Any modern browser with WEBP and Canvas support.",
+        },
+        {
+          q: "Is conversion free?",
+          a: "Yes. No account and no daily limit.",
+        },
+      ],
+    },
+    "png-to-pdf": {
+      category: "PDF tools",
+      title: "Convert PNG to PDF — no upload",
+      description:
+        "Collect images into an ordered PDF in seconds. Useful for sharing, archiving, and print — files stay on your device.",
+      howToTitle: "How do I convert PNG to PDF?",
+      howToNote: "We never see or store your images. The PDF is created in the browser, then downloaded to you.",
+      howToSteps: [
+        "Drop one or more PNG images on the conversion area.",
+        "Check the thumbnails to confirm the right files.",
+        "Wait for the PDF to build, or tap Convert to PDF.",
+        "Preview the document on the page, then download it.",
+      ],
+      faqs: [
+        {
+          q: "Is the PNG uploaded to a server?",
+          a: "No. The tool uses pdf-lib inside the browser. There is no upload API.",
+        },
+        {
+          q: "Can I convert more than one image?",
+          a: "Yes. Pick several PNGs and each image becomes its own page in one PDF.",
+        },
+        {
+          q: "Is PNG transparency kept?",
+          a: "Yes where the format allows. Images are embedded as PNG inside the PDF.",
+        },
+        {
+          q: "What page size do I get?",
+          a: "Each page follows the image, capped near A4 so the file does not become awkwardly huge.",
+        },
+        {
+          q: "Do I need extra software?",
+          a: "No. A modern browser is enough.",
+        },
+      ],
+    },
+    "qr-generator": {
+      category: "QR tools",
+      title: "QR code generator — no upload",
+      description:
+        "Turn any link or text into a downloadable QR code. Useful for cards, menus, and site URLs, with full privacy.",
+      howToTitle: "How do I create a QR code?",
+      howToNote: "We do not log what you type. Close the page and nothing remains on our servers — it was never sent.",
+      howToSteps: [
+        "Type a URL or any text in the field.",
+        "Set image size for screen or print.",
+        "The code generates instantly, or tap Create code.",
+        "Download the PNG and use it on a site or in print.",
+      ],
+      faqs: [
+        {
+          q: "Is my text or URL sent to a server?",
+          a: "No. The QR code is drawn in the browser. What you type is not uploaded or stored by us.",
+        },
+        {
+          q: "Does it support Arabic or other scripts?",
+          a: "Yes. You can encode Arabic or English text and URLs. Keep the payload short so it stays easy to scan.",
+        },
+        {
+          q: "What error-correction level is used?",
+          a: "Medium (M) balances data capacity with resistance to light damage when printed or photographed.",
+        },
+        {
+          q: "What format do I download?",
+          a: "A square PNG. Size can be 256 to 1024 pixels.",
+        },
+        {
+          q: "Do I need an app to scan it later?",
+          a: "Most phone cameras read QR codes directly. For print, pick a larger size.",
+        },
+      ],
+    },
+  },
+  notFound: {
+    title: "Page not found",
+    body: "That link is missing or moved. Head back to QVI products or the free tools.",
+    back: "Back to QVI",
+  },
+  contactForm: {
+    name: "Name",
+    email: "Email",
+    message: "Message",
+    send: "Send message",
+    error: "Please fill in every field before sending.",
+    ready: "Your mail app should open with the message ready to send.",
+  },
+  about: {
+    title: "About QVI",
+    updated: "September 13, 2026",
+    p1: "QVI (Quality Virtual Instruments) is an audio software studio. We build intelligent instruments and processors designed to run on your device — not a generic dump of online gadgets with a logo on top.",
+    h2ecosystem: "The ecosystem",
+    p2a: "QV1 is our stem separation and audio processing engine. Neyora is the lab instrument: DDSP synthesis from text, voice, or MIDI. Around them we ship free browser utilities that process files locally, so the platform is useful while the flagship engines mature.",
+    h2device: "On-device by default",
+    p3: "Audio and documents are intimate. Wherever we can keep processing on the machine in front of you, we will. Free tools on this site already work that way: no upload API, no account wall.",
+    h2ads: "Ads and sustainability",
+    p4: "Free utilities may show advertising to cover hosting. Ads are not a license to harvest your sessions. Read the Privacy Policy for details.",
+    h2contact: "Contact",
+    p5: "For press, waitlist questions, or product feedback, use Contact or {email}.",
+  },
+  contact: {
+    title: "Contact",
+    updated: "September 13, 2026",
+    p1: "For product questions, waitlist issues, press, or a bug in a free tool, write through the form or email us directly. We reply on business days when we can.",
+    note: "Do not send session files or private stems over email. Support is for text. Local tools already process files on your device.",
+    heading: "Message",
+    emailLabel: "Email:",
+  },
+  privacy: {
+    title: "Privacy Policy",
+    updated: "September 13, 2026",
+    p1: "This policy explains how QVI handles information when you visit the site, join a waitlist, or use free browser tools. If you do not agree, please stop using the service.",
+    h1: "1. On-device processing",
+    p2: "Free utilities such as image compression, WEBP conversion, PNG to PDF, and QR generation run in your browser. We do not require an account and we do not upload those files to our servers to process them. Flagship products (QV1, Neyora) are being designed around the same principle.",
+    p3: "We do not use the contents of files you process in the browser to train models or to build advertising profiles tied to that content.",
+    h2: "2. Technical logs",
+    p4: "Hosting providers may record limited technical data to keep the site up: approximate IP, browser type, time, and the page requested. Those logs do not include the files you process locally.",
+    h3: "3. Cookies and ads",
+    p5: "The site may use cookies required to run the page, plus third-party cookies for advertising and traffic measurement, including Google AdSense. Blocking non-essential cookies may change ad display; it will not stop local tools from working.",
+    h4: "4. Waitlists and contact",
+    p6: "Product waitlists on this site currently store your email in this browser via local storage until a server waitlist is connected. Messages you send through the contact form go to {email} and are used only to reply.",
+    h5: "5. Children",
+    p7: "The site is for a general audience. We do not knowingly collect personal information from children under 13.",
+    h6: "6. Changes",
+    p8: "We may update this policy as products ship. The date at the top will change. Continued use after an update means you accept the revised policy.",
+    h7: "7. Contact",
+    p9: "Privacy questions: {email} or the contact page.",
+  },
+  terms: {
+    title: "Terms of Use",
+    updated: "September 13, 2026",
+    p1: "These terms govern your use of QVI — Quality Virtual Instruments, including product pages and free utilities. Entering the site or using a tool means you agree to these terms and the Privacy Policy.",
+    h1: "1. The service",
+    p2: "QVI provides information about upcoming audio software (including QV1 and Neyora) and free in-browser utilities. Waitlists, demos, and “coming soon” labels are not a promise of a ship date. The site is provided as-is.",
+    h2: "2. Your files",
+    p3: "You are responsible for the files and text you process. You must have the right to use that content. Local tools do not keep a copy after you close the tab.",
+    h3: "3. Acceptable use",
+    l1: "Do not attack, scrape abusively, or disrupt the site.",
+    l2: "Do not resell the service as your own product without written permission.",
+    l3: "Do not submit malware or use contact forms for spam or fraud.",
+    h4: "4. Intellectual property",
+    p4: "The QVI name, product names (QV1, Neyora), logo, and original copy belong to the project unless stated otherwise. Content you process remains yours.",
+    h5: "5. Ads and outbound links",
+    p5: "We may show ads (including Google AdSense) and links to other sites. We do not control those third parties.",
+    h6: "6. Disclaimer",
+    p6: "To the fullest extent allowed by law, QVI is not liable for damages from using the tools, from downtime, or from losing a file you did not back up. Keep originals before converting or compressing anything.",
+    h7: "7. Contact",
+    p7: "Questions: {email} or Contact.",
+  },
+} as const;
+
+export type DeepString<T> = T extends string
+  ? string
+  : T extends ReadonlyArray<infer U>
+    ? readonly DeepString<U>[]
+    : { [K in keyof T]: DeepString<T[K]> };
+
+export type Messages = DeepString<typeof en>;
+export type ToolSlug = keyof Messages["toolsIndex"];
+export type LiveToolSlug = keyof Messages["toolPages"];

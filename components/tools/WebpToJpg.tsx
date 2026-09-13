@@ -8,12 +8,14 @@ import { Slider } from "@/components/ui/slider";
 import { downloadBlob } from "@/lib/download";
 import { formatBytes } from "@/lib/format";
 import { canvasToBlob, loadImageFromFile } from "@/lib/image";
+import { useI18n } from "@/components/i18n/I18nProvider";
 
 function isWebp(file: File) {
   return file.type === "image/webp" || file.name.toLowerCase().endsWith(".webp");
 }
 
 export function WebpToJpg() {
+  const { copy } = useI18n();
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [quality, setQuality] = useState(90);
@@ -60,18 +62,18 @@ export function WebpToJpg() {
     } catch {
       if (current !== requestId.current) return;
       setResult(null);
-      setError("Could not convert this image. Make sure the file is a valid WEBP.");
+      setError(copy.webp.failed);
     } finally {
       if (current === requestId.current) setIsConverting(false);
     }
-  }, []);
+  }, [copy.webp.failed]);
 
   function onFiles(files: File[]) {
     const next = files[0];
     if (!next) return;
 
     if (!isWebp(next)) {
-      setError("Unsupported format. Choose a WEBP file.");
+      setError(copy.webp.badFormat);
       return;
     }
 
@@ -101,25 +103,25 @@ export function WebpToJpg() {
     <ToolLayout
       accept="image/webp,.webp"
       onFiles={onFiles}
-      actionLabel="Convert to JPG"
+      actionLabel={copy.webp.action}
       onAction={() => file && convert(file, quality)}
       actionDisabled={!file}
       actionLoading={isConverting}
-      downloadLabel="Download JPG"
+      downloadLabel={copy.webp.download}
       onDownload={() => {
         if (!result || !file) return;
         const baseName = file.name.replace(/\.[^.]+$/, "");
         downloadBlob(result, `${baseName}.jpg`);
       }}
       downloadDisabled={!result || isConverting}
-      dropTitle="Drop a WEBP image here or click to choose"
-      dropHint="Conversion uses Canvas in your browser. Nothing is uploaded."
+      dropTitle={copy.webp.dropTitle}
+      dropHint={copy.webp.dropHint}
       error={error}
       extra={
         <div className="rounded-xl border bg-card p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between gap-3">
             <Label htmlFor="jpg-quality" className="text-sm font-bold">
-              JPG quality
+              {copy.webp.quality}
             </Label>
             <span className="text-sm font-semibold tabular-nums text-primary">{quality}%</span>
           </div>
@@ -131,11 +133,11 @@ export function WebpToJpg() {
               step={5}
               value={[quality]}
               onValueChange={(value) => setQuality(value[0] ?? 90)}
-              aria-label="JPG quality"
+              aria-label={copy.webp.quality}
             />
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
-            WEBP transparency is filled with white because JPG has no alpha channel.
+            {copy.webp.qualityHint}
           </p>
         </div>
       }
@@ -143,20 +145,20 @@ export function WebpToJpg() {
         file ? (
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <p className="mb-2 text-sm font-bold">Preview</p>
+              <p className="mb-2 text-sm font-bold">{copy.webp.preview}</p>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={resultUrl || previewUrl || ""}
-                alt="Converted JPG preview"
+                alt={copy.webp.alt}
                 className="max-h-72 w-full rounded-lg border bg-muted/40 object-contain"
               />
               <p className="mt-2 truncate text-xs text-muted-foreground">{file.name}</p>
             </div>
             <div className="grid grid-cols-2 content-start gap-3">
-              <Stat label="WEBP size" value={formatBytes(file.size)} />
-              <Stat label="JPG size" value={result ? formatBytes(result.size) : isConverting ? "Converting..." : "—"} />
-              <Stat label="Dimensions" value={resultUrl ? "Unchanged" : "—"} />
-              <Stat label="Status" value={isConverting ? "Converting" : result ? "Ready to download" : "Waiting for an image"} />
+              <Stat label={copy.webp.webpSize} value={formatBytes(file.size)} />
+              <Stat label={copy.webp.jpgSize} value={result ? formatBytes(result.size) : isConverting ? copy.webp.converting : "—"} />
+              <Stat label={copy.webp.dimensions} value={resultUrl ? copy.webp.unchanged : "—"} />
+              <Stat label={copy.compressor.status} value={isConverting ? copy.webp.convertingStatus : result ? copy.webp.ready : copy.webp.waiting} />
             </div>
           </div>
         ) : undefined
