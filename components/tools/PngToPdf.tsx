@@ -60,7 +60,7 @@ export function PngToPdf() {
     } catch {
       if (current !== requestId.current) return;
       setPdfBlob(null);
-      setError("تعذر إنشاء ملف PDF. استخدم صور PNG صالحة وغير تالفة.");
+      setError("Could not build a PDF. Use valid, uncorrupted PNG files.");
     } finally {
       if (current === requestId.current) setIsConverting(false);
     }
@@ -69,7 +69,7 @@ export function PngToPdf() {
   function onFiles(incoming: File[]) {
     const pngs = incoming.filter(isPng);
     if (!pngs.length) {
-      setError("لم يُعثر على صور PNG. اختر ملفاً أو أكثر بصيغة PNG.");
+      setError("No PNG images found. Choose one or more PNG files.");
       return;
     }
 
@@ -99,11 +99,11 @@ export function PngToPdf() {
       accept="image/png,.png"
       multiple
       onFiles={onFiles}
-      actionLabel="تحويل إلى PDF"
+      actionLabel="Convert to PDF"
       onAction={() => files.length && convert(files)}
       actionDisabled={!files.length}
       actionLoading={isConverting}
-      downloadLabel="تنزيل PDF"
+      downloadLabel="Download PDF"
       onDownload={() => {
         if (!pdfBlob) return;
         const baseName = files[0]?.name.replace(/\.[^.]+$/, "") || "image";
@@ -111,20 +111,20 @@ export function PngToPdf() {
         downloadBlob(pdfBlob, filename);
       }}
       downloadDisabled={!pdfBlob || isConverting}
-      dropTitle="اسحب صور PNG هنا أو اضغط للاختيار"
-      dropHint="يمكنك اختيار صورة واحدة أو عدة صور. كل صورة تصبح صفحة في ملف PDF، والمعالجة محلية بالكامل."
+      dropTitle="Drop PNG images here or click to choose"
+      dropHint="Pick one image or several. Each image becomes a PDF page. Processing stays on this device."
       error={error}
       preview={
         files.length ? (
           <div className="space-y-4">
             <div className="grid grid-cols-2 content-start gap-3 sm:grid-cols-4">
-              <Stat label="عدد الصور" value={`${files.length}`} />
-              <Stat label="حجم PNG" value={formatBytes(files.reduce((sum, file) => sum + file.size, 0))} />
-              <Stat label="حجم PDF" value={pdfBlob ? formatBytes(pdfBlob.size) : isConverting ? "جارٍ الإنشاء..." : "—"} />
-              <Stat label="الحالة" value={isConverting ? "جارٍ التحويل" : pdfBlob ? "جاهز للتنزيل" : "بانتظار الصور"} />
+              <Stat label="Images" value={`${files.length}`} />
+              <Stat label="PNG size" value={formatBytes(files.reduce((sum, file) => sum + file.size, 0))} />
+              <Stat label="PDF size" value={pdfBlob ? formatBytes(pdfBlob.size) : isConverting ? "Building..." : "—"} />
+              <Stat label="Status" value={isConverting ? "Converting" : pdfBlob ? "Ready to download" : "Waiting for images"} />
             </div>
             <div>
-              <p className="mb-2 text-sm font-bold">الصور المختارة</p>
+              <p className="mb-2 text-sm font-bold">Selected images</p>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {files.map((file, index) => (
                   <figure key={`${file.name}-${index}`} className="overflow-hidden rounded-lg border bg-muted/40">
@@ -137,8 +137,8 @@ export function PngToPdf() {
             </div>
             {pdfUrl ? (
               <div>
-                <p className="mb-2 text-sm font-bold">معاينة PDF</p>
-                <iframe title="معاينة ملف PDF" src={pdfUrl} className="h-80 w-full rounded-lg border bg-muted/30" />
+                <p className="mb-2 text-sm font-bold">PDF preview</p>
+                <iframe title="PDF preview" src={pdfUrl} className="h-80 w-full rounded-lg border bg-muted/30" />
               </div>
             ) : null}
           </div>

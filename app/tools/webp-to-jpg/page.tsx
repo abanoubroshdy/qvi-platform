@@ -3,9 +3,9 @@ import { ToolPage } from "@/components/ToolPage";
 import { WebpToJpg } from "@/components/tools/WebpToJpg";
 import { siteConfig } from "@/lib/site";
 
-const pageTitle = "تحويل WEBP إلى JPG أونلاين بدون رفع";
+const pageTitle = "Convert WEBP to JPG Online — No Upload";
 const pageDescription =
-  "حوّل صور WEBP إلى JPG متوافقة مع كل التطبيقات مباشرة من المتصفح. مجاني، فوري، ولا يرفع ملفاتك إلى أي خادم.";
+  "Convert WEBP images to compatible JPG files in your browser. Free, instant, and nothing is uploaded.";
 
 export function generateMetadata(): Metadata {
   return {
@@ -16,7 +16,7 @@ export function generateMetadata(): Metadata {
       title: pageTitle,
       description: pageDescription,
       url: `${siteConfig.url}/tools/webp-to-jpg`,
-      locale: "ar_AR",
+      locale: "en_US",
       type: "article",
     },
   };
@@ -24,46 +24,43 @@ export function generateMetadata(): Metadata {
 
 const faqs = [
   {
-    question: "هل تُرفع صورة WEBP إلى الخادم؟",
-    answer:
-      "لا. التحويل يتم داخل المتصفح عبر عنصر Canvas. الملف يبقى على جهازك ويُصدَّر كـ JPG محلياً دون أي مسار رفع.",
+    question: "Is the WEBP file uploaded?",
+    answer: "No. Conversion happens in the browser with Canvas. The file stays on your device and is exported as JPG locally.",
   },
   {
-    question: "لماذا تصبح الخلفية الشفافة بيضاء؟",
-    answer:
-      "صيغة JPG لا تدعم الشفافية. لذلك تُرسم الصورة على خلفية بيضاء قبل التصدير حتى لا تظهر مناطق شفافة بلون أسود غير متوقع.",
+    question: "Why does transparency become white?",
+    answer: "JPG has no alpha channel. The image is drawn on a white background so transparent areas do not turn black.",
   },
   {
-    question: "هل تبقى أبعاد الصورة كما هي؟",
-    answer: "نعم. الأداة تنسخ العرض والارتفاع كما هما، وتكتفي بتغيير الصيغة والجودة التي تختارها.",
+    question: "Are dimensions preserved?",
+    answer: "Yes. Width and height stay the same. You only change format and JPEG quality.",
   },
   {
-    question: "ما المتصفحات المدعومة؟",
-    answer:
-      "أي متصفح حديث يدعم عرض WEBP وCanvas، بما في ذلك Chrome وFirefox وSafari وEdge على الجوال والحاسوب.",
+    question: "Which browsers work?",
+    answer: "Any modern browser with WEBP and Canvas support, including Chrome, Firefox, Safari, and Edge on phone and desktop.",
   },
   {
-    question: "هل التحويل مجاني بلا حدود؟",
-    answer: "نعم. لا تحتاج إلى حساب، ولا توجد حدود يومية، ويمكنك تحويل أي عدد من الصور على جهازك.",
+    question: "Is conversion free?",
+    answer: "Yes. No account and no daily limit. Convert as many images as you need on your device.",
   },
 ];
 
 const howToSteps = [
-  "اسحب ملف WEBP إلى منطقة التحويل أو اختره من جهازك.",
-  "اضبط جودة JPG إن أردت ملفاً أصغر أو أوضح.",
-  "انتظر التحويل الفوري أو اضغط «تحويل إلى JPG».",
-  "عاين النتيجة ثم نزّل ملف JPG إلى جهازك.",
+  "Drop a WEBP file or choose it from your device.",
+  "Adjust JPG quality if you want a smaller or sharper file.",
+  "Wait for instant conversion or tap Convert to JPG.",
+  "Preview the result, then download the JPG.",
 ];
 
 export default function WebpToJpgPage() {
   return (
     <ToolPage
-      category="أدوات الصور"
-      title="تحويل WEBP إلى JPG بدون رفع"
-      description="اجعل صور WEBP متوافقة مع البرامج والمواقع التي تفضّل JPG. التحويل فوري وعلى جهازك فقط."
-      howToTitle="كيف تحوّل WEBP إلى JPG؟"
+      category="Image tools"
+      title="Convert WEBP to JPG — no upload"
+      description="Make WEBP files work in apps and sites that prefer JPG. Conversion is instant and stays on your device."
+      howToTitle="How do I convert WEBP to JPG?"
       howToSteps={howToSteps}
-      howToNote="لا نحتفظ بنسخة من صورتك. أغلق الصفحة وستختفي الملفات من ذاكرة المتصفح."
+      howToNote="We do not keep a copy of your image. Close the page and it leaves browser memory."
       faqs={faqs}
       jsonLdName="WEBP to JPG | QVI"
       canonicalPath="/tools/webp-to-jpg"

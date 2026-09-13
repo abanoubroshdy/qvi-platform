@@ -3,9 +3,9 @@ import { ToolPage } from "@/components/ToolPage";
 import { PngToPdf } from "@/components/tools/PngToPdf";
 import { siteConfig } from "@/lib/site";
 
-const pageTitle = "تحويل PNG إلى PDF أونلاين بدون رفع";
+const pageTitle = "Convert PNG to PDF Online — No Upload";
 const pageDescription =
-  "حوّل صور PNG إلى ملف PDF جاهز للمشاركة أو الطباعة من المتصفح. يمكنك دمج عدة صور، والمعالجة محلية بالكامل.";
+  "Turn PNG images into a PDF for sharing or print, entirely in your browser. Merge several images, with fully local processing.";
 
 export function generateMetadata(): Metadata {
   return {
@@ -16,7 +16,7 @@ export function generateMetadata(): Metadata {
       title: pageTitle,
       description: pageDescription,
       url: `${siteConfig.url}/tools/png-to-pdf`,
-      locale: "ar_AR",
+      locale: "en_US",
       type: "article",
     },
   };
@@ -24,47 +24,43 @@ export function generateMetadata(): Metadata {
 
 const faqs = [
   {
-    question: "هل يُرفع ملف PNG إلى الخادم؟",
-    answer:
-      "لا. الأداة تستخدم مكتبة pdf-lib داخل المتصفح لإنشاء المستند محلياً. لا توجد مسارات API لرفع الصور.",
+    question: "Is the PNG uploaded to a server?",
+    answer: "No. The tool uses pdf-lib inside the browser to build the document locally. There is no upload API.",
   },
   {
-    question: "هل يمكن تحويل أكثر من صورة دفعة واحدة؟",
-    answer:
-      "نعم. اختر عدة ملفات PNG وستصبح كل صورة صفحة مستقلة في ملف PDF واحد، مع الحفاظ على ترتيب الاختيار.",
+    question: "Can I convert more than one image?",
+    answer: "Yes. Pick several PNGs and each image becomes its own page in one PDF, in the order you selected.",
   },
   {
-    question: "هل تُحفظ شفافية PNG؟",
-    answer:
-      "نعم قدر الإمكان. التضمين يتم بصيغة PNG داخل PDF، لذلك تبقى المناطق الشفافة كما هي فوق خلفية الصفحة.",
+    question: "Is PNG transparency kept?",
+    answer: "Yes where the format allows. Images are embedded as PNG inside the PDF, so transparent areas stay over the page background.",
   },
   {
-    question: "ما حجم الصفحة الناتج؟",
-    answer:
-      "تُضبط أبعاد كل صفحة حسب الصورة مع حد أقصى قريب من مقاس A4 حتى لا ينتج ملف بعرض غير عملي للعرض أو الطباعة.",
+    question: "What page size do I get?",
+    answer: "Each page follows the image, capped near A4 so the file does not become awkwardly huge to view or print.",
   },
   {
-    question: "هل أحتاج برنامجاً إضافياً؟",
-    answer: "لا. يكفي متصفح حديث. بعد التنزيل يمكنك فتح الملف بأي قارئ PDF على الجوال أو الحاسوب.",
+    question: "Do I need extra software?",
+    answer: "No. A modern browser is enough. After download, open the file in any PDF reader on phone or desktop.",
   },
 ];
 
 const howToSteps = [
-  "اسحب صورة PNG واحدة أو أكثر إلى منطقة التحويل.",
-  "راجع المصغّرات للتأكد من الملفات الصحيحة.",
-  "انتظر إنشاء PDF أو اضغط «تحويل إلى PDF».",
-  "عاين المستند داخل الصفحة ثم نزّله إلى جهازك.",
+  "Drop one or more PNG images on the conversion area.",
+  "Check the thumbnails to confirm the right files.",
+  "Wait for the PDF to build, or tap Convert to PDF.",
+  "Preview the document on the page, then download it.",
 ];
 
 export default function PngToPdfPage() {
   return (
     <ToolPage
-      category="أدوات PDF"
-      title="تحويل PNG إلى PDF بدون رفع"
-      description="اجمع صورك في مستند PDF مرتب خلال ثوانٍ. مناسب للمشاركة، والأرشفة، والطباعة، مع بقاء الملفات على جهازك."
-      howToTitle="كيف تحوّل PNG إلى PDF؟"
+      category="PDF tools"
+      title="Convert PNG to PDF — no upload"
+      description="Collect images into an ordered PDF in seconds. Useful for sharing, archiving, and print — files stay on your device."
+      howToTitle="How do I convert PNG to PDF?"
       howToSteps={howToSteps}
-      howToNote="لا نطلع على صورك ولا نخزّنها. الملف الناتج يُنشأ في المتصفح ثم يُنزَّل إليك مباشرة."
+      howToNote="We never see or store your images. The PDF is created in the browser, then downloaded to you."
       faqs={faqs}
       jsonLdName="PNG to PDF | QVI"
       canonicalPath="/tools/png-to-pdf"

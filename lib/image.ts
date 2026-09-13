@@ -10,7 +10,7 @@ export function loadImageFromFile(file: File): Promise<HTMLImageElement> {
 
     image.onerror = () => {
       URL.revokeObjectURL(url);
-      reject(new Error("تعذر قراءة الصورة"));
+      reject(new Error("Could not read the image"));
     };
 
     image.src = url;
@@ -26,7 +26,7 @@ export function canvasToBlob(
     canvas.toBlob(
       (blob) => {
         if (blob) resolve(blob);
-        else reject(new Error("تعذر تصدير الصورة"));
+        else reject(new Error("Could not export the image"));
       },
       type,
       quality,

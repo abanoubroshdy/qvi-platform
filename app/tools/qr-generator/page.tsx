@@ -3,9 +3,9 @@ import { ToolPage } from "@/components/ToolPage";
 import { QrGenerator } from "@/components/tools/QrGenerator";
 import { siteConfig } from "@/lib/site";
 
-const pageTitle = "مولد رمز QR مجاني أونلاين";
+const pageTitle = "Free QR Code Generator Online";
 const pageDescription =
-  "أنشئ رمز QR لأي رابط أو نص عربي وحمّله كصورة PNG عالية الجودة. التوليد يتم على جهازك دون إرسال المحتوى إلى خادم.";
+  "Create a QR code from any link or text and download a high-quality PNG. Generation runs on your device — nothing is sent to a server.";
 
 export function generateMetadata(): Metadata {
   return {
@@ -16,7 +16,7 @@ export function generateMetadata(): Metadata {
       title: pageTitle,
       description: pageDescription,
       url: `${siteConfig.url}/tools/qr-generator`,
-      locale: "ar_AR",
+      locale: "en_US",
       type: "article",
     },
   };
@@ -24,47 +24,43 @@ export function generateMetadata(): Metadata {
 
 const faqs = [
   {
-    question: "هل يُرسل النص أو الرابط إلى الخادم؟",
-    answer:
-      "لا. رمز QR يُرسم داخل المتصفح بمكتبة qrcode. المحتوى الذي تكتبه لا يُرفع ولا يُحفظ لدينا.",
+    question: "Is my text or URL sent to a server?",
+    answer: "No. The QR code is drawn in the browser with the qrcode library. What you type is not uploaded or stored by us.",
   },
   {
-    question: "هل يدعم الرمز النصوص العربية؟",
-    answer:
-      "نعم. يمكنك إدخال روابط أو نصوص عربية أو إنجليزية. يُفضَّل إبقاء النص مختصراً ليسهل المسح.",
+    question: "Does it support Arabic or other scripts?",
+    answer: "Yes. You can encode Arabic or English text and URLs. Keep the payload short so it stays easy to scan.",
   },
   {
-    question: "ما مستوى تصحيح الخطأ المستخدم؟",
-    answer:
-      "المستوى المتوسط (M) يوازن بين سعة البيانات ومقاومة التشويه الخفيف عند الطباعة أو التصوير.",
+    question: "What error-correction level is used?",
+    answer: "Medium (M) balances data capacity with resistance to light damage when printed or photographed.",
   },
   {
-    question: "بأي صيغة يُحمَّل الرمز؟",
-    answer: "يُنزَّل كصورة PNG مربعة. يمكنك اختيار الحجم من 256 إلى 1024 بكسل حسب الاستخدام.",
+    question: "What format do I download?",
+    answer: "A square PNG. Size can be 256 to 1024 pixels depending on screen or print use.",
   },
   {
-    question: "هل أحتاج تطبيقاً لمسحه لاحقاً؟",
-    answer:
-      "معظم كاميرات الهواتف تقرأ QR مباشرة. للطباعة اختر حجماً أكبر حتى يبقى الرمز واضحاً بعد التصغير.",
+    question: "Do I need an app to scan it later?",
+    answer: "Most phone cameras read QR codes directly. For print, pick a larger size so it stays clear after shrinking.",
   },
 ];
 
 const howToSteps = [
-  "اكتب الرابط أو النص في الحقل المخصص.",
-  "اضبط حجم الصورة حسب العرض أو الطباعة.",
-  "يُنشأ الرمز فوراً، أو اضغط «إنشاء الرمز».",
-  "نزّل صورة PNG واستخدمها في موقعك أو مطبوعاتك.",
+  "Type a URL or any text in the field.",
+  "Set image size for screen or print.",
+  "The code generates instantly, or tap Create code.",
+  "Download the PNG and use it on a site or in print.",
 ];
 
 export default function QrGeneratorPage() {
   return (
     <ToolPage
-      category="أدوات QR"
-      title="مولد رمز QR بدون رفع"
-      description="حوّل أي رابط أو نص إلى رمز QR جاهز للتنزيل. مناسب لبطاقات العمل، والقوائم، وروابط المواقع، مع خصوصية كاملة."
-      howToTitle="كيف تنشئ رمز QR؟"
+      category="QR tools"
+      title="QR code generator — no upload"
+      description="Turn any link or text into a downloadable QR code. Useful for cards, menus, and site URLs, with full privacy."
+      howToTitle="How do I create a QR code?"
       howToSteps={howToSteps}
-      howToNote="لا نسجّل ما تكتبه في الحقل. أغلق الصفحة ولن يبقى أي أثر للمحتوى على خوادمنا لأنه لم يُرسل أصلاً."
+      howToNote="We do not log what you type. Close the page and nothing remains on our servers — it was never sent."
       faqs={faqs}
       jsonLdName="QR Generator | QVI"
       canonicalPath="/tools/qr-generator"

@@ -3,9 +3,9 @@ import { ToolPage } from "@/components/ToolPage";
 import { ImageCompressor } from "@/components/tools/ImageCompressor";
 import { siteConfig } from "@/lib/site";
 
-const pageTitle = "ضغط الصور أونلاين مجاناً بدون رفع";
+const pageTitle = "Free Image Compressor — No Upload";
 const pageDescription =
-  "اضغط صور JPG و PNG و WEBP مباشرة من المتصفح. الأداة مجانية، فورية، ولا ترفع ملفاتك إلى أي خادم.";
+  "Compress JPG, PNG, and WEBP in your browser. Free, instant, and your files never leave your device.";
 
 export function generateMetadata(): Metadata {
   return {
@@ -16,7 +16,7 @@ export function generateMetadata(): Metadata {
       title: pageTitle,
       description: pageDescription,
       url: `${siteConfig.url}/tools/image-compressor`,
-      locale: "ar_AR",
+      locale: "en_US",
       type: "article",
     },
   };
@@ -24,47 +24,45 @@ export function generateMetadata(): Metadata {
 
 const faqs = [
   {
-    question: "هل تُرفع الصورة إلى الخادم عند الضغط؟",
+    question: "Is my image uploaded to a server?",
     answer:
-      "لا. أداة ضغط الصور في QVI تعمل بالكامل داخل متصفحك باستخدام مكتبة ضغط محلية. الصورة لا تُرسل إلى خوادمنا ولا تُخزَّن لدينا.",
+      "No. QVI’s image compressor runs entirely in your browser with a local compression library. The file is not sent to our servers and is not stored.",
   },
   {
-    question: "ما صيغ الصور المدعومة؟",
-    answer: "يمكنك ضغط ملفات JPG و JPEG و PNG و WEBP و BMP. بعد الضغط يمكنك تنزيل النتيجة فوراً إلى جهازك.",
+    question: "Which formats are supported?",
+    answer: "JPG, JPEG, PNG, WEBP, and BMP. After compression you can download the result immediately.",
   },
   {
-    question: "هل تنخفض جودة الصورة بعد الضغط؟",
+    question: "Will quality drop after compression?",
     answer:
-      "يمكنك التحكم بالجودة عبر شريط النسبة. القيمة 80٪ توازن جيد بين الحجم والوضوح لمعظم الصور. خفّض النسبة إذا احتجت ملفاً أصغر، أو ارفعها إذا كان الوضوح أولوية.",
+      "You control quality with the slider. 80% is a solid default. Lower it for a smaller file, or raise it if sharpness matters more.",
   },
   {
-    question: "هل الأداة مجانية بدون حدود؟",
-    answer:
-      "نعم. لا تحتاج إلى تسجيل حساب، ولا توجد حدود يومية للضغط. يمكنك استخدام الأداة كلما احتجت ذلك.",
+    question: "Is it free with no limits?",
+    answer: "Yes. No account, no daily cap. Use it whenever you need it.",
   },
   {
-    question: "هل تعمل على الجوال؟",
-    answer:
-      "نعم. الصفحة متجاوبة وتعمل على الهواتف والأجهزة اللوحية والحواسيب. اختر الصورة من الاستوديو أو أسقطها إن كنت على حاسوب.",
+    question: "Does it work on mobile?",
+    answer: "Yes. The page is responsive on phones, tablets, and desktops. Pick from the camera roll or drop a file on a computer.",
   },
 ];
 
 const howToSteps = [
-  "اختر صورة من جهازك أو اسحبها إلى منطقة الرفع.",
-  "اضبط شريط الجودة حسب الحجم الذي تحتاجه.",
-  "انتظر الضغط الفوري أو اضغط زر «ضغط الصورة».",
-  "قارن الحجم الأصلي بالحجم الجديد ثم نزّل النتيجة.",
+  "Choose an image or drop it on the upload area.",
+  "Set the quality slider for the size you need.",
+  "Wait for instant compression or tap Compress image.",
+  "Compare original vs compressed size, then download.",
 ];
 
 export default function ImageCompressorPage() {
   return (
     <ToolPage
-      category="أدوات الصور"
-      title="ضغط الصور أونلاين بدون رفع"
-      description="قلّل حجم صورك خلال ثوانٍ مع الإبقاء على الوضوح المناسب للنشر أو الإرسال. المعالجة تتم على جهازك فقط للحفاظ على خصوصيتك."
-      howToTitle="كيف تضغط صورة بهذه الأداة؟"
+      category="Image tools"
+      title="Compress images online — no upload"
+      description="Shrink photos in seconds while keeping enough detail to share or send. Processing stays on your device."
+      howToTitle="How do I compress an image?"
       howToSteps={howToSteps}
-      howToNote="لا نحتفظ بنسخ من صورك، ولا نطلب صلاحيات حساب. أغلق الصفحة متى شئت وستختفي الملفات من ذاكرة المتصفح."
+      howToNote="We do not keep copies of your photos and we do not ask for an account. Close the tab and the files leave browser memory."
       faqs={faqs}
       jsonLdName="Image Compressor | QVI"
       canonicalPath="/tools/image-compressor"

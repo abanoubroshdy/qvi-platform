@@ -60,7 +60,7 @@ export function ToolPage({
     "@type": "HowTo",
     name: howToTitle,
     description,
-    inLanguage: "ar",
+    inLanguage: "en",
     step: howToSteps.map((text, index) => ({
       "@type": "HowToStep",
       position: index + 1,
@@ -79,7 +79,7 @@ export function ToolPage({
       price: "0",
       priceCurrency: "USD",
     },
-    inLanguage: "ar",
+    inLanguage: "en",
     url,
   };
 
@@ -99,7 +99,7 @@ export function ToolPage({
 
       <section className="mt-12 rounded-xl border bg-card p-5 shadow-sm sm:p-6">
         <h2 className="text-xl font-extrabold">{howToTitle}</h2>
-        <ol className="mt-4 list-decimal space-y-3 pr-5 text-sm leading-8 sm:text-base">
+        <ol className="mt-4 list-decimal space-y-3 pl-5 text-sm leading-8 sm:text-base">
           {howToSteps.map((step) => (
             <li key={step}>{step}</li>
           ))}
@@ -108,7 +108,7 @@ export function ToolPage({
       </section>
 
       <section className="mt-8">
-        <h2 className="mb-3 text-xl font-extrabold">الأسئلة الشائعة</h2>
+        <h2 className="mb-3 text-xl font-extrabold">FAQ</h2>
         <Accordion type="single" collapsible className="rounded-xl border bg-card px-4 shadow-sm">
           {faqs.map((faq, index) => (
             <AccordionItem key={faq.question} value={`item-${index}`}>

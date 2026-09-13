@@ -60,7 +60,7 @@ export function WebpToJpg() {
     } catch {
       if (current !== requestId.current) return;
       setResult(null);
-      setError("تعذر تحويل الصورة. تأكد أن الملف بصيغة WEBP صالحة.");
+      setError("Could not convert this image. Make sure the file is a valid WEBP.");
     } finally {
       if (current === requestId.current) setIsConverting(false);
     }
@@ -71,7 +71,7 @@ export function WebpToJpg() {
     if (!next) return;
 
     if (!isWebp(next)) {
-      setError("الصيغة غير مدعومة. اختر ملفاً بصيغة WEBP.");
+      setError("Unsupported format. Choose a WEBP file.");
       return;
     }
 
@@ -101,27 +101,27 @@ export function WebpToJpg() {
     <ToolLayout
       accept="image/webp,.webp"
       onFiles={onFiles}
-      actionLabel="تحويل إلى JPG"
+      actionLabel="Convert to JPG"
       onAction={() => file && convert(file, quality)}
       actionDisabled={!file}
       actionLoading={isConverting}
-      downloadLabel="تنزيل JPG"
+      downloadLabel="Download JPG"
       onDownload={() => {
         if (!result || !file) return;
         const baseName = file.name.replace(/\.[^.]+$/, "");
         downloadBlob(result, `${baseName}.jpg`);
       }}
       downloadDisabled={!result || isConverting}
-      dropTitle="اسحب صورة WEBP هنا أو اضغط للاختيار"
-      dropHint="التحويل يتم داخل المتصفح عبر Canvas. لا يُرفع الملف إلى أي خادم."
+      dropTitle="Drop a WEBP image here or click to choose"
+      dropHint="Conversion uses Canvas in your browser. Nothing is uploaded."
       error={error}
       extra={
         <div className="rounded-xl border bg-card p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between gap-3">
             <Label htmlFor="jpg-quality" className="text-sm font-bold">
-              جودة JPG
+              JPG quality
             </Label>
-            <span className="text-sm font-semibold tabular-nums text-primary">{quality}٪</span>
+            <span className="text-sm font-semibold tabular-nums text-primary">{quality}%</span>
           </div>
           <div dir="ltr">
             <Slider
@@ -131,11 +131,11 @@ export function WebpToJpg() {
               step={5}
               value={[quality]}
               onValueChange={(value) => setQuality(value[0] ?? 90)}
-              aria-label="جودة JPG"
+              aria-label="JPG quality"
             />
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
-            الشفافية في WEBP تُستبدل بخلفية بيضاء لأن JPG لا يدعم القناة الشفافة.
+            WEBP transparency is filled with white because JPG has no alpha channel.
           </p>
         </div>
       }
@@ -143,20 +143,20 @@ export function WebpToJpg() {
         file ? (
           <div className="grid gap-4 md:grid-cols-2">
             <div>
-              <p className="mb-2 text-sm font-bold">المعاينة</p>
+              <p className="mb-2 text-sm font-bold">Preview</p>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={resultUrl || previewUrl || ""}
-                alt="معاينة الصورة بعد التحويل إلى JPG"
+                alt="Converted JPG preview"
                 className="max-h-72 w-full rounded-lg border bg-muted/40 object-contain"
               />
               <p className="mt-2 truncate text-xs text-muted-foreground">{file.name}</p>
             </div>
             <div className="grid grid-cols-2 content-start gap-3">
-              <Stat label="حجم WEBP" value={formatBytes(file.size)} />
-              <Stat label="حجم JPG" value={result ? formatBytes(result.size) : isConverting ? "جارٍ التحويل..." : "—"} />
-              <Stat label="الأبعاد" value={resultUrl ? "نُسخت كما هي" : "—"} />
-              <Stat label="الحالة" value={isConverting ? "جارٍ التحويل" : result ? "جاهز للتنزيل" : "بانتظار الصورة"} />
+              <Stat label="WEBP size" value={formatBytes(file.size)} />
+              <Stat label="JPG size" value={result ? formatBytes(result.size) : isConverting ? "Converting..." : "—"} />
+              <Stat label="Dimensions" value={resultUrl ? "Unchanged" : "—"} />
+              <Stat label="Status" value={isConverting ? "Converting" : result ? "Ready to download" : "Waiting for an image"} />
             </div>
           </div>
         ) : undefined
