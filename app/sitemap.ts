@@ -11,11 +11,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/privacy-policy",
     "/contact",
     "/terms",
+    "/products/qv1",
+    "/products/neyora",
+    "/lab",
   ].map((path) => ({
     url: `${siteConfig.url}${path || "/"}`,
     lastModified,
     changeFrequency: path === "" ? "weekly" : "monthly",
-    priority: path === "" ? 1 : 0.7,
+    priority: path === "" ? 1 : path.startsWith("/products") ? 0.95 : 0.7,
   }));
 
   const toolRoutes: MetadataRoute.Sitemap = tools.map((tool) => ({

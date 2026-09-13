@@ -1,37 +1,38 @@
-# تولز عرب (tools-arab)
+# QVI - Quality Virtual Instruments
 
-موقع أدوات عربية مجانية تعمل داخل المتصفح. الأساس جاهز مع أربع أدوات مكتملة تعمل محلياً: ضغط الصور، تحويل WEBP إلى JPG، تحويل PNG إلى PDF، ومولد رمز QR.
+Official platform for the QVI audio software ecosystem: **QV1** (stem separation & processing), **Neyora** (DDSP instrument synthesis), and free browser utilities that run entirely on-device.
 
-## المبدأ
+Tagline: *The Future of Intelligent Audio.*
 
-الملفات تُعالج على جهاز المستخدم. لا مسارات API لرفع الملفات، ولا معالجة على الخادم لأداة الضغط.
-
-## التشغيل محلياً
+## Run locally
 
 ```bash
 npm install
 npm run dev
 ```
 
-افتح [http://localhost:3000](http://localhost:3000). للبناء للإنتاج:
+Open [http://localhost:3000](http://localhost:3000). Production:
 
 ```bash
 npm run build
 npm start
 ```
 
-اختياري: انسخ `.env.example` إلى `.env.local` وعدّل `NEXT_PUBLIC_SITE_URL` قبل النشر حتى تكون روابط `sitemap` و`robots` و`metadataBase` صحيحة.
+Optional: copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_SITE_URL` before deploy.
 
-## الصفحات
+## Routes
 
-- `/` شبكة 12 أداة
-- `/tools/image-compressor` ضغط الصور
-- `/tools/webp-to-jpg` تحويل WEBP إلى JPG
-- `/tools/png-to-pdf` تحويل PNG إلى PDF
-- `/tools/qr-generator` مولد رمز QR
-- `/tools/[slug]` بقية الأدوات (صفحة قريباً)
+- `/` platform homepage (products + free tools)
+- `/products/qv1` QV1 waitlist landing
+- `/products/neyora` Neyora lab (also `/lab`)
+- `/tools/image-compressor` Image Compressor
+- `/tools/webp-to-jpg` WEBP to JPG
+- `/tools/png-to-pdf` PNG to PDF
+- `/tools/qr-generator` QR Generator
 - `/about` · `/privacy-policy` · `/contact` · `/terms`
 
-## التقنيات
+Free tools stay 100% client-side. Waitlist emails are stored in `localStorage` until a backend is connected.
 
-Next.js 14 App Router، TypeScript، Tailwind CSS، ESLint، shadcn/ui، lucide-react، browser-image-compression، pdf-lib، qrcode.
+## Stack
+
+Next.js 14 App Router, TypeScript, Tailwind CSS, ESLint, shadcn/ui, lucide-react, browser-image-compression, pdf-lib, qrcode.

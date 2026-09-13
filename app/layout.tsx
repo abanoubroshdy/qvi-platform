@@ -1,44 +1,43 @@
 import type { Metadata, Viewport } from "next";
-import { Cairo } from "next/font/google";
+import { Outfit } from "next/font/google";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { siteConfig } from "@/lib/site";
 import "./globals.css";
 
-const cairo = Cairo({
-  subsets: ["arabic", "latin"],
-  weight: ["400", "500", "600", "700", "800"],
+const outfit = Outfit({
+  subsets: ["latin"],
   display: "swap",
-  variable: "--font-cairo",
+  variable: "--font-outfit",
 });
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: {
-    default: "تولز عرب | أدوات مجانية أونلاين تعمل على جهازك",
-    template: "%s | تولز عرب",
+    default: "QVI - Quality Virtual Instruments | AI Audio Tools & Software",
+    template: "%s | QVI",
   },
   description: siteConfig.description,
   keywords: [...siteConfig.keywords],
-  authors: [{ name: siteConfig.name, url: siteConfig.url }],
+  authors: [{ name: siteConfig.fullName, url: siteConfig.url }],
   creator: siteConfig.name,
-  publisher: siteConfig.name,
-  applicationName: siteConfig.nameEn,
-  category: "utilities",
+  publisher: siteConfig.fullName,
+  applicationName: siteConfig.name,
+  category: "music",
   alternates: {
     canonical: "/",
   },
   openGraph: {
     type: "website",
-    locale: "ar_AR",
+    locale: "en_US",
     url: siteConfig.url,
-    siteName: siteConfig.name,
-    title: "تولز عرب | أدوات مجانية 100٪ تحافظ على خصوصيتك",
+    siteName: siteConfig.fullName,
+    title: "QVI - Quality Virtual Instruments | AI Audio Tools & Software",
     description: siteConfig.description,
   },
   twitter: {
     card: "summary_large_image",
-    title: "تولز عرب | أدوات مجانية أونلاين",
+    title: "QVI - Quality Virtual Instruments",
     description: siteConfig.description,
   },
   robots: {
@@ -55,7 +54,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0f766e",
+  themeColor: "#041016",
   width: "device-width",
   initialScale: 1,
 };
@@ -66,8 +65,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ar" dir="rtl" className={cairo.variable}>
-      <body className="min-h-screen font-cairo">
+    <html lang="en" className={outfit.variable}>
+      <body className="min-h-screen font-sans">
         <div className="flex min-h-screen flex-col">
           <Header />
           <main className="flex-1">{children}</main>

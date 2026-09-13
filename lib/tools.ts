@@ -17,7 +17,6 @@ import {
 export type Tool = {
   slug: string;
   title: string;
-  titleEn: string;
   description: string;
   href: string;
   icon: LucideIcon;
@@ -28,9 +27,8 @@ export type Tool = {
 export const tools: Tool[] = [
   {
     slug: "image-compressor",
-    title: "ضغط الصور",
-    titleEn: "Image Compressor",
-    description: "قلّل حجم صورك مع الحفاظ على الوضوح، مباشرة من المتصفح دون رفع.",
+    title: "Image Compressor",
+    description: "Shrink JPG, PNG, and WEBP files in your browser with a live size comparison.",
     href: "/tools/image-compressor",
     icon: ImageDown,
     available: true,
@@ -38,9 +36,8 @@ export const tools: Tool[] = [
   },
   {
     slug: "webp-to-jpg",
-    title: "تحويل WEBP إلى JPG",
-    titleEn: "WEBP to JPG",
-    description: "حوّل صور WEBP إلى JPG متوافقة مع كل المنصات والتطبيقات.",
+    title: "WEBP to JPG",
+    description: "Convert WEBP images to compatible JPG files without uploading anything.",
     href: "/tools/webp-to-jpg",
     icon: Images,
     available: true,
@@ -48,9 +45,8 @@ export const tools: Tool[] = [
   },
   {
     slug: "png-to-pdf",
-    title: "تحويل PNG إلى PDF",
-    titleEn: "PNG to PDF",
-    description: "اجمع صورة PNG في ملف PDF جاهز للمشاركة أو الطباعة.",
+    title: "PNG to PDF",
+    description: "Turn one or more PNG images into a shareable PDF, one page per image.",
     href: "/tools/png-to-pdf",
     icon: FileImage,
     available: true,
@@ -58,9 +54,8 @@ export const tools: Tool[] = [
   },
   {
     slug: "pdf-compressor",
-    title: "ضغط ملفات PDF",
-    titleEn: "PDF Compressor",
-    description: "خفّف حجم ملفات PDF لتسهيل الإرسال دون فقدان المقروئية.",
+    title: "PDF Compressor",
+    description: "Reduce PDF file size for faster sending while keeping the document readable.",
     href: "/tools/pdf-compressor",
     icon: FileArchive,
     available: false,
@@ -68,9 +63,8 @@ export const tools: Tool[] = [
   },
   {
     slug: "pdf-merger",
-    title: "دمج ملفات PDF",
-    titleEn: "PDF Merger",
-    description: "ادمج عدة ملفات PDF في مستند واحد مرتب خلال ثوانٍ.",
+    title: "PDF Merger",
+    description: "Combine several PDFs into a single ordered document in seconds.",
     href: "/tools/pdf-merger",
     icon: Files,
     available: false,
@@ -78,9 +72,8 @@ export const tools: Tool[] = [
   },
   {
     slug: "qr-generator",
-    title: "مولد رمز QR",
-    titleEn: "QR Generator",
-    description: "أنشئ رمز QR لأي رابط أو نص وحمّله كصورة عالية الجودة.",
+    title: "QR Generator",
+    description: "Create a high-quality QR code from any link or text and download it as PNG.",
     href: "/tools/qr-generator",
     icon: QrCode,
     available: true,
@@ -88,9 +81,8 @@ export const tools: Tool[] = [
   },
   {
     slug: "image-resizer",
-    title: "تغيير حجم الصور",
-    titleEn: "Image Resizer",
-    description: "عدّل أبعاد الصورة بالبكسل مع الحفاظ على النسبة أو قصّها حسب الحاجة.",
+    title: "Image Resizer",
+    description: "Change image dimensions in pixels, with or without locking aspect ratio.",
     href: "/tools/image-resizer",
     icon: Scaling,
     available: false,
@@ -98,9 +90,8 @@ export const tools: Tool[] = [
   },
   {
     slug: "word-counter",
-    title: "عدّاد الكلمات",
-    titleEn: "Word Counter",
-    description: "احسب الكلمات والحروف والفقرات في أي نص عربي أو إنجليزي فوراً.",
+    title: "Word Counter",
+    description: "Count words, characters, and paragraphs in any text instantly.",
     href: "/tools/word-counter",
     icon: Type,
     available: false,
@@ -108,9 +99,8 @@ export const tools: Tool[] = [
   },
   {
     slug: "password-generator",
-    title: "مولد كلمات المرور",
-    titleEn: "Password Generator",
-    description: "ولّد كلمات مرور قوية وعشوائية بطول ورموز تختارها بنفسك.",
+    title: "Password Generator",
+    description: "Generate strong random passwords with the length and symbols you choose.",
     href: "/tools/password-generator",
     icon: KeyRound,
     available: false,
@@ -118,9 +108,8 @@ export const tools: Tool[] = [
   },
   {
     slug: "base64",
-    title: "أداة Base64",
-    titleEn: "Base64 Tool",
-    description: "رمّز وفك ترميز النصوص والملفات بصيغة Base64 بأمان على جهازك.",
+    title: "Base64 Tool",
+    description: "Encode and decode text or files as Base64 entirely on your device.",
     href: "/tools/base64",
     icon: Binary,
     available: false,
@@ -128,9 +117,8 @@ export const tools: Tool[] = [
   },
   {
     slug: "color-picker",
-    title: "منتقي الألوان",
-    titleEn: "Color Picker",
-    description: "اختر ألواناً دقيقة واحصل على قيم HEX وRGB وHSL للاستخدام الفوري.",
+    title: "Color Picker",
+    description: "Pick precise colors and copy HEX, RGB, and HSL values instantly.",
     href: "/tools/color-picker",
     icon: Pipette,
     available: false,
@@ -138,9 +126,8 @@ export const tools: Tool[] = [
   },
   {
     slug: "qr-reader",
-    title: "قارئ رمز QR",
-    titleEn: "QR Reader",
-    description: "اقرأ محتوى رمز QR من صورة مرفوعة دون الحاجة إلى كاميرا خارجية.",
+    title: "QR Reader",
+    description: "Read a QR code from an uploaded image without needing a camera.",
     href: "/tools/qr-reader",
     icon: ScanLine,
     available: false,

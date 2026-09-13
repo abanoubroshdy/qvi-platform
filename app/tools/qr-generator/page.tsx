@@ -66,7 +66,7 @@ export default function QrGeneratorPage() {
       howToSteps={howToSteps}
       howToNote="لا نسجّل ما تكتبه في الحقل. أغلق الصفحة ولن يبقى أي أثر للمحتوى على خوادمنا لأنه لم يُرسل أصلاً."
       faqs={faqs}
-      jsonLdName="مولد رمز QR | تولز عرب"
+      jsonLdName="QR Generator | QVI"
       canonicalPath="/tools/qr-generator"
       applicationCategory="UtilitiesApplication"
     >

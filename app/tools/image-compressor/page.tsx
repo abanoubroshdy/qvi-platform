@@ -26,7 +26,7 @@ const faqs = [
   {
     question: "هل تُرفع الصورة إلى الخادم عند الضغط؟",
     answer:
-      "لا. أداة ضغط الصور في تولز عرب تعمل بالكامل داخل متصفحك باستخدام مكتبة ضغط محلية. الصورة لا تُرسل إلى خوادمنا ولا تُخزَّن لدينا.",
+      "لا. أداة ضغط الصور في QVI تعمل بالكامل داخل متصفحك باستخدام مكتبة ضغط محلية. الصورة لا تُرسل إلى خوادمنا ولا تُخزَّن لدينا.",
   },
   {
     question: "ما صيغ الصور المدعومة؟",
@@ -66,7 +66,7 @@ export default function ImageCompressorPage() {
       howToSteps={howToSteps}
       howToNote="لا نحتفظ بنسخ من صورك، ولا نطلب صلاحيات حساب. أغلق الصفحة متى شئت وستختفي الملفات من ذاكرة المتصفح."
       faqs={faqs}
-      jsonLdName="ضغط الصور | تولز عرب"
+      jsonLdName="Image Compressor | QVI"
       canonicalPath="/tools/image-compressor"
       applicationCategory="MultimediaApplication"
     >

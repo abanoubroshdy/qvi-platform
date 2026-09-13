@@ -65,7 +65,7 @@ export default function WebpToJpgPage() {
       howToSteps={howToSteps}
       howToNote="لا نحتفظ بنسخة من صورتك. أغلق الصفحة وستختفي الملفات من ذاكرة المتصفح."
       faqs={faqs}
-      jsonLdName="تحويل WEBP إلى JPG | تولز عرب"
+      jsonLdName="WEBP to JPG | QVI"
       canonicalPath="/tools/webp-to-jpg"
       applicationCategory="MultimediaApplication"
     >

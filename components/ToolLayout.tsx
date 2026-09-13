@@ -42,9 +42,9 @@ export function ToolLayout({
   downloadLabel,
   onDownload,
   downloadDisabled,
-  dropTitle = "اسحب الملف هنا أو اضغط للاختيار",
-  dropHint = "المعالجة تتم على جهازك فقط. لا يُرفع أي ملف إلى الخادم.",
-  emptyPreviewText = "ستظهر معاينة الملف هنا بعد اختياره.",
+  dropTitle = "Drop a file here or click to choose",
+  dropHint = "Processing stays on your device. Nothing is uploaded to a server.",
+  emptyPreviewText = "File preview will appear here after you choose one.",
   error,
 }: ToolLayoutProps) {
   const inputRef = useRef<HTMLInputElement>(null);

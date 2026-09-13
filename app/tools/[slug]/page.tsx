@@ -20,11 +20,11 @@ export function generateStaticParams() {
 export function generateMetadata({ params }: PageProps): Metadata {
   const tool = getToolBySlug(params.slug);
   if (!tool) {
-    return { title: "الأداة غير موجودة" };
+    return { title: "Tool not found" };
   }
 
   return {
-    title: `${tool.title} | قريباً`,
+    title: `${tool.title} | Coming soon`,
     description: tool.description,
     alternates: { canonical: tool.href },
   };
@@ -39,22 +39,22 @@ export default function UpcomingToolPage({ params }: PageProps) {
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:py-12">
       <AdPlaceholder position="top" className="mb-6" />
-      <div className="rounded-xl border bg-card p-6 text-center shadow-sm sm:p-10">
+      <div className="rounded-xl border border-white/10 bg-card p-6 text-center shadow-sm sm:p-10">
         <Construction className="mx-auto mb-4 h-10 w-10 text-primary" aria-hidden />
-        <p className="text-sm font-bold text-primary">{tool.titleEn}</p>
-        <h1 className="mt-2 text-3xl font-extrabold">{tool.title}</h1>
+        <p className="text-sm font-bold text-primary">QVI free utility</p>
+        <h1 className="mt-2 text-3xl font-semibold">{tool.title}</h1>
         <p className="mx-auto mt-3 max-w-xl text-sm leading-8 text-muted-foreground sm:text-base">
-          {tool.description} هذه الأداة قيد التجهيز على نفس الأساس: معالجة محلية، بدون رفع ملفات،
-          وتجربة عربية كاملة.
+          {tool.description} This utility is still being wired into the same local-processing
+          foundation as the live tools.
         </p>
         <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
           <Button asChild size="lg">
-            <Link href="/#tools">العودة إلى كل الأدوات</Link>
+            <Link href="/#tools">Back to free tools</Link>
           </Button>
         </div>
       </div>
       <AdPlaceholder position="middle" className="my-6" />
-      <h2 className="mb-4 text-xl font-extrabold">أدوات أخرى</h2>
+      <h2 className="mb-4 text-xl font-semibold">Other tools</h2>
       <div className="grid gap-4 sm:grid-cols-3">
         {related.map((item) => (
           <ToolCard key={item.slug} tool={item} />

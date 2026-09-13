@@ -4,53 +4,54 @@ import { LegalPage } from "@/components/LegalPage";
 import { siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "من نحن",
+  title: "About",
   description:
-    "تعرف على تولز عرب: مشروع عربي لأدوات مجانية تعمل على جهازك وتحافظ على خصوصية ملفاتك.",
+    "QVI - Quality Virtual Instruments builds intelligent audio software that runs on your device, plus free local browser utilities.",
   alternates: { canonical: "/about" },
 };
 
 export default function AboutPage() {
   return (
-    <LegalPage title="من نحن" updatedAt="13 سبتمبر 2026">
+    <LegalPage title="About QVI" updatedAt="September 13, 2026">
       <p>
-        تولز عرب ({siteConfig.nameEn}) منصة عربية متخصصة في الأدوات المجانية التي تعمل داخل المتصفح.
-        هدفنا أن يجد المستخدم العربي أدوات عملية لضغط الصور وتحويل الملفات وإنشاء الرموز والنصوص،
-        دون أن يضطر إلى إنشاء حساب أو رفع ملفاته إلى خادم مجهول.
+        QVI (Quality Virtual Instruments) is an audio software studio. We build intelligent
+        instruments and processors designed to run on your device — not a generic dump of online
+        gadgets with a logo on top.
       </p>
-      <h2 className="text-xl font-bold">رسالتنا</h2>
+      <h2 className="text-xl font-bold">The ecosystem</h2>
       <p>
-        نؤمن أن الخصوصية ليست ميزة إضافية بل حق أساسي. لذلك صُممت الأدوات لتعالج البيانات محلياً على
-        جهازك كلما أمكن ذلك. أنت تبقي الملف، ونحن نوفّر الواجهة والشرح والدعم.
-      </p>
-      <h2 className="text-xl font-bold">ماذا نقدّم؟</h2>
-      <p>
-        نبدأ بأداة ضغط الصور الجاهزة للاستخدام، ونبني تباعاً أدوات تحويل WEBP و PNG و PDF ومولدات QR
-        وعدّاد الكلمات ومولد كلمات المرور وغيرها. جميع الصفحات بالعربية، ومتوافقة مع الجوال، ومصممة
-        لتكون سريعة وواضحة.
-      </p>
-      <h2 className="text-xl font-bold">لماذا أدوات محلية؟</h2>
-      <p>
-        رفع الملفات إلى خدمات سحابية يعني تسليم نسخ من مستنداتك وصورك لطرف ثالث. كثير من المستخدمين
-        لا يحتاجون ذلك لمجرد ضغط صورة أو دمج ملف. المعالجة في المتصفح تقلل المخاطر وتسرّع النتيجة
-        لأنها لا تنتظر طابوراً على الخادم.
-      </p>
-      <h2 className="text-xl font-bold">الإعلانات والاستدامة</h2>
-      <p>
-        الموقع مجاني للمستخدم. قد نعرض إعلانات غير مزعجة لتغطية تكاليف الاستضافة والتطوير. الإعلانات
-        لا تُستخدم كذريعة لرفع ملفاتك أو بيع محتواها. لمعرفة كيف نتعامل مع البيانات، اقرأ{" "}
-        <Link href="/privacy-policy" className="font-semibold text-primary hover:underline">
-          سياسة الخصوصية
-        </Link>
-        .
-      </p>
-      <h2 className="text-xl font-bold">تواصل معنا</h2>
-      <p>
-        إن كان لديك اقتراح لأداة جديدة أو لاحظت خطأً في أداة قائمة، نرحب برسالتك عبر صفحة{" "}
-        <Link href="/contact" className="font-semibold text-primary hover:underline">
-          تواصل معنا
+        <Link href="/products/qv1" className="font-semibold text-primary hover:underline">
+          QV1
         </Link>{" "}
-        أو البريد {siteConfig.email}.
+        is our stem separation and audio processing engine.{" "}
+        <Link href="/products/neyora" className="font-semibold text-primary hover:underline">
+          Neyora
+        </Link>{" "}
+        is the lab instrument: DDSP synthesis from text, voice, or MIDI. Around them we ship free
+        browser utilities that process files locally, so the platform is useful while the flagship
+        engines mature.
+      </p>
+      <h2 className="text-xl font-bold">On-device by default</h2>
+      <p>
+        Audio and documents are intimate. Wherever we can keep processing on the machine in front of
+        you, we will. Free tools on this site already work that way: no upload API, no account wall.
+      </p>
+      <h2 className="text-xl font-bold">Ads and sustainability</h2>
+      <p>
+        Free utilities may show advertising to cover hosting. Ads are not a license to harvest your
+        sessions. Read the{" "}
+        <Link href="/privacy-policy" className="font-semibold text-primary hover:underline">
+          Privacy Policy
+        </Link>{" "}
+        for details.
+      </p>
+      <h2 className="text-xl font-bold">Contact</h2>
+      <p>
+        For press, waitlist questions, or product feedback, use{" "}
+        <Link href="/contact" className="font-semibold text-primary hover:underline">
+          Contact
+        </Link>{" "}
+        or {siteConfig.email}.
       </p>
     </LegalPage>
   );

@@ -66,7 +66,7 @@ export default function PngToPdfPage() {
       howToSteps={howToSteps}
       howToNote="لا نطلع على صورك ولا نخزّنها. الملف الناتج يُنشأ في المتصفح ثم يُنزَّل إليك مباشرة."
       faqs={faqs}
-      jsonLdName="تحويل PNG إلى PDF | تولز عرب"
+      jsonLdName="PNG to PDF | QVI"
       canonicalPath="/tools/png-to-pdf"
       applicationCategory="FileApplication"
     >

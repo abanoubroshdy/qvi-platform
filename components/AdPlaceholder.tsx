@@ -7,9 +7,9 @@ type AdPlaceholderProps = {
 };
 
 const labels: Record<AdPlaceholderProps["position"], string> = {
-  top: "مساحة إعلانية — أعلى الصفحة",
-  middle: "مساحة إعلانية — وسط الأداة",
-  bottom: "مساحة إعلانية — أسفل الأداة",
+  top: "Ad slot — top",
+  middle: "Ad slot — middle",
+  bottom: "Ad slot — bottom",
 };
 
 export function AdPlaceholder({ position, className }: AdPlaceholderProps) {

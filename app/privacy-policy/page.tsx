@@ -4,64 +4,53 @@ import { LegalPage } from "@/components/LegalPage";
 import { siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "سياسة الخصوصية",
+  title: "Privacy Policy",
   description:
-    "سياسة خصوصية تولز عرب: معالجة الملفات على جهازك، وملفات تعريف الارتباط، وإعلانات Google AdSense.",
+    "Privacy Policy for QVI - Quality Virtual Instruments: on-device processing, cookies, and advertising.",
   alternates: { canonical: "/privacy-policy" },
 };
 
 export default function PrivacyPolicyPage() {
   return (
-    <LegalPage title="سياسة الخصوصية" updatedAt="13 سبتمبر 2026">
+    <LegalPage title="Privacy Policy" updatedAt="September 13, 2026">
       <p>
-        توضّح هذه السياسة كيف يتعامل موقع تولز عرب ({siteConfig.url}) مع المعلومات عند زيارتك
-        لصفحاتنا أو استخدام أدواتنا. باستخدام الموقع فإنك توافق على ما ورد هنا. إذا لم توافق، يرجى
-        التوقف عن استخدام الخدمة.
+        This policy explains how QVI ({siteConfig.url}) handles information when you visit the site,
+        join a waitlist, or use free browser tools. If you do not agree, please stop using the
+        service.
       </p>
-
-      <h2 className="text-xl font-bold">1. مبدأ المعالجة المحلية</h2>
+      <h2 className="text-xl font-bold">1. On-device processing</h2>
       <p>
-        الأدوات الأساسية — وعلى رأسها ضغط الصور — مصممة لتعمل داخل متصفحك. لا نطلب منك إنشاء حساب،
-        ولا نرفع ملفاتك إلى خوادمنا لمعالجتها. الملف الذي تختاره يبقى على جهازك، والنتيجة تُنشأ في
-        المتصفح ثم يمكنك تنزيلها أنت.
-      </p>
-      <p>
-        لا نستخدم محتوى الصور أو المستندات التي تعالجها لأغراض تدريب نماذج أو بيع بيانات أو إنشاء
-        ملفات تعريف إعلانية مرتبطة بمحتوى الملف.
-      </p>
-
-      <h2 className="text-xl font-bold">2. المعلومات التي قد تُجمع تلقائياً</h2>
-      <p>
-        مثل معظم المواقع، قد تسجّل خدمة الاستضافة بيانات تقنية محدودة لحماية الخدمة وقياس الأداء،
-        مثل عنوان IP تقريبي، ونوع المتصفح، وتاريخ الزيارة، والصفحة المطلوبة. هذه السجلات لا تتضمن
-        ملفاتك الشخصية التي تعالجها الأداة.
-      </p>
-
-      <h2 className="text-xl font-bold">3. ملفات تعريف الارتباط والإعلانات</h2>
-      <p>
-        قد يستخدم الموقع ملفات تعريف ارتباط (Cookies) ضرورية لتشغيل الصفحة، وملفات من أطراف ثالثة
-        لعرض الإعلانات وقياس الزيارات. من ذلك شبكة Google AdSense وخدماتها ذات الصلة.
+        Free utilities such as image compression, WEBP conversion, PNG to PDF, and QR generation run
+        in your browser. We do not require an account and we do not upload those files to our
+        servers to process them. Flagship products (QV1, Neyora) are being designed around the same
+        principle: keep source audio on your machine whenever possible.
       </p>
       <p>
-        تستخدم Google — كطرف ثالث — ملفات تعريف الارتباط لعرض إعلانات بناءً على زياراتك السابقة لهذا
-        الموقع أو لمواقع أخرى. يمكنك تعطيل الإعلانات المخصصة عبر إعدادات إعلانات Google، أو ضبط
-        المتصفح لرفض بعض ملفات الارتباط. رفض ملفات الارتباط غير الضرورية قد يؤثر على ظهور الإعلانات
-        لكنه لا يمنعك من استخدام الأدوات المحلية.
+        We do not use the contents of files you process in the browser to train models or to build
+        advertising profiles tied to that content.
       </p>
-      <ul className="list-disc space-y-2 pr-5">
+      <h2 className="text-xl font-bold">2. Technical logs</h2>
+      <p>
+        Hosting providers may record limited technical data to keep the site up: approximate IP,
+        browser type, time, and the page requested. Those logs do not include the files you process
+        locally.
+      </p>
+      <h2 className="text-xl font-bold">3. Cookies and ads</h2>
+      <p>
+        The site may use cookies required to run the page, plus third-party cookies for advertising
+        and traffic measurement, including Google AdSense. You can limit personalized ads in Google
+        Ads settings. Blocking non-essential cookies may change ad display; it will not stop local
+        tools from working.
+      </p>
+      <ul className="list-disc space-y-2 pl-5">
         <li>
-          صفحة خيارات الإعلانات من Google:{" "}
-          <a
-            className="text-primary hover:underline"
-            href="https://adssettings.google.com"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
+          Google ad settings:{" "}
+          <a className="text-primary hover:underline" href="https://adssettings.google.com" rel="noopener noreferrer" target="_blank">
             adssettings.google.com
           </a>
         </li>
         <li>
-          سياسة Google المتعلقة بالشركاء:{" "}
+          Google advertising technologies:{" "}
           <a
             className="text-primary hover:underline"
             href="https://policies.google.com/technologies/ads"
@@ -72,36 +61,27 @@ export default function PrivacyPolicyPage() {
           </a>
         </li>
       </ul>
-
-      <h2 className="text-xl font-bold">4. بيانات التواصل</h2>
+      <h2 className="text-xl font-bold">4. Waitlists and contact</h2>
       <p>
-        إذا راسلتنا عبر صفحة الاتصال أو البريد الإلكتروني، سنستخدم اسمك وعنوان بريدك ومحتوى الرسالة
-        للرد عليك فقط. لا نبيع بيانات التواصل، ولا نضيفك إلى قوائم بريدية دون موافقة واضحة.
+        Product waitlists on this site currently store your email in this browser via local storage
+        until a server waitlist (for example Supabase) is connected. Messages you send through the
+        contact form go to {siteConfig.email} and are used only to reply.
       </p>
-
-      <h2 className="text-xl font-bold">5. الروابط الخارجية</h2>
+      <h2 className="text-xl font-bold">5. Children</h2>
       <p>
-        قد يحتوي الموقع على روابط لمواقع أخرى. لسنا مسؤولين عن سياسات الخصوصية لتلك المواقع، وننصحك
-        بقراءتها قبل تقديم أي معلومات هناك.
+        The site is for a general audience. We do not knowingly collect personal information from
+        children under 13. Contact us if you believe a child submitted data so we can delete it.
       </p>
-
-      <h2 className="text-xl font-bold">6. حماية الأطفال</h2>
+      <h2 className="text-xl font-bold">6. Changes</h2>
       <p>
-        الموقع موجّه لجمهور عام ولا يجمع عن علم معلومات شخصية من الأطفال دون سن 13 عاماً. إذا علمت
-        أن طفلاً قد أرسل لنا بيانات شخصية، تواصل معنا لحذفها.
+        We may update this policy as products ship. The date at the top will change. Continued use
+        after an update means you accept the revised policy.
       </p>
-
-      <h2 className="text-xl font-bold">7. التعديلات</h2>
+      <h2 className="text-xl font-bold">7. Contact</h2>
       <p>
-        قد نحدّث هذه السياسة عند إضافة أدوات جديدة أو تغيّر المتطلبات النظامية. تاريخ آخر تحديث يظهر
-        أعلى الصفحة. استمرارك في استخدام الموقع بعد التعديل يعني موافقتك على النسخة المحدّثة.
-      </p>
-
-      <h2 className="text-xl font-bold">8. التواصل بشأن الخصوصية</h2>
-      <p>
-        لأي طلب متعلق بالخصوصية راسلنا على {siteConfig.email} أو عبر{" "}
+        Privacy questions: {siteConfig.email} or the{" "}
         <Link href="/contact" className="font-semibold text-primary hover:underline">
-          صفحة التواصل
+          contact page
         </Link>
         .
       </p>

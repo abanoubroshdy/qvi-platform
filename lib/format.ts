@@ -1,8 +1,8 @@
 export function formatBytes(bytes: number): string {
-  if (!Number.isFinite(bytes) || bytes < 0) return "0 بايت";
-  if (bytes < 1024) return `${bytes} بايت`;
+  if (!Number.isFinite(bytes) || bytes < 0) return "0 B";
+  if (bytes < 1024) return `${bytes} B`;
 
-  const units = ["ك.ب", "م.ب", "ج.ب"];
+  const units = ["KB", "MB", "GB"];
   let value = bytes / 1024;
   let unitIndex = 0;
 
@@ -16,5 +16,5 @@ export function formatBytes(bytes: number): string {
 }
 
 export function formatPercent(value: number): string {
-  return `${Math.round(value)}٪`;
+  return `${Math.round(value)}%`;
 }

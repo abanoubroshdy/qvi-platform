@@ -20,33 +20,31 @@ export function ContactForm() {
       return;
     }
 
-    const subject = encodeURIComponent(`رسالة من ${name} عبر تولز عرب`);
-    const body = encodeURIComponent(`الاسم: ${name}\nالبريد: ${email}\n\n${message}`);
+    const subject = encodeURIComponent(`Message from ${name} via QVI`);
+    const body = encodeURIComponent(`Name: ${name}\nEmail: ${email}\n\n${message}`);
     window.location.href = `mailto:${siteConfig.email}?subject=${subject}&body=${body}`;
     setStatus("ready");
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4 rounded-xl border bg-card p-5 shadow-sm">
+    <form onSubmit={onSubmit} className="space-y-4 rounded-xl border border-white/10 bg-card p-5 shadow-sm">
       <div className="space-y-2">
-        <Label htmlFor="name">الاسم</Label>
+        <Label htmlFor="name">Name</Label>
         <Input id="name" name="name" value={name} onChange={(event) => setName(event.target.value)} required />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="email">البريد الإلكتروني</Label>
+        <Label htmlFor="email">Email</Label>
         <Input
           id="email"
           name="email"
           type="email"
-          dir="ltr"
-          className="text-start"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           required
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="message">الرسالة</Label>
+        <Label htmlFor="message">Message</Label>
         <textarea
           id="message"
           name="message"
@@ -59,15 +57,15 @@ export function ContactForm() {
       </div>
       {status === "error" ? (
         <p className="text-sm text-destructive" role="alert">
-          يرجى تعبئة جميع الحقول قبل الإرسال.
+          Please fill in every field before sending.
         </p>
       ) : null}
       {status === "ready" ? (
-        <p className="text-sm text-primary">سيتم فتح تطبيق البريد لإرسال رسالتك مباشرة.</p>
+        <p className="text-sm text-primary">Your mail app should open with the message ready to send.</p>
       ) : null}
       <Button type="submit" size="lg" className="w-full sm:w-auto">
         <Send />
-        إرسال الرسالة
+        Send message
       </Button>
     </form>
   );
