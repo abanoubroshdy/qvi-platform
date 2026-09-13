@@ -11,7 +11,14 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). Production:
+Open [http://localhost:3000](http://localhost:3000). For a production preview that works better on phones:
+
+```bash
+npm run build
+npx next start -p 43123 -H 0.0.0.0
+```
+
+Production:
 
 ```bash
 npm run build

@@ -29,42 +29,42 @@ export default function HomePage() {
         }}
       />
 
-      <section className="hero-grid border-b border-white/10">
+      <section className="qvi-hero hero-grid border-b border-white/10">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:py-20 lg:py-24">
-          <p className="mb-4 text-xs font-semibold uppercase tracking-[0.28em] text-primary">
+          <p className="qvi-kicker mb-4 text-xs font-semibold uppercase tracking-[0.28em] text-primary">
             {siteConfig.tagline}
           </p>
           <h1 className="max-w-4xl text-4xl font-semibold leading-tight sm:text-5xl lg:text-6xl">
             QVI - Quality Virtual Instruments
           </h1>
-          <p className="mt-5 max-w-2xl text-base leading-8 text-muted-foreground sm:text-lg">
+          <p className="qvi-lead mt-5 max-w-2xl text-base leading-8 text-muted-foreground sm:text-lg">
             We build intelligent audio tools that run on your device. From stem separation to DDSP
             instrument synthesis.
           </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Button asChild size="lg">
+          <div className="qvi-actions mt-8 flex flex-wrap gap-3">
+            <Button asChild size="lg" className="qvi-btn">
               <Link href="/products/qv1">
                 Explore QV1
                 <ArrowRight />
               </Link>
             </Button>
-            <Button asChild size="lg" variant="outline">
+            <Button asChild size="lg" variant="outline" className="qvi-btn qvi-btn-outline">
               <Link href="/#tools">Try Free Tools</Link>
             </Button>
           </div>
         </div>
       </section>
 
-      <section id="products" className="mx-auto max-w-6xl px-4 py-14 sm:py-16">
+      <section id="products" className="qvi-section mx-auto max-w-6xl px-4 py-14 sm:py-16">
         <div className="mb-8 max-w-2xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">Flagship products</p>
+          <p className="qvi-kicker text-xs font-semibold uppercase tracking-[0.24em] text-primary">Flagship products</p>
           <h2 className="mt-2 text-3xl font-semibold sm:text-4xl">Audio software, not just utilities</h2>
-          <p className="mt-3 text-muted-foreground">
+          <p className="qvi-lead mt-3 text-muted-foreground">
             QV1 and Neyora are the core of the QVI ecosystem — professional instruments designed to
             stay on your machine.
           </p>
         </div>
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="qvi-product-grid grid gap-6 lg:grid-cols-2">
           <ProductSpotlight
             name={products.qv1.name}
             title={products.qv1.title}
@@ -88,17 +88,17 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section id="tools" className="border-t border-white/10 bg-black/20">
+      <section id="tools" className="qvi-section border-t border-white/10 bg-black/20">
         <div className="mx-auto max-w-6xl px-4 py-14 sm:py-16">
           <div className="mb-8 max-w-2xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">Utilities</p>
+            <p className="qvi-kicker text-xs font-semibold uppercase tracking-[0.24em] text-primary">Utilities</p>
             <h2 className="mt-2 text-3xl font-semibold sm:text-4xl">Free Online Tools - Powered by QVI</h2>
-            <p className="mt-3 text-muted-foreground">
+            <p className="qvi-lead mt-3 text-muted-foreground">
               Fast browser utilities that process files locally. Use them freely while the flagship
               audio engines come online.
             </p>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="qvi-tool-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {tools.map((tool) => (
               <ToolCard key={tool.slug} tool={tool} />
             ))}

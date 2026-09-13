@@ -18,11 +18,11 @@ export function Header() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-background/80 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4">
+    <header className="qvi-header sticky top-0 z-50 border-b border-white/10 bg-background/80 backdrop-blur-xl">
+      <div className="qvi-header-inner mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4">
         <Logo compact />
 
-        <nav className="hidden items-center gap-1 md:flex" aria-label="Primary">
+        <nav className="qvi-nav-desktop hidden items-center gap-1 md:flex" aria-label="Primary">
           {navItems.map((item) => (
             <Link
               key={item.href}
@@ -32,7 +32,7 @@ export function Header() {
               {item.label}
             </Link>
           ))}
-          <Button asChild size="sm" className="ml-2">
+          <Button asChild size="sm" className="qvi-btn ml-2">
             <Link href="/products/qv1">Explore QV1</Link>
           </Button>
         </nav>
@@ -41,7 +41,7 @@ export function Header() {
           type="button"
           variant="secondary"
           size="icon"
-          className="md:hidden"
+          className="qvi-menu-btn md:hidden"
           aria-expanded={open}
           aria-controls="mobile-nav"
           aria-label={open ? "Close menu" : "Open menu"}
@@ -51,7 +51,11 @@ export function Header() {
         </Button>
       </div>
 
-      <div id="mobile-nav" className={cn("border-t border-white/10 md:hidden", open ? "block" : "hidden")}>
+      <div
+        id="mobile-nav"
+        data-open={open ? "true" : "false"}
+        className={cn("qvi-nav-mobile border-t border-white/10 md:hidden", open ? "block" : "hidden")}
+      >
         <nav className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-3" aria-label="Mobile">
           {navItems.map((item) => (
             <Link

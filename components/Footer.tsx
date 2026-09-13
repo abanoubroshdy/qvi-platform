@@ -18,8 +18,8 @@ export function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="mt-auto border-t border-white/10 bg-black/30">
-      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:grid-cols-2 lg:grid-cols-4">
+    <footer className="qvi-footer mt-auto border-t border-white/10 bg-black/30">
+      <div className="qvi-footer-inner mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:grid-cols-2 lg:grid-cols-4">
         <div className="space-y-3 lg:col-span-2">
           <Logo />
           <p className="max-w-md text-sm leading-7 text-muted-foreground">

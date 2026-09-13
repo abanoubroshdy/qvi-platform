@@ -67,7 +67,15 @@ export default function RootLayout({
   return (
     <html lang="en" className={outfit.variable}>
       <body className="min-h-screen font-sans">
-        <div className="flex min-h-screen flex-col">
+        {/* Static public CSS so phones on tunnels still get a usable layout if Next CSS is blocked. */}
+        <link rel="stylesheet" href="/brand.css?v=2" />
+        <style
+          dangerouslySetInnerHTML={{
+            __html:
+              "html,body{margin:0;background:#05070d;color:#f8fafc}a{color:#67e8f9;text-decoration:none}",
+          }}
+        />
+        <div className="qvi-shell flex min-h-screen flex-col">
           <Header />
           <main className="flex-1">{children}</main>
           <Footer />

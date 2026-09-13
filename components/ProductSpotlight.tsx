@@ -28,7 +28,7 @@ export function ProductSpotlight({
   return (
     <article
       className={cn(
-        "relative overflow-hidden rounded-3xl border border-white/10 bg-[#070b14] p-6 sm:p-8",
+        "relative qvi-card overflow-hidden rounded-3xl border border-white/10 bg-[#070b14] p-6 sm:p-8",
         tone === "cyan" ? "glow-cyan" : "glow-violet",
       )}
     >
@@ -55,7 +55,7 @@ export function ProductSpotlight({
             ))}
           </ul>
         ) : null}
-        <Button asChild size="lg" variant={tone === "cyan" ? "default" : "secondary"}>
+        <Button asChild size="lg" className="qvi-btn" variant={tone === "cyan" ? "default" : "secondary"}>
           <Link href={href}>
             {cta}
             <ArrowRight />

@@ -8,7 +8,7 @@ export function ToolCard({ tool }: { tool: Tool }) {
   const Icon = tool.icon;
 
   return (
-    <Link href={tool.href} className="group block h-full">
+    <Link href={tool.href} className="qvi-card group block h-full">
       <Card className="h-full border-white/10 bg-card/80 transition duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_0_32px_-12px_hsl(187_94%_43%/0.55)]">
         <CardHeader className="space-y-3">
           <div className="flex items-start justify-between gap-3">
