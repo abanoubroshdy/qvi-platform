@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import type { ToolSlug } from "@/lib/i18n";
 
+export type ToolCategory = "images" | "pdf" | "text" | "quick";
+
 export type Tool = {
   slug: ToolSlug;
   title: string;
@@ -22,8 +24,10 @@ export type Tool = {
   href: string;
   icon: LucideIcon;
   available: boolean;
-  category: "images" | "pdf" | "text" | "qr" | "other";
+  category: ToolCategory;
 };
+
+export const toolCategoryOrder: readonly ToolCategory[] = ["images", "pdf", "text", "quick"];
 
 export const tools: Tool[] = [
   {
@@ -41,6 +45,24 @@ export const tools: Tool[] = [
     description: "Convert WEBP images to compatible JPG files without uploading anything.",
     href: "/tools/webp-to-jpg",
     icon: Images,
+    available: true,
+    category: "images",
+  },
+  {
+    slug: "image-resizer",
+    title: "Image Resizer",
+    description: "Change image dimensions in pixels, with or without locking aspect ratio.",
+    href: "/tools/image-resizer",
+    icon: Scaling,
+    available: true,
+    category: "images",
+  },
+  {
+    slug: "color-picker",
+    title: "Color Picker",
+    description: "Pick precise colors and copy HEX, RGB, and HSL values instantly.",
+    href: "/tools/color-picker",
+    icon: Pipette,
     available: true,
     category: "images",
   },
@@ -72,24 +94,6 @@ export const tools: Tool[] = [
     category: "pdf",
   },
   {
-    slug: "qr-generator",
-    title: "QR Generator",
-    description: "Create a high-quality QR code from any link or text and download it as PNG.",
-    href: "/tools/qr-generator",
-    icon: QrCode,
-    available: true,
-    category: "qr",
-  },
-  {
-    slug: "image-resizer",
-    title: "Image Resizer",
-    description: "Change image dimensions in pixels, with or without locking aspect ratio.",
-    href: "/tools/image-resizer",
-    icon: Scaling,
-    available: true,
-    category: "images",
-  },
-  {
     slug: "word-counter",
     title: "Word Counter",
     description: "Count words, characters, and paragraphs in any text instantly.",
@@ -97,15 +101,6 @@ export const tools: Tool[] = [
     icon: Type,
     available: true,
     category: "text",
-  },
-  {
-    slug: "password-generator",
-    title: "Password Generator",
-    description: "Generate strong random passwords with the length and symbols you choose.",
-    href: "/tools/password-generator",
-    icon: KeyRound,
-    available: true,
-    category: "other",
   },
   {
     slug: "base64",
@@ -117,13 +112,13 @@ export const tools: Tool[] = [
     category: "text",
   },
   {
-    slug: "color-picker",
-    title: "Color Picker",
-    description: "Pick precise colors and copy HEX, RGB, and HSL values instantly.",
-    href: "/tools/color-picker",
-    icon: Pipette,
+    slug: "qr-generator",
+    title: "QR Generator",
+    description: "Create a high-quality QR code from any link or text and download it as PNG.",
+    href: "/tools/qr-generator",
+    icon: QrCode,
     available: true,
-    category: "other",
+    category: "quick",
   },
   {
     slug: "qr-reader",
@@ -132,12 +127,35 @@ export const tools: Tool[] = [
     href: "/tools/qr-reader",
     icon: ScanLine,
     available: true,
-    category: "qr",
+    category: "quick",
+  },
+  {
+    slug: "password-generator",
+    title: "Password Generator",
+    description: "Generate strong random passwords with the length and symbols you choose.",
+    href: "/tools/password-generator",
+    icon: KeyRound,
+    available: true,
+    category: "quick",
   },
 ];
 
 export function getToolBySlug(slug: string): Tool | undefined {
   return tools.find((tool) => tool.slug === slug);
+}
+
+export function getToolsByCategory(category: ToolCategory): Tool[] {
+  return tools
+    .filter((tool) => tool.category === category)
+    .slice()
+    .sort((a, b) => Number(b.available) - Number(a.available));
+}
+
+export function groupedTools(): { category: ToolCategory; tools: Tool[] }[] {
+  return toolCategoryOrder.map((category) => ({
+    category,
+    tools: getToolsByCategory(category),
+  }));
 }
 
 export const upcomingTools = tools.filter((tool) => !tool.available);
