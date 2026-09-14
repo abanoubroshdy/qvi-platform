@@ -1,8 +1,10 @@
 import {
   Binary,
   FileArchive,
+  FileAudio,
   FileImage,
   Files,
+  Film,
   ImageDown,
   Images,
   KeyRound,
@@ -10,6 +12,7 @@ import {
   QrCode,
   Scaling,
   ScanLine,
+  Scissors,
   Type,
   type LucideIcon,
 } from "lucide-react";
@@ -27,9 +30,36 @@ export type Tool = {
   category: ToolCategory;
 };
 
-export const toolCategoryOrder: readonly ToolCategory[] = ["images", "pdf", "text", "quick"];
+export const toolCategoryOrder: readonly ToolCategory[] = ["audio", "images", "pdf", "text", "quick"];
 
 export const tools: Tool[] = [
+  {
+    slug: "mp4-to-mp3",
+    title: "MP4 to MP3",
+    description: "Extract audio from a video file and download it as MP3 on your device.",
+    href: "/tools/mp4-to-mp3",
+    icon: Film,
+    available: true,
+    category: "audio",
+  },
+  {
+    slug: "mp3-to-wav",
+    title: "MP3 to WAV",
+    description: "Convert MP3, M4A, or OGG to WAV entirely in your browser.",
+    href: "/tools/mp3-to-wav",
+    icon: FileAudio,
+    available: true,
+    category: "audio",
+  },
+  {
+    slug: "audio-cutter",
+    title: "Audio Cutter",
+    description: "Trim an audio clip by start and end time without uploading the file.",
+    href: "/tools/audio-cutter",
+    icon: Scissors,
+    available: true,
+    category: "audio",
+  },
   {
     slug: "image-compressor",
     title: "Image Compressor",

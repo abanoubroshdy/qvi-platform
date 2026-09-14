@@ -8,10 +8,11 @@ import { ToolCard } from "@/components/ToolCard";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/lib/site";
-import { groupedTools } from "@/lib/tools";
+import { getToolsByCategory, groupedTools } from "@/lib/tools";
 
 export function HomeView() {
   const { copy } = useI18n();
+  const audioTools = getToolsByCategory("audio");
 
   return (
     <div>
@@ -92,8 +93,22 @@ export function HomeView() {
             <h2 className="mt-2 text-3xl font-semibold sm:text-4xl">{copy.home.toolsTitle}</h2>
             <p className="qvi-lead mt-3 text-muted-foreground">{copy.home.toolsLead}</p>
           </div>
+          <div id="audio-tools" className="qvi-audio-tools mb-12 scroll-mt-20 rounded-2xl border border-primary/25 bg-card/80 p-5 shadow-sm sm:p-6">
+            <p className="qvi-kicker text-xs font-semibold uppercase tracking-[0.24em] text-primary">
+              {copy.home.audioKicker}
+            </p>
+            <h3 className="mt-2 text-2xl font-semibold sm:text-3xl">{copy.home.audioTitle}</h3>
+            <p className="qvi-lead mt-2 text-sm leading-7 text-muted-foreground">{copy.home.audioLead}</p>
+            <div className="qvi-tool-grid mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {audioTools.map((tool) => (
+                <ToolCard key={tool.slug} tool={tool} />
+              ))}
+            </div>
+          </div>
           <div className="qvi-tool-groups space-y-12">
-            {groupedTools().map(({ category, tools: groupTools }) => {
+            {groupedTools()
+              .filter((group) => group.category !== "audio")
+              .map(({ category, tools: groupTools }) => {
               const group = copy.toolGroups[category];
               return (
                 <div key={category} className="qvi-tool-group">

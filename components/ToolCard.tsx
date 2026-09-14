@@ -22,6 +22,7 @@ export function ToolCard({ tool }: { tool: Tool }) {
             </span>
             <div className="flex flex-wrap justify-end gap-1">
               <Badge variant="outline">{copy.common.freeUtility}</Badge>
+              {tool.category === "audio" ? <Badge variant="outline">{copy.common.fresh}</Badge> : null}
               <Badge variant={tool.available ? "default" : "secondary"}>
                 {tool.available ? copy.common.live : copy.common.soon}
               </Badge>

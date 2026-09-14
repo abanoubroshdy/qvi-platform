@@ -42,6 +42,9 @@ Optional: copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_SITE_URL` bef
 - `/tools/base64` Base64 encode / decode
 - `/tools/image-resizer` Image resizer
 - `/tools/word-counter` Word and character counter
+- `/tools/mp4-to-mp3` Extract MP3 from video
+- `/tools/mp3-to-wav` Convert MP3/M4A/OGG to WAV
+- `/tools/audio-cutter` Trim audio
 - `/about` · `/privacy-policy` · `/contact` · `/terms`
 
 Free tools stay 100% client-side. Waitlist emails are stored in `localStorage` until a backend is connected.
@@ -50,4 +53,4 @@ The header lets you switch **English / Arabic** (RTL) and **Light / Dark / Syste
 
 ## Stack
 
-Next.js 14 App Router, TypeScript, Tailwind CSS, ESLint, shadcn/ui, lucide-react, browser-image-compression, pdf-lib, qrcode, jsqr.
+Next.js 14 App Router, TypeScript, Tailwind CSS, ESLint, shadcn/ui, lucide-react, browser-image-compression, pdf-lib, qrcode, jsqr, ffmpeg.wasm.

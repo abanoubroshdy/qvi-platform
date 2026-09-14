@@ -30,6 +30,7 @@ export const en = {
     lastUpdated: "Last updated: {date}",
     live: "Ready",
     soon: "Soon",
+    fresh: "New",
     copy: "Copy",
     copied: "Copied",
     freeUtility: "Free utility",
@@ -56,8 +57,15 @@ export const en = {
     toolsTitle: "Free online tools — powered by QVI",
     toolsLead:
       "Fast browser utilities that process files locally. Use them freely while the flagship audio engines come online.",
+    audioKicker: "New",
+    audioTitle: "Audio & video tools — new",
+    audioLead: "Extract audio, convert formats, and trim clips entirely in your browser. Nothing is uploaded.",
   },
   toolGroups: {
+    audio: {
+      title: "Audio & video tools",
+      lead: "Extract audio, convert formats, and trim clips — FFmpeg runs on your device.",
+    },
     images: {
       title: "Image tools",
       lead: "Compress, convert, resize, and pick colors — all on your device.",
@@ -262,6 +270,18 @@ export const en = {
       title: "QR Reader",
       description: "Read a QR code from an uploaded image without needing a camera.",
     },
+    "mp4-to-mp3": {
+      title: "MP4 to MP3",
+      description: "Extract audio from a video file and download it as MP3 on your device.",
+    },
+    "mp3-to-wav": {
+      title: "MP3 to WAV",
+      description: "Convert MP3, M4A, or OGG to WAV entirely in your browser.",
+    },
+    "audio-cutter": {
+      title: "Audio Cutter",
+      description: "Trim an audio clip by start and end time without uploading the file.",
+    },
   },
   upcoming: {
     kicker: "QVI free utility",
@@ -448,6 +468,48 @@ export const en = {
     paragraphs: "Paragraphs",
     reading: "Reading time",
     minutes: "{count} min",
+  },
+  ffmpeg: {
+    loadingEngine: "Loading conversion engine…",
+    converting: "Converting…",
+    newConversion: "New conversion",
+  },
+  mp4ToMp3: {
+    action: "Extract MP3",
+    download: "Download MP3",
+    dropTitle: "Drop a video here or click to choose",
+    dropHint: "MP4, WEBM, or MOV. Audio is extracted in the browser — nothing is uploaded.",
+    empty: "The extracted audio player will appear here after conversion.",
+    waiting: "Convert the video to preview the MP3.",
+    original: "Original size",
+    output: "MP3 size",
+    badFormat: "Unsupported format. Use MP4, WEBM, or MOV.",
+    failed: "Could not extract audio. Make sure the video has a sound track.",
+  },
+  mp3ToWav: {
+    action: "Convert to WAV",
+    download: "Download WAV",
+    dropTitle: "Drop an audio file here or click to choose",
+    dropHint: "MP3, M4A, or OGG. Conversion runs with FFmpeg in this tab.",
+    empty: "The audio player will appear here after you choose a file.",
+    original: "Original size",
+    output: "WAV size",
+    badFormat: "Unsupported format. Use MP3, M4A, or OGG.",
+    failed: "Could not convert this file. Try another audio clip.",
+  },
+  audioCutter: {
+    action: "Trim audio",
+    download: "Download clip",
+    dropTitle: "Drop an audio file here or click to choose",
+    dropHint: "MP3, WAV, M4A, or OGG. Trimming stays on your device.",
+    empty: "Waveform and trim controls appear after you choose a file.",
+    start: "Start (mm:ss)",
+    end: "End (mm:ss)",
+    preview: "Selection preview",
+    trimmed: "Trimmed preview",
+    badFormat: "Unsupported format. Choose an audio file.",
+    failed: "Could not trim this file. Try a slightly different range.",
+    failedWaveform: "Could not draw a waveform, but you can still set start and end times.",
   },
   toolPages: {
     "image-compressor": {
@@ -748,6 +810,84 @@ export const en = {
         {
           q: "Does it count Arabic?",
           a: "Yes. Words are split on whitespace, so Arabic, English, and mixed text all work.",
+        },
+      ],
+    },
+    "mp4-to-mp3": {
+      category: "Audio & video tools",
+      title: "Convert video to MP3 — extract audio",
+      description: "Pull the soundtrack out of MP4, WEBM, or MOV files. FFmpeg runs in your browser; the video is never uploaded.",
+      howToTitle: "How do I extract MP3 from a video?",
+      howToNote: "The conversion engine is loaded from a CDN into this tab only. Close the page and the files leave memory.",
+      howToSteps: [
+        "Drop an MP4, WEBM, or MOV file.",
+        "Wait for the engine to load, then tap Extract MP3.",
+        "Preview the audio, compare sizes, and download.",
+      ],
+      faqs: [
+        {
+          q: "Is the video uploaded?",
+          a: "No. FFmpeg.wasm processes the file in your browser. We do not receive a copy.",
+        },
+        {
+          q: "Which video formats work?",
+          a: "MP4, WEBM, and MOV with an audio track. Silent videos cannot produce an MP3.",
+        },
+        {
+          q: "Why does the engine take a moment to load?",
+          a: "The WebAssembly core is fetched once from a CDN, then kept in this tab for the next conversion.",
+        },
+      ],
+    },
+    "mp3-to-wav": {
+      category: "Audio & video tools",
+      title: "Convert MP3 to WAV — no upload",
+      description: "Turn MP3, M4A, or OGG into WAV on your device. Preview in the audio player, then download.",
+      howToTitle: "How do I convert audio to WAV?",
+      howToNote: "WAV files are larger than MP3. Keep the original if you need a smaller copy.",
+      howToSteps: [
+        "Choose an MP3, M4A, or OGG file.",
+        "Tap Convert to WAV and wait for local processing.",
+        "Listen in the player, then download the WAV.",
+      ],
+      faqs: [
+        {
+          q: "Does conversion use a server?",
+          a: "No. FFmpeg runs inside the tab. The file is not sent to QVI.",
+        },
+        {
+          q: "Will quality improve?",
+          a: "WAV is uncompressed. It will not add detail that was not in the MP3, but it is easier for some editors to open.",
+        },
+        {
+          q: "Which inputs are supported?",
+          a: "MP3, M4A, and OGG. Other types may fail; try exporting them to MP3 first.",
+        },
+      ],
+    },
+    "audio-cutter": {
+      category: "Audio & video tools",
+      title: "Trim audio online — no upload",
+      description: "Set start and end times, preview the selection, and download a trimmed MP3. Cutting stays on your device.",
+      howToTitle: "How do I cut an audio clip?",
+      howToNote: "Copy-based trim is fast but may snap to codec frames. If that fails, the tool re-encodes the range.",
+      howToSteps: [
+        "Drop an audio file and wait for the waveform.",
+        "Set start and end with the fields or sliders.",
+        "Tap Trim audio, preview the clip, then download.",
+      ],
+      faqs: [
+        {
+          q: "Is my audio uploaded?",
+          a: "No. Waveform drawing uses the Web Audio API and trimming uses FFmpeg in the browser.",
+        },
+        {
+          q: "What do the time fields use?",
+          a: "Minutes and seconds (mm:ss). You can also drag the sliders.",
+        },
+        {
+          q: "Why is the cut a little off?",
+          a: "Stream copy follows codec frames. For a tighter cut, the tool falls back to re-encoding the selected range.",
         },
       ],
     },
