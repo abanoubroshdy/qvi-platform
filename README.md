@@ -35,6 +35,8 @@ Optional: copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_SITE_URL` bef
 - `/tools/image-compressor` Image Compressor
 - `/tools/webp-to-jpg` WEBP to JPG
 - `/tools/png-to-pdf` PNG to PDF
+- `/tools/pdf-compressor` PDF compressor
+- `/tools/pdf-merger` PDF merger
 - `/tools/qr-generator` QR Generator
 - `/tools/color-picker` Color picker (HEX / RGB / HSL)
 - `/tools/qr-reader` QR reader from image (no camera)
@@ -53,4 +55,4 @@ The header lets you switch **English / Arabic** (RTL) and **Light / Dark / Syste
 
 ## Stack
 
-Next.js 14 App Router, TypeScript, Tailwind CSS, ESLint, shadcn/ui, lucide-react, browser-image-compression, pdf-lib, qrcode, jsqr, ffmpeg.wasm.
+Next.js 14 App Router, TypeScript, Tailwind CSS, ESLint, shadcn/ui, lucide-react, browser-image-compression, pdf-lib, pdfjs-dist, qrcode, jsqr, ffmpeg.wasm.

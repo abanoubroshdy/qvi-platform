@@ -111,7 +111,7 @@ export const tools: Tool[] = [
     description: "Reduce PDF file size for faster sending while keeping the document readable.",
     href: "/tools/pdf-compressor",
     icon: FileArchive,
-    available: false,
+    available: true,
     category: "pdf",
   },
   {
@@ -120,7 +120,7 @@ export const tools: Tool[] = [
     description: "Combine several PDFs into a single ordered document in seconds.",
     href: "/tools/pdf-merger",
     icon: Files,
-    available: false,
+    available: true,
     category: "pdf",
   },
   {
