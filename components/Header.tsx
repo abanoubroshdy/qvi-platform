@@ -23,10 +23,10 @@ export function Header() {
 
   return (
     <header className="qvi-header sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
-      <div className="qvi-header-inner mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4">
+      <div className="qvi-header-inner mx-auto flex h-16 max-w-6xl flex-nowrap items-center justify-between gap-3 px-4">
         <Logo compact />
 
-        <nav className="qvi-nav-desktop hidden items-center gap-1 md:flex" aria-label={copy.nav.primary}>
+        <nav className="qvi-nav-desktop hidden items-center gap-1 lg:flex" aria-label={copy.nav.primary}>
           {navItems.map((item) => (
             <Link
               key={item.href}
@@ -41,14 +41,14 @@ export function Header() {
           </Button>
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <LanguageToggle />
           <ThemeToggle />
           <Button
             type="button"
             variant="secondary"
             size="icon"
-            className="qvi-menu-btn md:hidden"
+            className="qvi-menu-btn lg:hidden"
             aria-expanded={open}
             aria-controls="mobile-nav"
             aria-label={open ? copy.nav.closeMenu : copy.nav.openMenu}
@@ -62,7 +62,7 @@ export function Header() {
       <div
         id="mobile-nav"
         data-open={open ? "true" : "false"}
-        className={cn("qvi-nav-mobile border-t border-border md:hidden", open ? "block" : "hidden")}
+        className={cn("qvi-nav-mobile border-t border-border lg:hidden", open ? "block" : "hidden")}
       >
         <nav className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-3" aria-label={copy.nav.mobile}>
           {navItems.map((item) => (
