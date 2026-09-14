@@ -180,6 +180,17 @@ a {
   gap: 1rem;
 }
 
+.qvi-tool-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+.qvi-tool-group h3 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
 .qvi-card {
   display: block;
   background: var(--qvi-card);

@@ -8,7 +8,7 @@ import { ToolCard } from "@/components/ToolCard";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/lib/site";
-import { tools } from "@/lib/tools";
+import { groupedTools } from "@/lib/tools";
 
 export function HomeView() {
   const { copy } = useI18n();
@@ -83,19 +83,32 @@ export function HomeView() {
         </div>
       </section>
 
-      <section id="tools" className="qvi-section border-t border-border bg-muted/40">
+      <section id="tools" className="qvi-section scroll-mt-20 border-t border-border bg-muted/40">
         <div className="mx-auto max-w-6xl px-4 py-14 sm:py-16">
-          <div className="mb-8 max-w-2xl">
+          <div className="mb-10 max-w-2xl">
             <p className="qvi-kicker text-xs font-semibold uppercase tracking-[0.24em] text-primary">
               {copy.home.toolsKicker}
             </p>
             <h2 className="mt-2 text-3xl font-semibold sm:text-4xl">{copy.home.toolsTitle}</h2>
             <p className="qvi-lead mt-3 text-muted-foreground">{copy.home.toolsLead}</p>
           </div>
-          <div className="qvi-tool-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {tools.map((tool) => (
-              <ToolCard key={tool.slug} tool={tool} />
-            ))}
+          <div className="qvi-tool-groups space-y-12">
+            {groupedTools().map(({ category, tools: groupTools }) => {
+              const group = copy.toolGroups[category];
+              return (
+                <div key={category} className="qvi-tool-group">
+                  <div className="mb-4 max-w-2xl">
+                    <h3 className="text-xl font-semibold sm:text-2xl">{group.title}</h3>
+                    <p className="qvi-lead mt-1 text-sm leading-7 text-muted-foreground">{group.lead}</p>
+                  </div>
+                  <div className="qvi-tool-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {groupTools.map((tool) => (
+                      <ToolCard key={tool.slug} tool={tool} />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
