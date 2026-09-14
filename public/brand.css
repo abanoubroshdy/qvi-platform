@@ -47,7 +47,7 @@ a {
   top: 0;
   z-index: 50;
   border-bottom: 1px solid var(--qvi-line);
-  background: color-mix(in srgb, var(--qvi-bg) 92%, transparent);
+  background: var(--qvi-bg);
 }
 
 .qvi-header-inner {
