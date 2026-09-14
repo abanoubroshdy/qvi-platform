@@ -267,7 +267,7 @@ export const en = {
     kicker: "QVI free utility",
     body: "This utility is still being wired into the same local-processing foundation as the live tools.",
     back: "Back to free tools",
-    other: "Other tools",
+    other: "More {group}",
   },
   layout: {
     dropTitle: "Drop a file here or click to choose",

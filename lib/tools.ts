@@ -151,6 +151,14 @@ export function getToolsByCategory(category: ToolCategory): Tool[] {
     .sort((a, b) => Number(b.available) - Number(a.available));
 }
 
+export function getRelatedTools(slug: string, limit = 3): Tool[] {
+  const tool = getToolBySlug(slug);
+  if (!tool) return [];
+  return getToolsByCategory(tool.category)
+    .filter((item) => item.slug !== tool.slug)
+    .slice(0, limit);
+}
+
 export function groupedTools(): { category: ToolCategory; tools: Tool[] }[] {
   return toolCategoryOrder.map((category) => ({
     category,
