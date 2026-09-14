@@ -86,7 +86,7 @@ export const tools: Tool[] = [
     description: "Change image dimensions in pixels, with or without locking aspect ratio.",
     href: "/tools/image-resizer",
     icon: Scaling,
-    available: false,
+    available: true,
     category: "images",
   },
   {
@@ -95,7 +95,7 @@ export const tools: Tool[] = [
     description: "Count words, characters, and paragraphs in any text instantly.",
     href: "/tools/word-counter",
     icon: Type,
-    available: false,
+    available: true,
     category: "text",
   },
   {
@@ -104,7 +104,7 @@ export const tools: Tool[] = [
     description: "Generate strong random passwords with the length and symbols you choose.",
     href: "/tools/password-generator",
     icon: KeyRound,
-    available: false,
+    available: true,
     category: "other",
   },
   {
@@ -113,7 +113,7 @@ export const tools: Tool[] = [
     description: "Encode and decode text or files as Base64 entirely on your device.",
     href: "/tools/base64",
     icon: Binary,
-    available: false,
+    available: true,
     category: "text",
   },
   {
@@ -122,7 +122,7 @@ export const tools: Tool[] = [
     description: "Pick precise colors and copy HEX, RGB, and HSL values instantly.",
     href: "/tools/color-picker",
     icon: Pipette,
-    available: false,
+    available: true,
     category: "other",
   },
   {
@@ -131,7 +131,7 @@ export const tools: Tool[] = [
     description: "Read a QR code from an uploaded image without needing a camera.",
     href: "/tools/qr-reader",
     icon: ScanLine,
-    available: false,
+    available: true,
     category: "qr",
   },
 ];
