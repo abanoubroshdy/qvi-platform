@@ -2,7 +2,7 @@ import { ar } from "./ar";
 import { en, type Messages } from "./en";
 
 export type Locale = "en" | "ar";
-export type { Messages, ToolSlug, LiveToolSlug } from "./en";
+export type { Messages, ToolSlug, LiveToolSlug, ToolGroupSlug } from "./en";
 
 export const locales: Locale[] = ["en", "ar"];
 export const defaultLocale: Locale = "en";

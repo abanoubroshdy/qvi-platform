@@ -13,9 +13,9 @@ import {
   Type,
   type LucideIcon,
 } from "lucide-react";
-import type { ToolSlug } from "@/lib/i18n";
+import type { ToolGroupSlug, ToolSlug } from "@/lib/i18n";
 
-export type ToolCategory = "images" | "pdf" | "text" | "quick";
+export type ToolCategory = ToolGroupSlug;
 
 export type Tool = {
   slug: ToolSlug;

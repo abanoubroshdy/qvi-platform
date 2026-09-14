@@ -57,6 +57,24 @@ export const en = {
     toolsLead:
       "Fast browser utilities that process files locally. Use them freely while the flagship audio engines come online.",
   },
+  toolGroups: {
+    images: {
+      title: "Image tools",
+      lead: "Compress, convert, resize, and pick colors — all on your device.",
+    },
+    pdf: {
+      title: "PDF tools",
+      lead: "Turn images into PDFs and prepare documents without uploading a file.",
+    },
+    text: {
+      title: "Text tools",
+      lead: "Count words and encode or decode Base64 in the browser.",
+    },
+    quick: {
+      title: "Quick tools",
+      lead: "QR codes and strong passwords, generated locally.",
+    },
+  },
   footer: {
     blurb:
       "Intelligent audio software that runs on your device, plus free browser utilities that never upload your files.",
@@ -542,7 +560,7 @@ export const en = {
       ],
     },
     "qr-generator": {
-      category: "QR tools",
+      category: "Quick tools",
       title: "QR code generator — no upload",
       description:
         "Turn any link or text into a downloadable QR code. Useful for cards, menus, and site URLs, with full privacy.",
@@ -578,7 +596,7 @@ export const en = {
       ],
     },
     "color-picker": {
-      category: "Color tools",
+      category: "Image tools",
       title: "Color picker online — no upload",
       description: "Pick a color and copy HEX, RGB, and HSL instantly. Recent colors stay in this browser only.",
       howToTitle: "How do I copy a color value?",
@@ -604,7 +622,7 @@ export const en = {
       ],
     },
     "qr-reader": {
-      category: "QR tools",
+      category: "Quick tools",
       title: "QR reader from image — no camera, no upload",
       description: "Decode a QR code from a photo on your device. jsQR runs in the browser; the image never leaves the machine.",
       howToTitle: "How do I read a QR code from an image?",
@@ -630,7 +648,7 @@ export const en = {
       ],
     },
     "password-generator": {
-      category: "Security tools",
+      category: "Quick tools",
       title: "Password generator online — no upload",
       description: "Create a random password with length and character sets you control. Generation uses the browser’s crypto API on your device.",
       howToTitle: "How do I generate a strong password?",
@@ -820,3 +838,4 @@ export type DeepString<T> = T extends string
 export type Messages = DeepString<typeof en>;
 export type ToolSlug = keyof Messages["toolsIndex"];
 export type LiveToolSlug = keyof Messages["toolPages"];
+export type ToolGroupSlug = keyof Messages["toolGroups"];
