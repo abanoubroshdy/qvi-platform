@@ -174,7 +174,7 @@ export function Mp4ToMp3() {
         <div className="space-y-4 rounded-xl border bg-card p-4 shadow-sm">
           <div className="space-y-3">
             <Label className="text-start">{copy.mp4ToMp3.format}</Label>
-            <div className="flex flex-wrap gap-2" dir="ltr" role="group" aria-label={copy.mp4ToMp3.format}>
+            <div className="flex flex-wrap gap-2" role="group" aria-label={copy.mp4ToMp3.format}>
               {audioExportFormats.map((item) => (
                 <Button
                   key={item}
@@ -184,6 +184,7 @@ export function Mp4ToMp3() {
                   onClick={() => onFormat(item)}
                   disabled={phase !== "idle"}
                   aria-pressed={format === item}
+                  dir="ltr"
                 >
                   {copy.mp4ToMp3.formats[item]}
                 </Button>

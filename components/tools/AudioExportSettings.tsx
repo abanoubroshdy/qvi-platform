@@ -31,7 +31,7 @@ function ChoiceRow({
   return (
     <div className="min-w-0 space-y-2">
       <Label className="text-start">{label}</Label>
-      <div className="flex flex-wrap gap-2" dir="ltr" role="group" aria-label={label}>
+      <div className="flex flex-wrap gap-2" role="group" aria-label={label}>
         {children}
       </div>
     </div>
@@ -58,6 +58,7 @@ export function AudioExportSettingsPanel({ format, settings, disabled, onChange 
             variant={settings.sampleRate === rate ? "default" : "outline"}
             disabled={disabled}
             aria-pressed={settings.sampleRate === rate}
+            dir="ltr"
             onClick={() => onChange({ ...settings, sampleRate: rate })}
           >
             {interpolate(t.hz, { value: rate.toLocaleString("en-US") })}
@@ -95,6 +96,7 @@ export function AudioExportSettingsPanel({ format, settings, disabled, onChange 
               variant={settings.bitrate === rate ? "default" : "outline"}
               disabled={disabled}
               aria-pressed={settings.bitrate === rate}
+              dir="ltr"
               onClick={() => onChange({ ...settings, bitrate: rate })}
             >
               {interpolate(t.kbps, { value: rate })}
