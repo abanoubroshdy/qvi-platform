@@ -7,7 +7,13 @@ import { ToolLayout } from "@/components/ToolLayout";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { downloadBlob } from "@/lib/download";
 import { formatBytes } from "@/lib/format";
-import { formatFFmpegError, inputNameFor, runFFmpeg } from "@/lib/ffmpeg";
+import {
+  FFMPEG_LARGE_FILE_BYTES,
+  classifyFFmpegFailure,
+  formatFFmpegError,
+  inputNameFor,
+  runFFmpeg,
+} from "@/lib/ffmpeg";
 
 function isVideo(file: File) {
   return file.type.startsWith("video/") || /\.(mp4|webm|mov)$/i.test(file.name);
@@ -68,7 +74,8 @@ export function Mp4ToMp3() {
         inputName,
         outputName: "output.mp3",
         mimeType: "audio/mpeg",
-        args: ["-i", inputName, "-q:a", "0", "-map", "a", "output.mp3"],
+        args: ["-i", inputName, "-vn", "-map", "0:a:0", "-c:a", "libmp3lame", "-q:a", "2", "-ar", "44100", "-ac", "2", "output.mp3"],
+        fallbackArgs: [["-i", inputName, "-vn", "-c:a", "libmp3lame", "-q:a", "2", "-ar", "44100", "-ac", "2", "output.mp3"]],
         onLoadProgress: (ratio) => {
           setPhase("loading");
           setProgress(ratio);
@@ -87,7 +94,16 @@ export function Mp4ToMp3() {
     } catch (error) {
       console.error("[mp4-to-mp3]", error, formatFFmpegError(error));
       setResult(null);
-      setError(`${copy.mp4ToMp3.failed}\n\n${formatFFmpegError(error)}`);
+      const kind = classifyFFmpegFailure(error);
+      const message =
+        kind === "engine"
+          ? copy.mp4ToMp3.failedEngine
+          : kind === "no-audio"
+            ? copy.mp4ToMp3.failedNoAudio
+            : kind === "memory"
+              ? copy.mp4ToMp3.failedMemory
+              : copy.mp4ToMp3.failed;
+      setError(message);
     } finally {
       setPhase("idle");
     }
@@ -111,7 +127,14 @@ export function Mp4ToMp3() {
       }}
       downloadDisabled={!result || phase !== "idle"}
       error={error}
-      extra={<FFmpegStatus phase={phase} progress={progress} />}
+      extra={
+        <>
+          {file && file.size >= FFMPEG_LARGE_FILE_BYTES ? (
+            <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">{copy.mp4ToMp3.largeFileHint}</p>
+          ) : null}
+          <FFmpegStatus phase={phase} progress={progress} />
+        </>
+      }
       preview={
         file ? (
           <div className="space-y-4">

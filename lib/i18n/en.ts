@@ -519,7 +519,11 @@ export const en = {
     original: "Original size",
     output: "MP3 size",
     badFormat: "Unsupported format. Use MP4, WEBM, or MOV.",
-    failed: "Could not extract audio. Make sure the video has a sound track.",
+    failed: "Could not extract audio from this video. Try another file or a shorter clip.",
+    failedEngine: "Could not load the conversion engine. Refresh the page and try again.",
+    failedNoAudio: "This video has no audio track, so there is nothing to extract.",
+    failedMemory: "This file is too large for the browser conversion engine. Try a shorter clip.",
+    largeFileHint: "Files over 80 MB may fail in the browser because the whole video is loaded into memory.",
   },
   mp3ToWav: {
     action: "Convert to WAV",
@@ -923,6 +927,10 @@ export const en = {
         {
           q: "Why does the engine take a moment to load?",
           a: "The WebAssembly core is fetched once from a CDN, then kept in this tab for the next conversion.",
+        },
+        {
+          q: "Why did extraction fail?",
+          a: "The video needs an audio track. Very large files can also fail because the whole video is loaded into browser memory.",
         },
       ],
     },

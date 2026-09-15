@@ -1,7 +1,8 @@
 import type { FFmpeg, LogEventCallback, ProgressEventCallback } from "@ffmpeg/ffmpeg";
 
-const CORE_BASE = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd";
+const CORE_BASE = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm";
 const LOG_LIMIT = 80;
+export const FFMPEG_LARGE_FILE_BYTES = 80 * 1024 * 1024;
 
 export type FFmpegProgressHandler = (ratio: number) => void;
 
@@ -92,8 +93,16 @@ export async function loadFFmpeg(onProgress?: FFmpegProgressHandler): Promise<FF
     return await loadPromise;
   } catch (error) {
     loadPromise = null;
+    try {
+      ffmpeg?.terminate();
+    } catch {
+      /* ignore */
+    }
     ffmpeg = null;
-    throw new FFmpegRunError("Failed to load the FFmpeg engine.", { cause: error, logs: sessionLogs.slice() });
+    throw new FFmpegRunError("Failed to load the FFmpeg engine.", {
+      cause: error instanceof Error ? error : undefined,
+      logs: [...sessionLogs, error instanceof Error ? error.message : String(error)],
+    });
   }
 }
 
@@ -103,6 +112,7 @@ export async function runFFmpeg(options: {
   outputName: string;
   mimeType: string;
   args: string[];
+  fallbackArgs?: string[][];
   onLoadProgress?: FFmpegProgressHandler;
   onProgress?: FFmpegProgressHandler;
 }): Promise<Blob> {
@@ -111,19 +121,50 @@ export async function runFFmpeg(options: {
 
   execProgress = (ratio) => options.onProgress?.(ratio);
   sessionLogs = [];
+  const attempts = [options.args, ...(options.fallbackArgs ?? [])];
+  let lastError: unknown;
 
   try {
     await instance.writeFile(options.inputName, await fetchFile(options.file));
-    const code = await instance.exec(options.args);
-    if (code !== 0) {
-      throw new FFmpegRunError(`ffmpeg exited with code ${code}.`, {
-        exitCode: code,
-        logs: sessionLogs.slice(),
-      });
+
+    for (const args of attempts) {
+      sessionLogs = [];
+      try {
+        const code = await instance.exec(args);
+        if (code !== 0) {
+          lastError = new FFmpegRunError(`ffmpeg exited with code ${code}.`, {
+            exitCode: code,
+            logs: sessionLogs.slice(),
+          });
+          try {
+            await instance.deleteFile(options.outputName);
+          } catch {
+            /* ignore leftover output from a failed attempt */
+          }
+          continue;
+        }
+        const data = await instance.readFile(options.outputName);
+        const bytes = data instanceof Uint8Array ? new Uint8Array(data) : new TextEncoder().encode(String(data));
+        return new Blob([bytes], { type: options.mimeType });
+      } catch (error) {
+        lastError =
+          error instanceof FFmpegRunError
+            ? error
+            : new FFmpegRunError(error instanceof Error ? error.message : "FFmpeg run failed.", {
+                cause: error,
+                logs: sessionLogs.slice(),
+              });
+        try {
+          await instance.deleteFile(options.outputName);
+        } catch {
+          /* ignore leftover output from a failed attempt */
+        }
+      }
     }
-    const data = await instance.readFile(options.outputName);
-    const bytes = data instanceof Uint8Array ? new Uint8Array(data) : new TextEncoder().encode(String(data));
-    return new Blob([bytes], { type: options.mimeType });
+
+    throw lastError instanceof FFmpegRunError
+      ? lastError
+      : new FFmpegRunError("FFmpeg run failed.", { cause: lastError, logs: sessionLogs.slice() });
   } catch (error) {
     if (error instanceof FFmpegRunError) throw error;
     throw new FFmpegRunError(error instanceof Error ? error.message : "FFmpeg run failed.", {
@@ -172,4 +213,24 @@ export function formatFFmpegError(error: unknown): string {
   const causes = causeChain(error);
   const parts = [header, ...causes, ...picked].filter(Boolean);
   return parts.join("\n");
+}
+
+export type FFmpegFailureKind = "engine" | "no-audio" | "memory" | "generic";
+
+export function classifyFFmpegFailure(error: unknown): FFmpegFailureKind {
+  const text = `${formatFFmpegError(error)}\n${error instanceof Error ? error.message : ""}`.toLowerCase();
+  if (
+    text.includes("failed to load the ffmpeg engine") ||
+    text.includes("failed to import ffmpeg-core") ||
+    text.includes("import ffmpeg-core")
+  ) {
+    return "engine";
+  }
+  if (text.includes("matches no streams") || text.includes("does not contain any stream") || text.includes("no audio")) {
+    return "no-audio";
+  }
+  if (text.includes("memory") || text.includes("out of mem") || text.includes("cannot allocate") || text.includes("oom")) {
+    return "memory";
+  }
+  return "generic";
 }
