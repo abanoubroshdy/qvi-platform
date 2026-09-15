@@ -15,16 +15,20 @@ export function FFmpegStatus({
 
   const percent = Math.round(Math.min(1, Math.max(0, progress)) * 100);
   const label = phase === "loading" ? copy.ffmpeg.loadingEngine : copy.ffmpeg.converting;
+  const hint = phase === "loading" ? copy.ffmpeg.loadingHint : copy.ffmpeg.convertingHint;
 
   return (
-    <div className="space-y-2 rounded-xl border bg-card p-4 shadow-sm">
+    <div className="space-y-2 rounded-xl border bg-card p-4 shadow-sm" role="status" aria-live="polite" aria-busy="true">
       <div className="flex items-center justify-between gap-3 text-sm font-semibold">
-        <p>{label}</p>
-        <span className="tabular-nums text-primary">{formatPercent(percent)}</span>
+        <p className="text-start">{label}</p>
+        <span className="tabular-nums text-primary" dir="ltr">
+          {formatPercent(percent)}
+        </span>
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-primary/15" dir="ltr">
         <div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${percent}%` }} />
       </div>
+      <p className="text-start text-xs leading-5 text-muted-foreground">{hint}</p>
     </div>
   );
 }

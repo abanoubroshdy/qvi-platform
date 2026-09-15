@@ -58,7 +58,6 @@ export function Mp4ToMp3() {
   }
 
   function reset() {
-    setFile(null);
     setError(null);
     setPhase("idle");
     setProgress(0);
@@ -125,7 +124,7 @@ export function Mp4ToMp3() {
     } catch (error) {
       console.error("[mp4-to-mp3]", error, formatFFmpegError(error));
       clearResult();
-      const kind = classifyFFmpegFailure(error);
+      const kind = classifyFFmpegFailure(error, { fileBytes: file.size });
       const message =
         kind === "engine"
           ? copy.mp4ToMp3.failedEngine
@@ -146,12 +145,12 @@ export function Mp4ToMp3() {
     <ToolLayout
       accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov"
       onFiles={onFiles}
-      dropTitle={copy.mp4ToMp3.dropTitle}
-      dropHint={copy.mp4ToMp3.dropHint}
+      dropTitle={file ? copy.mp4ToMp3.replaceTitle : copy.mp4ToMp3.dropTitle}
+      dropHint={file ? copy.mp4ToMp3.replaceHint : copy.mp4ToMp3.dropHint}
       emptyPreviewText={copy.mp4ToMp3.empty}
       actionLabel={result ? copy.ffmpeg.newConversion : copy.mp4ToMp3.action}
       onAction={() => (result ? reset() : void convert())}
-      actionDisabled={!file && !result}
+      actionDisabled={!file}
       actionLoading={phase !== "idle"}
       downloadLabel={interpolate(copy.mp4ToMp3.download, { format: formatLabel })}
       onDownload={() => {
@@ -163,7 +162,7 @@ export function Mp4ToMp3() {
       extra={
         <>
           {file && file.size >= FFMPEG_LARGE_FILE_BYTES ? (
-            <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">{copy.mp4ToMp3.largeFileHint}</p>
+            <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-start text-sm text-muted-foreground">{copy.mp4ToMp3.largeFileHint}</p>
           ) : null}
           <FFmpegStatus phase={phase} progress={progress} />
         </>
@@ -171,8 +170,8 @@ export function Mp4ToMp3() {
       leading={
         <div className="space-y-4 rounded-xl border bg-card p-4 shadow-sm">
           <div className="space-y-3">
-            <Label>{copy.mp4ToMp3.format}</Label>
-            <div className="flex flex-wrap gap-2" dir="ltr">
+            <Label className="text-start">{copy.mp4ToMp3.format}</Label>
+            <div className="flex flex-wrap gap-2" dir="ltr" role="group" aria-label={copy.mp4ToMp3.format}>
               {audioExportFormats.map((item) => (
                 <Button
                   key={item}
@@ -193,15 +192,31 @@ export function Mp4ToMp3() {
       }
       preview={
         file ? (
-          <div className="space-y-4">
+          <div className="space-y-4" aria-busy={phase !== "idle"}>
+            <div className="min-w-0 space-y-1">
+              <p className="text-start text-xs text-muted-foreground">{copy.mp4ToMp3.selectedFile}</p>
+              <p className="truncate text-start text-sm font-medium" title={file.name}>
+                {file.name}
+              </p>
+            </div>
             {resultUrl ? (
               <audio controls src={resultUrl} className="w-full" />
             ) : (
-              <p className="text-sm text-muted-foreground">{copy.mp4ToMp3.waiting}</p>
+              <p className="text-start text-sm text-muted-foreground">
+                {phase === "loading"
+                  ? copy.ffmpeg.loadingEngine
+                  : phase === "converting"
+                    ? copy.ffmpeg.converting
+                    : copy.mp4ToMp3.waiting}
+              </p>
             )}
             <div className="grid grid-cols-2 gap-3">
-              <Stat label={copy.mp4ToMp3.original} value={formatBytes(file.size)} />
-              <Stat label={interpolate(copy.mp4ToMp3.output, { format: formatLabel })} value={result ? formatBytes(result.size) : "—"} />
+              <Stat label={copy.mp4ToMp3.original} value={formatBytes(file.size)} valueDir="ltr" />
+              <Stat
+                label={interpolate(copy.mp4ToMp3.output, { format: formatLabel })}
+                value={result ? formatBytes(result.size) : "—"}
+                valueDir="ltr"
+              />
             </div>
           </div>
         ) : undefined

@@ -217,7 +217,10 @@ export function formatFFmpegError(error: unknown): string {
 
 export type FFmpegFailureKind = "engine" | "no-audio" | "memory" | "generic";
 
-export function classifyFFmpegFailure(error: unknown): FFmpegFailureKind {
+export function classifyFFmpegFailure(
+  error: unknown,
+  options?: { fileBytes?: number },
+): FFmpegFailureKind {
   const text = `${formatFFmpegError(error)}\n${error instanceof Error ? error.message : ""}`.toLowerCase();
   if (
     text.includes("failed to load the ffmpeg engine") ||
@@ -226,11 +229,25 @@ export function classifyFFmpegFailure(error: unknown): FFmpegFailureKind {
   ) {
     return "engine";
   }
-  if (text.includes("matches no streams") || text.includes("does not contain any stream") || text.includes("no audio")) {
+  if (
+    text.includes("matches no streams") ||
+    text.includes("does not contain any stream") ||
+    (text.includes("stream map") && text.includes("no streams")) ||
+    text.includes("output file is empty") ||
+    text.includes("does not contain any audio") ||
+    /\bno audio\b/.test(text)
+  ) {
     return "no-audio";
   }
   if (text.includes("memory") || text.includes("out of mem") || text.includes("cannot allocate") || text.includes("oom")) {
     return "memory";
+  }
+  if (options?.fileBytes != null && options.fileBytes >= FFMPEG_LARGE_FILE_BYTES) {
+    return "memory";
+  }
+  // Silent videos in ffmpeg.wasm often abort with exit 1 instead of a stream-map message.
+  if (/\baborted\(\)/.test(text) && (text.includes("exit 1") || text.includes("exited with code 1"))) {
+    return "no-audio";
   }
   return "generic";
 }

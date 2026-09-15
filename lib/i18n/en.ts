@@ -507,6 +507,8 @@ export const en = {
   ffmpeg: {
     loadingEngine: "Loading conversion engine…",
     converting: "Converting…",
+    loadingHint: "The engine is fetched once for this tab. Keep the page open.",
+    convertingHint: "Longer clips take longer. Keep this tab open until the audio is ready.",
     newConversion: "New conversion",
   },
   mp4ToMp3: {
@@ -514,8 +516,11 @@ export const en = {
     download: "Download {format}",
     dropTitle: "Drop a video here or click to choose",
     dropHint: "MP4, WEBM, or MOV. Choose an audio format; extraction stays in the browser — nothing is uploaded.",
+    replaceTitle: "Drop another video to replace this file",
+    replaceHint: "The current video stays on this device. Choose a new file only if you want to start over.",
     empty: "The extracted audio player will appear here after conversion.",
     waiting: "Convert the video to preview the audio file.",
+    selectedFile: "Selected video",
     original: "Original size",
     output: "{format} size",
     format: "Output format",
@@ -962,7 +967,11 @@ export const en = {
         },
         {
           q: "Why did extraction fail?",
-          a: "The video needs an audio track. Very large files can also fail because the whole video is loaded into browser memory.",
+          a: "If the clip has no soundtrack you will see a specific message. Very large files can fail because the whole video is loaded into browser memory. Refresh the page if the conversion engine did not load.",
+        },
+        {
+          q: "What happens if I change settings after converting?",
+          a: "The previous audio file is cleared. Your video stays selected — tap Extract audio again with the new Hz, bitrate, or quality.",
         },
       ],
     },

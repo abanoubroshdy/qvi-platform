@@ -50,8 +50,8 @@ export function sampleRatesFor(format: AudioExportFormat): number[] {
 export function clampAudioExportSettings(format: AudioExportFormat, settings: AudioExportSettings): AudioExportSettings {
   const rates = sampleRatesFor(format);
   const sampleRate = rates.includes(settings.sampleRate) ? settings.sampleRate : 44100;
-  const bitrateList = format === "m4a" ? aacBitrates : mp3Bitrates;
-  const bitrate = bitrateList.includes(settings.bitrate as (typeof bitrateList)[number]) ? settings.bitrate : 192;
+  const bitrateList: readonly number[] = format === "m4a" ? aacBitrates : mp3Bitrates;
+  const bitrate = bitrateList.includes(settings.bitrate) ? settings.bitrate : 192;
   const maxVbr = format === "ogg" ? 10 : 9;
   return {
     ...settings,
