@@ -145,6 +145,16 @@ export async function runFFmpeg(options: {
   }
 }
 
+function causeChain(error: unknown): string[] {
+  const messages: string[] = [];
+  let current: unknown = error instanceof Error ? error.cause : undefined;
+  while (current instanceof Error && messages.length < 4) {
+    messages.push(current.message);
+    current = current.cause;
+  }
+  return messages;
+}
+
 export function formatFFmpegError(error: unknown): string {
   const lines = error instanceof FFmpegRunError ? error.logs : [];
   const interesting = lines.filter((line) =>
@@ -159,7 +169,7 @@ export function formatFFmpegError(error: unknown): string {
       : error instanceof Error
         ? error.message
         : "Unknown FFmpeg error";
-
-  if (!picked.length) return header;
-  return `${header}\n${picked.join("\n")}`;
+  const causes = causeChain(error);
+  const parts = [header, ...causes, ...picked].filter(Boolean);
+  return parts.join("\n");
 }
