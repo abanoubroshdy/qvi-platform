@@ -7,7 +7,15 @@ import { ToolLayout } from "@/components/ToolLayout";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { audioExportFormats, audioExportSpec, type AudioExportFormat } from "@/lib/audio-export";
+import { AudioExportSettingsPanel } from "@/components/tools/AudioExportSettings";
+import {
+  audioExportFormats,
+  audioExportSpec,
+  clampAudioExportSettings,
+  defaultAudioExportSettings,
+  type AudioExportFormat,
+  type AudioExportSettings,
+} from "@/lib/audio-export";
 import { downloadBlob } from "@/lib/download";
 import {
   FFMPEG_LARGE_FILE_BYTES,
@@ -27,6 +35,7 @@ export function Mp4ToMp3() {
   const { copy } = useI18n();
   const [file, setFile] = useState<File | null>(null);
   const [format, setFormat] = useState<AudioExportFormat>("mp3");
+  const [settings, setSettings] = useState<AudioExportSettings>(defaultAudioExportSettings);
   const [result, setResult] = useState<Blob | null>(null);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [resultFormat, setResultFormat] = useState<AudioExportFormat>("mp3");
@@ -71,6 +80,13 @@ export function Mp4ToMp3() {
 
   function onFormat(next: AudioExportFormat) {
     setFormat(next);
+    setSettings((current) => clampAudioExportSettings(next, current));
+    setError(null);
+    clearResult();
+  }
+
+  function onSettings(next: AudioExportSettings) {
+    setSettings(clampAudioExportSettings(format, next));
     setError(null);
     clearResult();
   }
@@ -82,7 +98,7 @@ export function Mp4ToMp3() {
     setProgress(0);
     try {
       const inputName = inputNameFor(file);
-      const spec = audioExportSpec(format, inputName);
+      const spec = audioExportSpec(format, inputName, settings);
       const blob = await runFFmpeg({
         file,
         inputName,
@@ -153,23 +169,26 @@ export function Mp4ToMp3() {
         </>
       }
       leading={
-        <div className="space-y-3 rounded-xl border bg-card p-4 shadow-sm">
-          <Label>{copy.mp4ToMp3.format}</Label>
-          <div className="flex flex-wrap gap-2" dir="ltr">
-            {audioExportFormats.map((item) => (
-              <Button
-                key={item}
-                type="button"
-                size="sm"
-                variant={format === item ? "default" : "outline"}
-                onClick={() => onFormat(item)}
-                disabled={phase !== "idle"}
-                aria-pressed={format === item}
-              >
-                {copy.mp4ToMp3.formats[item]}
-              </Button>
-            ))}
+        <div className="space-y-4 rounded-xl border bg-card p-4 shadow-sm">
+          <div className="space-y-3">
+            <Label>{copy.mp4ToMp3.format}</Label>
+            <div className="flex flex-wrap gap-2" dir="ltr">
+              {audioExportFormats.map((item) => (
+                <Button
+                  key={item}
+                  type="button"
+                  size="sm"
+                  variant={format === item ? "default" : "outline"}
+                  onClick={() => onFormat(item)}
+                  disabled={phase !== "idle"}
+                  aria-pressed={format === item}
+                >
+                  {copy.mp4ToMp3.formats[item]}
+                </Button>
+              ))}
+            </div>
           </div>
+          <AudioExportSettingsPanel format={format} settings={settings} disabled={phase !== "idle"} onChange={onSettings} />
         </div>
       }
       preview={

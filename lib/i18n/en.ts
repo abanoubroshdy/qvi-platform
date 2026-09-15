@@ -532,6 +532,24 @@ export const en = {
     failedNoAudio: "This video has no audio track, so there is nothing to extract.",
     failedMemory: "This file is too large for the browser conversion engine. Try a shorter clip.",
     largeFileHint: "Files over 80 MB may fail in the browser because the whole video is loaded into memory.",
+    sampleRate: "Sample rate",
+    hz: "{value} Hz",
+    channels: "Channels",
+    mono: "Mono",
+    stereo: "Stereo",
+    bitrate: "Bitrate",
+    kbps: "{value} kbps",
+    mp3Mode: "MP3 encoding",
+    cbr: "Constant bitrate",
+    vbr: "Variable bitrate",
+    quality: "Quality",
+    qualityHintMp3: "Lower is better quality. 0 is highest, 9 is smallest.",
+    qualityHintOgg: "Higher is better quality. 10 is highest, 0 is smallest.",
+    bitDepth: "Bit depth",
+    bit16: "16-bit",
+    bit24: "24-bit",
+    flacLevel: "Compression",
+    flacHint: "Higher is smaller and slower. 5 is a solid default.",
   },
   mp3ToWav: {
     action: "Convert to WAV",
@@ -921,6 +939,7 @@ export const en = {
       howToSteps: [
         "Drop an MP4, WEBM, or MOV file.",
         "Choose the output format: MP3, WAV, M4A, OGG, or FLAC.",
+        "Set sample rate, channels, and bitrate or quality for that format.",
         "Wait for the engine if needed, then tap Extract audio.",
         "Preview the audio, compare sizes, and download.",
       ],
@@ -936,6 +955,10 @@ export const en = {
         {
           q: "Why does the engine take a moment to load?",
           a: "The WebAssembly core is fetched once from a CDN, then kept in this tab for the next conversion.",
+        },
+        {
+          q: "Can I change Hz, bitrate, and quality?",
+          a: "Yes. Each format shows only the controls that apply: sample rate, mono/stereo, bitrate or bit depth, and quality or FLAC compression.",
         },
         {
           q: "Why did extraction fail?",
