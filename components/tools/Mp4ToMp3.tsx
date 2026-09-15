@@ -146,29 +146,31 @@ export function Mp4ToMp3() {
       error={error}
       extra={
         <>
-          <div className="space-y-3 rounded-xl border bg-card p-4 shadow-sm">
-            <Label>{copy.mp4ToMp3.format}</Label>
-            <div className="flex flex-wrap gap-2" dir="ltr">
-              {audioExportFormats.map((item) => (
-                <Button
-                  key={item}
-                  type="button"
-                  size="sm"
-                  variant={format === item ? "default" : "outline"}
-                  onClick={() => onFormat(item)}
-                  disabled={phase !== "idle"}
-                  aria-pressed={format === item}
-                >
-                  {copy.mp4ToMp3.formats[item]}
-                </Button>
-              ))}
-            </div>
-          </div>
           {file && file.size >= FFMPEG_LARGE_FILE_BYTES ? (
             <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">{copy.mp4ToMp3.largeFileHint}</p>
           ) : null}
           <FFmpegStatus phase={phase} progress={progress} />
         </>
+      }
+      leading={
+        <div className="space-y-3 rounded-xl border bg-card p-4 shadow-sm">
+          <Label>{copy.mp4ToMp3.format}</Label>
+          <div className="flex flex-wrap gap-2" dir="ltr">
+            {audioExportFormats.map((item) => (
+              <Button
+                key={item}
+                type="button"
+                size="sm"
+                variant={format === item ? "default" : "outline"}
+                onClick={() => onFormat(item)}
+                disabled={phase !== "idle"}
+                aria-pressed={format === item}
+              >
+                {copy.mp4ToMp3.formats[item]}
+              </Button>
+            ))}
+          </div>
+        </div>
       }
       preview={
         file ? (
