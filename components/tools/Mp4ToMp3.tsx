@@ -7,7 +7,7 @@ import { ToolLayout } from "@/components/ToolLayout";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { downloadBlob } from "@/lib/download";
 import { formatBytes } from "@/lib/format";
-import { inputNameFor, runFFmpeg } from "@/lib/ffmpeg";
+import { formatFFmpegError, inputNameFor, runFFmpeg } from "@/lib/ffmpeg";
 
 function isVideo(file: File) {
   return file.type.startsWith("video/") || /\.(mp4|webm|mov)$/i.test(file.name);
@@ -84,9 +84,10 @@ export function Mp4ToMp3() {
       setResult(blob);
       setResultUrl(url);
       setProgress(1);
-    } catch {
+    } catch (error) {
+      console.error("[mp4-to-mp3]", error, formatFFmpegError(error));
       setResult(null);
-      setError(copy.mp4ToMp3.failed);
+      setError(`${copy.mp4ToMp3.failed}\n\n${formatFFmpegError(error)}`);
     } finally {
       setPhase("idle");
     }

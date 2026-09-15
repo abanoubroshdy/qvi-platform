@@ -1,13 +1,28 @@
-import type { FFmpeg, ProgressEventCallback } from "@ffmpeg/ffmpeg";
+import type { FFmpeg, LogEventCallback, ProgressEventCallback } from "@ffmpeg/ffmpeg";
 
 const CORE_BASE = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd";
+const LOG_LIMIT = 80;
 
 export type FFmpegProgressHandler = (ratio: number) => void;
+
+export class FFmpegRunError extends Error {
+  readonly exitCode: number | null;
+  readonly logs: string[];
+
+  constructor(message: string, options?: { exitCode?: number | null; logs?: string[]; cause?: unknown }) {
+    super(message, options?.cause ? { cause: options.cause } : undefined);
+    this.name = "FFmpegRunError";
+    this.exitCode = options?.exitCode ?? null;
+    this.logs = options?.logs ?? [];
+  }
+}
 
 let ffmpeg: FFmpeg | null = null;
 let loadPromise: Promise<FFmpeg> | null = null;
 let execProgress: FFmpegProgressHandler | null = null;
 let progressListener: ProgressEventCallback | null = null;
+let logListener: LogEventCallback | null = null;
+let sessionLogs: string[] = [];
 
 function extensionOf(file: File) {
   const fromName = file.name.split(".").pop()?.toLowerCase();
@@ -58,6 +73,17 @@ export async function loadFFmpeg(onProgress?: FFmpegProgressHandler): Promise<FF
       instance.on("progress", progressListener);
     }
 
+    if (!logListener) {
+      logListener = ({ type, message }) => {
+        const line = `${type}: ${message}`.trim();
+        if (!line) return;
+        sessionLogs.push(line);
+        if (sessionLogs.length > LOG_LIMIT) sessionLogs = sessionLogs.slice(-LOG_LIMIT);
+        console.debug("[ffmpeg]", line);
+      };
+      instance.on("log", logListener);
+    }
+
     report(1);
     return instance;
   })();
@@ -67,7 +93,7 @@ export async function loadFFmpeg(onProgress?: FFmpegProgressHandler): Promise<FF
   } catch (error) {
     loadPromise = null;
     ffmpeg = null;
-    throw error;
+    throw new FFmpegRunError("Failed to load the FFmpeg engine.", { cause: error, logs: sessionLogs.slice() });
   }
 }
 
@@ -84,16 +110,26 @@ export async function runFFmpeg(options: {
   const { fetchFile } = await import("@ffmpeg/util");
 
   execProgress = (ratio) => options.onProgress?.(ratio);
+  sessionLogs = [];
 
   try {
     await instance.writeFile(options.inputName, await fetchFile(options.file));
     const code = await instance.exec(options.args);
     if (code !== 0) {
-      throw new Error(`ffmpeg-exit-${code}`);
+      throw new FFmpegRunError(`ffmpeg exited with code ${code}.`, {
+        exitCode: code,
+        logs: sessionLogs.slice(),
+      });
     }
     const data = await instance.readFile(options.outputName);
     const bytes = data instanceof Uint8Array ? new Uint8Array(data) : new TextEncoder().encode(String(data));
     return new Blob([bytes], { type: options.mimeType });
+  } catch (error) {
+    if (error instanceof FFmpegRunError) throw error;
+    throw new FFmpegRunError(error instanceof Error ? error.message : "FFmpeg run failed.", {
+      cause: error,
+      logs: sessionLogs.slice(),
+    });
   } finally {
     execProgress = null;
     try {
@@ -107,4 +143,23 @@ export async function runFFmpeg(options: {
       /* ignore */
     }
   }
+}
+
+export function formatFFmpegError(error: unknown): string {
+  const lines = error instanceof FFmpegRunError ? error.logs : [];
+  const interesting = lines.filter((line) =>
+    /error|fail|invalid|unrecognized|not found|no streams|cannot|abort|memory|encoder|decoder|unknown|map/i.test(line),
+  );
+  const picked = (interesting.length ? interesting : lines).slice(-12);
+  const header =
+    error instanceof FFmpegRunError
+      ? error.exitCode != null
+        ? `${error.message} (exit ${error.exitCode})`
+        : error.message
+      : error instanceof Error
+        ? error.message
+        : "Unknown FFmpeg error";
+
+  if (!picked.length) return header;
+  return `${header}\n${picked.join("\n")}`;
 }
