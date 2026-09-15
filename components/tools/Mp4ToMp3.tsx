@@ -41,7 +41,7 @@ export function Mp4ToMp3() {
   const [resultFormat, setResultFormat] = useState<AudioExportFormat>("mp3");
   const [phase, setPhase] = useState<"idle" | "loading" | "converting">("idle");
   const [progress, setProgress] = useState(0);
-  const [error, setError] = useState<string | null>(null);
+  const [errorKind, setErrorKind] = useState<"badFormat" | "engine" | "no-audio" | "memory" | "generic" | null>(null);
   const resultRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -58,7 +58,7 @@ export function Mp4ToMp3() {
   }
 
   function reset() {
-    setError(null);
+    setErrorKind(null);
     setPhase("idle");
     setProgress(0);
     clearResult();
@@ -68,11 +68,11 @@ export function Mp4ToMp3() {
     const next = files[0];
     if (!next) return;
     if (!isVideo(next)) {
-      setError(copy.mp4ToMp3.badFormat);
+      setErrorKind("badFormat");
       return;
     }
     setFile(next);
-    setError(null);
+    setErrorKind(null);
     setPhase("idle");
     clearResult();
   }
@@ -80,19 +80,19 @@ export function Mp4ToMp3() {
   function onFormat(next: AudioExportFormat) {
     setFormat(next);
     setSettings((current) => clampAudioExportSettings(next, current));
-    setError(null);
+    setErrorKind(null);
     clearResult();
   }
 
   function onSettings(next: AudioExportSettings) {
     setSettings(clampAudioExportSettings(format, next));
-    setError(null);
+    setErrorKind(null);
     clearResult();
   }
 
   async function convert() {
     if (!file) return;
-    setError(null);
+    setErrorKind(null);
     setPhase("loading");
     setProgress(0);
     try {
@@ -124,22 +124,25 @@ export function Mp4ToMp3() {
     } catch (error) {
       console.error("[mp4-to-mp3]", error, formatFFmpegError(error));
       clearResult();
-      const kind = classifyFFmpegFailure(error, { fileBytes: file.size });
-      const message =
-        kind === "engine"
-          ? copy.mp4ToMp3.failedEngine
-          : kind === "no-audio"
-            ? copy.mp4ToMp3.failedNoAudio
-            : kind === "memory"
-              ? copy.mp4ToMp3.failedMemory
-              : copy.mp4ToMp3.failed;
-      setError(message);
+      setErrorKind(classifyFFmpegFailure(error, { fileBytes: file.size }));
     } finally {
       setPhase("idle");
     }
   }
 
   const formatLabel = copy.mp4ToMp3.formats[result ? resultFormat : format];
+  const error =
+    errorKind === "badFormat"
+      ? copy.mp4ToMp3.badFormat
+      : errorKind === "engine"
+        ? copy.mp4ToMp3.failedEngine
+        : errorKind === "no-audio"
+          ? copy.mp4ToMp3.failedNoAudio
+          : errorKind === "memory"
+            ? copy.mp4ToMp3.failedMemory
+            : errorKind === "generic"
+              ? copy.mp4ToMp3.failed
+              : null;
 
   return (
     <ToolLayout
