@@ -271,8 +271,8 @@ export const en = {
       description: "Read a QR code from an uploaded image without needing a camera.",
     },
     "mp4-to-mp3": {
-      title: "MP4 to MP3",
-      description: "Extract audio from a video file and download it as MP3 on your device.",
+      title: "Video to audio",
+      description: "Extract audio from a video and download MP3, WAV, M4A, OGG, or FLAC on your device.",
     },
     "mp3-to-wav": {
       title: "MP3 to WAV",
@@ -510,14 +510,22 @@ export const en = {
     newConversion: "New conversion",
   },
   mp4ToMp3: {
-    action: "Extract MP3",
-    download: "Download MP3",
+    action: "Extract audio",
+    download: "Download {format}",
     dropTitle: "Drop a video here or click to choose",
-    dropHint: "MP4, WEBM, or MOV. Audio is extracted in the browser — nothing is uploaded.",
+    dropHint: "MP4, WEBM, or MOV. Choose an audio format; extraction stays in the browser — nothing is uploaded.",
     empty: "The extracted audio player will appear here after conversion.",
-    waiting: "Convert the video to preview the MP3.",
+    waiting: "Convert the video to preview the audio file.",
     original: "Original size",
-    output: "MP3 size",
+    output: "{format} size",
+    format: "Output format",
+    formats: {
+      mp3: "MP3",
+      wav: "WAV",
+      m4a: "M4A",
+      ogg: "OGG",
+      flac: "FLAC",
+    },
     badFormat: "Unsupported format. Use MP4, WEBM, or MOV.",
     failed: "Could not extract audio from this video. Try another file or a shorter clip.",
     failedEngine: "Could not load the conversion engine. Refresh the page and try again.",
@@ -906,13 +914,14 @@ export const en = {
     },
     "mp4-to-mp3": {
       category: "Audio & video tools",
-      title: "Convert video to MP3 — extract audio",
-      description: "Pull the soundtrack out of MP4, WEBM, or MOV files. FFmpeg runs in your browser; the video is never uploaded.",
-      howToTitle: "How do I extract MP3 from a video?",
+      title: "Convert video to audio — no upload",
+      description: "Extract MP3, WAV, M4A, OGG, or FLAC from MP4, WEBM, or MOV in your browser. The video is never uploaded.",
+      howToTitle: "How do I extract audio from a video?",
       howToNote: "The conversion engine is loaded from a CDN into this tab only. Close the page and the files leave memory.",
       howToSteps: [
         "Drop an MP4, WEBM, or MOV file.",
-        "Wait for the engine to load, then tap Extract MP3.",
+        "Choose the output format: MP3, WAV, M4A, OGG, or FLAC.",
+        "Wait for the engine if needed, then tap Extract audio.",
         "Preview the audio, compare sizes, and download.",
       ],
       faqs: [
@@ -921,8 +930,8 @@ export const en = {
           a: "No. FFmpeg.wasm processes the file in your browser. We do not receive a copy.",
         },
         {
-          q: "Which video formats work?",
-          a: "MP4, WEBM, and MOV with an audio track. Silent videos cannot produce an MP3.",
+          q: "Which formats can I export?",
+          a: "MP3, WAV, M4A (AAC), OGG (Vorbis), and FLAC. Pick one before converting. The source should still be MP4, WEBM, or MOV with an audio track.",
         },
         {
           q: "Why does the engine take a moment to load?",

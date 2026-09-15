@@ -44,7 +44,7 @@ Optional: copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_SITE_URL` bef
 - `/tools/base64` Base64 encode / decode
 - `/tools/image-resizer` Image resizer
 - `/tools/word-counter` Word and character counter
-- `/tools/mp4-to-mp3` Extract MP3 from video
+- `/tools/mp4-to-mp3` Extract audio from video (MP3, WAV, M4A, OGG, FLAC)
 - `/tools/mp3-to-wav` Convert MP3/M4A/OGG to WAV
 - `/tools/audio-cutter` Trim audio
 - `/about` · `/privacy-policy` · `/contact` · `/terms`

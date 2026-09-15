@@ -3,9 +3,9 @@ import { Mp4ToMp3 } from "@/components/tools/Mp4ToMp3";
 import { LiveToolView } from "@/components/views/LiveToolView";
 import { siteConfig } from "@/lib/site";
 
-const pageTitle = "تحويل فيديو إلى MP3 - استخراج الصوت";
+const pageTitle = "تحويل فيديو إلى صوت - استخراج MP3 وWAV والمزيد";
 const pageDescription =
-  "استخرج الصوت من MP4 وWEBM وMOV إلى MP3 داخل المتصفح. بلا رفع إلى خادم.";
+  "استخرج الصوت من MP4 وWEBM وMOV إلى MP3 أو WAV أو M4A أو OGG أو FLAC داخل المتصفح. بلا رفع إلى خادم.";
 
 export function generateMetadata(): Metadata {
   return {

@@ -35,8 +35,8 @@ export const toolCategoryOrder: readonly ToolCategory[] = ["audio", "images", "p
 export const tools: Tool[] = [
   {
     slug: "mp4-to-mp3",
-    title: "MP4 to MP3",
-    description: "Extract audio from a video file and download it as MP3 on your device.",
+    title: "MP4 to audio",
+    description: "Extract audio from a video file and download MP3, WAV, M4A, OGG, or FLAC on your device.",
     href: "/tools/mp4-to-mp3",
     icon: Film,
     available: true,
