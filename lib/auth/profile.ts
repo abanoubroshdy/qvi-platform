@@ -60,7 +60,10 @@ export function isValidEmail(value: string): boolean {
 export function isValidFullName(value: string): boolean {
   const name = value.trim();
   if (name.length < 2 || name.length > 80) return false;
-  return /\p{L}/u.test(name);
+  // Latin, Arabic, and combining marks — avoids \\p{L} so tsc can run without raising the compile target.
+  return /[A-Za-z\u00C0-\u024F\u0400-\u04FF\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(
+    name,
+  );
 }
 
 function toIsoDate(date: Date): string {
