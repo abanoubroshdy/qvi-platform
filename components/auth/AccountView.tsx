@@ -78,11 +78,12 @@ export function AccountView() {
 
   useEffect(() => {
     if (!user) return;
+    const currentUser = user;
     let active = true;
 
     async function load() {
       const supabase = getSupabaseClient();
-      const fromMeta = fieldsFromUserMetadata(user.user_metadata);
+      const fromMeta = fieldsFromUserMetadata(currentUser.user_metadata);
       if (!supabase) {
         if (!active) return;
         setForm(toFormValues(fromMeta));
@@ -91,7 +92,7 @@ export function AccountView() {
         return;
       }
 
-      const { profile: row } = await fetchProfile(supabase, user.id);
+      const { profile: row } = await fetchProfile(supabase, currentUser.id);
       if (!active) return;
       const fields = row ? recordToFields(row) : fromMeta;
       setProfile(row);
