@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { useEffect, useState, type FormEvent } from "react";
+import { CheckCircle2, Loader2 } from "lucide-react";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { useI18n } from "@/components/i18n/I18nProvider";
+import { getSupabaseClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,34 +15,61 @@ type WaitlistFormProps = {
   heading?: string;
 };
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function saveLocally(product: ProductKey, value: string) {
+  const key = `qvi-waitlist-${product}`;
+  let parsed: string[] = [];
+  try {
+    const current = window.localStorage.getItem(key);
+    parsed = current ? (JSON.parse(current) as string[]) : [];
+    if (!Array.isArray(parsed)) parsed = [];
+  } catch {
+    parsed = [];
+  }
+  if (!parsed.includes(value)) {
+    parsed.push(value);
+    window.localStorage.setItem(key, JSON.stringify(parsed));
+  }
+}
+
 export function WaitlistForm({ product, heading }: WaitlistFormProps) {
   const { copy, t } = useI18n();
+  const { user } = useAuth();
   const [email, setEmail] = useState("");
   const [savedEmail, setSavedEmail] = useState<string | null>(null);
-  const [status, setStatus] = useState<"idle" | "error" | "done">("idle");
+  const [status, setStatus] = useState<"idle" | "saving" | "error" | "done">("idle");
   const productName = product === "qv1" ? copy.products.qv1.name : copy.products.neyora.name;
 
-  function onSubmit(event: FormEvent<HTMLFormElement>) {
+  useEffect(() => {
+    if (user?.email) setEmail((current) => current || (user.email as string));
+  }, [user]);
+
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     event.stopPropagation();
     const value = email.trim().toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+    if (!EMAIL_RE.test(value)) {
       setStatus("error");
       return;
     }
 
-    const key = `qvi-waitlist-${product}`;
-    let parsed: string[] = [];
-    try {
-      const current = window.localStorage.getItem(key);
-      parsed = current ? (JSON.parse(current) as string[]) : [];
-      if (!Array.isArray(parsed)) parsed = [];
-    } catch {
-      parsed = [];
-    }
-    if (!parsed.includes(value)) {
-      parsed.push(value);
-      window.localStorage.setItem(key, JSON.stringify(parsed));
+    setStatus("saving");
+
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const { error } = await supabase
+        .from("waitlist_signups")
+        .insert({ product, email: value, user_id: user?.id ?? null });
+
+      // 23505 = unique violation → the email is already on the list, treat as success.
+      if (error && error.code !== "23505") {
+        // Backend not reachable or table missing: keep a local copy so the
+        // user is never blocked, and still confirm their spot.
+        saveLocally(product, value);
+      }
+    } else {
+      saveLocally(product, value);
     }
 
     setSavedEmail(value);
@@ -87,8 +116,15 @@ export function WaitlistForm({ product, heading }: WaitlistFormProps) {
           }}
           className="bg-background/60"
         />
-        <Button type="submit" size="lg">
-          {copy.waitlist.submit}
+        <Button type="submit" size="lg" disabled={status === "saving"}>
+          {status === "saving" ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              {copy.waitlist.saving}
+            </>
+          ) : (
+            copy.waitlist.submit
+          )}
         </Button>
       </div>
       {status === "error" ? (
