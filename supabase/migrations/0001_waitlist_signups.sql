@@ -14,6 +14,11 @@ create table if not exists public.waitlist_signups (
 
 alter table public.waitlist_signups enable row level security;
 
+-- Table-level privileges. Tables created via raw SQL do not automatically get
+-- grants for the API roles, so PostgREST needs INSERT granted explicitly.
+-- SELECT is intentionally NOT granted, so collected emails stay private.
+grant insert on public.waitlist_signups to anon, authenticated;
+
 -- Anyone (signed in or not) may add themselves to the waitlist.
 drop policy if exists "waitlist_insert_anyone" on public.waitlist_signups;
 create policy "waitlist_insert_anyone"
