@@ -17,11 +17,13 @@ export function HeaderAuth({ onNavigate }: { onNavigate?: () => void }) {
   }
 
   if (user) {
+    const fullName = typeof user.user_metadata?.full_name === "string" ? user.user_metadata.full_name.trim() : "";
+    const label = fullName.split(/\s+/)[0] || copy.nav.account;
     return (
       <Button asChild variant="secondary" size="sm" className="gap-2" onClick={onNavigate}>
         <Link href="/account" aria-label={copy.nav.account}>
           <UserRound className="h-4 w-4" aria-hidden />
-          <span className="hidden sm:inline">{copy.nav.account}</span>
+          <span className="hidden max-w-[9rem] truncate sm:inline">{label}</span>
         </Link>
       </Button>
     );
