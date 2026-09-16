@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
+import { HeaderAuth } from "@/components/auth/HeaderAuth";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
@@ -42,6 +43,7 @@ export function Header() {
         </nav>
 
         <div className="flex shrink-0 items-center gap-2">
+          <HeaderAuth />
           <LanguageToggle />
           <ThemeToggle />
           <Button
@@ -80,6 +82,9 @@ export function Header() {
               {copy.nav.exploreQv1}
             </Link>
           </Button>
+          <div className="mt-2">
+            <HeaderAuth onNavigate={() => setOpen(false)} />
+          </div>
         </nav>
       </div>
     </header>
