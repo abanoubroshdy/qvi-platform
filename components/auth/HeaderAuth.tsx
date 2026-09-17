@@ -7,10 +7,8 @@ import { useI18n } from "@/components/i18n/I18nProvider";
 import { Button } from "@/components/ui/button";
 
 export function HeaderAuth({ onNavigate }: { onNavigate?: () => void }) {
-  const { user, loading, configured } = useAuth();
+  const { user, loading } = useAuth();
   const { copy } = useI18n();
-
-  if (!configured) return null;
 
   if (loading) {
     return <span className="h-8 w-8" aria-hidden />;

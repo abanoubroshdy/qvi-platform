@@ -131,7 +131,7 @@ export function AuthForm({ initialMode = "signin" }: { initialMode?: Mode }) {
         email: value,
         password,
         options: {
-          emailRedirectTo: `${origin}/account`,
+          emailRedirectTo: `${origin}/auth/callback`,
           data: toAuthMetadata(fields),
         },
       });
