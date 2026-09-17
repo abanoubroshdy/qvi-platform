@@ -47,12 +47,14 @@ Optional: copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_SITE_URL` bef
 - `/tools/mp4-to-mp3` Extract audio from video (MP3, WAV, M4A, OGG, FLAC) with sample rate, bitrate or bit depth, and quality. Runs in the browser via ffmpeg.wasm; files over ~80 MB may fail because the whole video is loaded into memory.
 - `/tools/mp3-to-wav` Convert MP3/M4A/OGG to WAV
 - `/tools/audio-cutter` Trim audio
+- `/login` sign in or create an account (name, gender, country, date of birth, phone)
+- `/account` signed-in profile
 - `/about` · `/privacy-policy` · `/contact` · `/terms`
 
-Free tools stay 100% client-side. Waitlist emails are stored in `localStorage` until a backend is connected.
+Free tools stay 100% client-side. Waitlist emails are stored in Supabase (`waitlist_signups`) when the backend is configured, otherwise in `localStorage`. New accounts collect name, gender, country, date of birth, and phone and save them on `profiles`.
 
 The header lets you switch **English / Arabic** (RTL) and **Light / Dark / System** appearance. Colors follow the QVI logo: cream paper, navy wordmark, teal-to-violet wave.
 
 ## Stack
 
-Next.js 14 App Router, TypeScript, Tailwind CSS, ESLint, shadcn/ui, lucide-react, browser-image-compression, pdf-lib, pdfjs-dist, qrcode, jsqr, ffmpeg.wasm.
+Next.js 14 App Router, TypeScript, Tailwind CSS, ESLint, shadcn/ui, lucide-react, Supabase Auth, browser-image-compression, pdf-lib, pdfjs-dist, qrcode, jsqr, ffmpeg.wasm.

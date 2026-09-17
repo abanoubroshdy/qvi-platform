@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { Construction } from "lucide-react";
 import { AdPlaceholder } from "@/components/AdPlaceholder";
+import { ToolArt } from "@/components/ToolArt";
 import { ToolCard } from "@/components/ToolCard";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { Button } from "@/components/ui/button";
-import { getRelatedTools, getToolBySlug } from "@/lib/tools";
 import type { ToolSlug } from "@/lib/i18n";
+import { toolVisuals } from "@/lib/tool-visuals";
+import { getRelatedTools, getToolBySlug } from "@/lib/tools";
 
 export function UpcomingToolView({ slug }: { slug: string }) {
   const { copy, t } = useI18n();
@@ -22,7 +23,12 @@ export function UpcomingToolView({ slug }: { slug: string }) {
     <div className="mx-auto max-w-4xl px-4 py-8 sm:py-12">
       <AdPlaceholder position="top" className="mb-6" />
       <div className="rounded-xl border border-border bg-card p-6 text-center shadow-sm sm:p-10">
-        <Construction className="mx-auto mb-4 h-10 w-10 text-primary" aria-hidden />
+        <div
+          className="mx-auto mb-5 h-32 w-full max-w-sm overflow-hidden rounded-2xl border border-border"
+          style={{ background: toolVisuals[tool.slug as ToolSlug].background }}
+        >
+          <ToolArt slug={tool.slug as ToolSlug} />
+        </div>
         <p className="text-sm font-bold text-primary">{group.title}</p>
         <h1 className="mt-2 text-3xl font-semibold">{labels.title}</h1>
         <p className="mx-auto mt-3 max-w-xl text-sm leading-8 text-muted-foreground sm:text-base">

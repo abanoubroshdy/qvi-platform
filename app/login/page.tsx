@@ -18,6 +18,11 @@ export const metadata: Metadata = {
   },
 };
 
-export default function LoginPage() {
-  return <LoginView />;
+type LoginPageProps = {
+  searchParams?: { mode?: string };
+};
+
+export default function LoginPage({ searchParams }: LoginPageProps) {
+  const initialMode = searchParams?.mode === "signup" ? "signup" : "signin";
+  return <LoginView initialMode={initialMode} />;
 }

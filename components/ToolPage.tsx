@@ -6,7 +6,12 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { JsonLd } from "@/components/JsonLd";
+import { ToolArt } from "@/components/ToolArt";
+import type { ToolSlug } from "@/lib/i18n";
 import { siteConfig } from "@/lib/site";
+import { categoryVisuals, toolVisuals } from "@/lib/tool-visuals";
+import { getToolBySlug } from "@/lib/tools";
+import { cn } from "@/lib/utils";
 
 export type ToolFaq = {
   question: string;
@@ -14,6 +19,7 @@ export type ToolFaq = {
 };
 
 type ToolPageProps = {
+  slug?: ToolSlug;
   category: string;
   title: string;
   description: string;
@@ -29,6 +35,7 @@ type ToolPageProps = {
 };
 
 export function ToolPage({
+  slug,
   category,
   title,
   description,
@@ -43,6 +50,8 @@ export function ToolPage({
   faqTitle = "FAQ",
 }: ToolPageProps) {
   const url = `${siteConfig.url}${canonicalPath}`;
+  const tool = slug ? getToolBySlug(slug) : undefined;
+  const kickerClass = tool ? categoryVisuals[tool.category].kicker : "text-primary";
 
   const faqLd = {
     "@context": "https://schema.org",
@@ -91,10 +100,25 @@ export function ToolPage({
       <JsonLd data={howToLd} />
       <JsonLd data={appLd} />
 
-      <header className="mb-6">
-        <p className="mb-2 text-sm font-bold text-primary">{category}</p>
-        <h1 className="text-3xl font-extrabold leading-snug sm:text-4xl">{title}</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-8 text-muted-foreground sm:text-base">{description}</p>
+      <header className="mb-6 flex flex-col gap-5 sm:flex-row sm:items-start">
+        {slug ? (
+          <div
+            className={cn(
+              "relative h-28 w-full overflow-hidden rounded-2xl border border-border shadow-sm sm:h-32 sm:w-56 sm:shrink-0",
+            )}
+            style={{ background: toolVisuals[slug].background }}
+          >
+            <ToolArt slug={slug} />
+            <span className="absolute bottom-2 start-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-bold tracking-wide text-white">
+              {toolVisuals[slug].caption}
+            </span>
+          </div>
+        ) : null}
+        <div className="min-w-0">
+          <p className={cn("mb-2 text-sm font-bold", kickerClass)}>{category}</p>
+          <h1 className="text-3xl font-extrabold leading-snug sm:text-4xl">{title}</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-8 text-muted-foreground sm:text-base">{description}</p>
+        </div>
       </header>
 
       {children}

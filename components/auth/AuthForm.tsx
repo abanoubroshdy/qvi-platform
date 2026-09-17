@@ -1,27 +1,49 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Loader2 } from "lucide-react";
+import { ProfileFields, type ProfileFormValues } from "@/components/auth/ProfileFields";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { saveProfile } from "@/lib/supabase/profile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  toAuthMetadata,
+  toE164,
+  validateSignIn,
+  validateSignUpInput,
+  type ProfileIssue,
+} from "@/lib/auth/profile";
+import { detectCountryFromLocale } from "@/lib/geo/countries";
 
 type Mode = "signin" | "signup";
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+function emptyProfile(locale: string, language: string): ProfileFormValues {
+  return {
+    fullName: "",
+    gender: "",
+    country: detectCountryFromLocale(locale, language),
+    dateOfBirth: "",
+    nationalPhone: "",
+  };
+}
 
-export function AuthForm() {
-  const { copy, t } = useI18n();
+export function AuthForm({ initialMode = "signin" }: { initialMode?: Mode }) {
+  const { copy, t, locale } = useI18n();
   const { configured } = useAuth();
   const router = useRouter();
 
-  const [mode, setMode] = useState<Mode>("signin");
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [profile, setProfile] = useState<ProfileFormValues>(() =>
+    emptyProfile(locale, typeof navigator === "undefined" ? locale : navigator.language),
+  );
   const [status, setStatus] = useState<"idle" | "working">("idle");
   const [error, setError] = useState<string | null>(null);
   const [confirmSent, setConfirmSent] = useState<string | null>(null);
@@ -29,57 +51,101 @@ export function AuthForm() {
   const a = copy.auth;
   const isSignUp = mode === "signup";
 
+  const issueCopy = useMemo<Record<ProfileIssue, string>>(
+    () => ({
+      email: a.invalidEmail,
+      password: a.shortPassword,
+      passwordMismatch: a.passwordMismatch,
+      fullName: a.invalidName,
+      gender: a.invalidGender,
+      country: a.invalidCountry,
+      dateOfBirth: a.invalidDob,
+      tooYoung: a.tooYoung,
+      tooOld: a.tooOld,
+      phone: a.invalidPhone,
+    }),
+    [a],
+  );
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
 
     const value = email.trim().toLowerCase();
-    if (!EMAIL_RE.test(value)) {
-      setError(a.invalidEmail);
-      return;
-    }
-    if (password.length < 6) {
-      setError(a.shortPassword);
-      return;
-    }
-
     const supabase = getSupabaseClient();
     if (!supabase) {
       setError(a.notConfigured);
       return;
     }
 
-    setStatus("working");
-    try {
-      if (isSignUp) {
-        const { data, error: signUpError } = await supabase.auth.signUp({
-          email: value,
-          password,
-        });
-        if (signUpError) {
-          setError(signUpError.message || a.genericError);
-          return;
-        }
-        // When email confirmation is required, no session is returned.
-        if (data.session) {
-          router.push("/account");
-          router.refresh();
-          return;
-        }
-        setConfirmSent(value);
+    if (!isSignUp) {
+      const issue = validateSignIn(value, password);
+      if (issue) {
+        setError(issueCopy[issue]);
         return;
       }
 
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      setStatus("working");
+      try {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: value,
+          password,
+        });
+        if (signInError) {
+          setError(signInError.message || a.genericError);
+          return;
+        }
+        router.push("/account");
+        router.refresh();
+      } catch {
+        setError(a.genericError);
+      } finally {
+        setStatus("idle");
+      }
+      return;
+    }
+
+    const phone = toE164(profile.country, profile.nationalPhone);
+    const fields = {
+      fullName: profile.fullName,
+      gender: profile.gender,
+      country: profile.country,
+      dateOfBirth: profile.dateOfBirth,
+      phone,
+    };
+    const issue = validateSignUpInput({
+      ...fields,
+      email: value,
+      password,
+      confirmPassword,
+    });
+    if (issue) {
+      setError(issueCopy[issue]);
+      return;
+    }
+
+    setStatus("working");
+    try {
+      const origin = window.location.origin;
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email: value,
         password,
+        options: {
+          emailRedirectTo: `${origin}/auth/callback`,
+          data: toAuthMetadata(fields),
+        },
       });
-      if (signInError) {
-        setError(signInError.message || a.genericError);
+      if (signUpError) {
+        setError(signUpError.message || a.genericError);
         return;
       }
-      router.push("/account");
-      router.refresh();
+      if (data.user && data.session) {
+        await saveProfile(supabase, data.user.id, fields);
+        router.push("/account");
+        router.refresh();
+        return;
+      }
+      setConfirmSent(value);
     } catch {
       setError(a.genericError);
     } finally {
@@ -119,6 +185,12 @@ export function AuthForm() {
       ) : null}
 
       <form onSubmit={onSubmit} className="space-y-4">
+        {isSignUp ? (
+          <div className="space-y-4">
+            <p className="text-sm font-semibold text-foreground">{a.accountSection}</p>
+          </div>
+        ) : null}
+
         <div className="space-y-2">
           <Label htmlFor="auth-email">{a.emailLabel}</Label>
           <Input
@@ -149,6 +221,37 @@ export function AuthForm() {
             }}
           />
         </div>
+        {isSignUp ? (
+          <div className="space-y-2">
+            <Label htmlFor="auth-password-confirm">{a.confirmPasswordLabel}</Label>
+            <Input
+              id="auth-password-confirm"
+              type="password"
+              autoComplete="new-password"
+              required
+              placeholder={a.passwordPlaceholder}
+              value={confirmPassword}
+              onChange={(event) => {
+                setConfirmPassword(event.target.value);
+                if (error) setError(null);
+              }}
+            />
+          </div>
+        ) : null}
+
+        {isSignUp ? (
+          <div className="space-y-4 border-t border-border pt-4">
+            <p className="text-sm font-semibold text-foreground">{a.profileSection}</p>
+            <ProfileFields
+              idPrefix="signup"
+              values={profile}
+              onChange={(patch) => {
+                setProfile((current) => ({ ...current, ...patch }));
+                if (error) setError(null);
+              }}
+            />
+          </div>
+        ) : null}
 
         {error ? (
           <p className="text-sm text-destructive" role="alert">

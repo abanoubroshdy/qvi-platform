@@ -11,6 +11,7 @@ export function LiveToolView({ slug, children }: { slug: LiveToolSlug; children:
 
   return (
     <ToolPage
+      slug={slug}
       category={page.category}
       title={page.title}
       description={page.description}
