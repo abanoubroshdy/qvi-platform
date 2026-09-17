@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import type { ToolSlug } from "@/lib/i18n";
 import { toolVisuals } from "@/lib/tool-visuals";
 import { getRelatedTools, getToolBySlug } from "@/lib/tools";
-import { cn } from "@/lib/utils";
 
 export function UpcomingToolView({ slug }: { slug: string }) {
   const { copy, t } = useI18n();
@@ -25,10 +24,8 @@ export function UpcomingToolView({ slug }: { slug: string }) {
       <AdPlaceholder position="top" className="mb-6" />
       <div className="rounded-xl border border-border bg-card p-6 text-center shadow-sm sm:p-10">
         <div
-          className={cn(
-            "mx-auto mb-5 h-32 w-full max-w-sm overflow-hidden rounded-2xl border border-border",
-            toolVisuals[tool.slug as ToolSlug].panel,
-          )}
+          className="mx-auto mb-5 h-32 w-full max-w-sm overflow-hidden rounded-2xl border border-border"
+          style={{ background: toolVisuals[tool.slug as ToolSlug].background }}
         >
           <ToolArt slug={tool.slug as ToolSlug} />
         </div>

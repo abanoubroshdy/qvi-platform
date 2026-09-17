@@ -7,7 +7,6 @@ import { useI18n } from "@/components/i18n/I18nProvider";
 import { Badge } from "@/components/ui/badge";
 import { toolVisuals } from "@/lib/tool-visuals";
 import type { Tool } from "@/lib/tools";
-import { cn } from "@/lib/utils";
 
 export function ToolCard({ tool }: { tool: Tool }) {
   const { copy } = useI18n();
@@ -17,7 +16,7 @@ export function ToolCard({ tool }: { tool: Tool }) {
   return (
     <Link href={tool.href} className="qvi-tool-card group block h-full">
       <article className="flex h-full flex-col overflow-hidden rounded-[1.25rem] border border-border bg-card shadow-sm transition duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg">
-        <div className={cn("relative h-36 overflow-hidden sm:h-40", visual.panel)}>
+        <div className="relative h-36 overflow-hidden sm:h-40" style={{ background: visual.background }}>
           <ToolArt
             slug={tool.slug}
             className="transition duration-300 group-hover:scale-[1.05]"

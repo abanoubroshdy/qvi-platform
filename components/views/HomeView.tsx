@@ -124,7 +124,7 @@ export function HomeView() {
                           {copy.home.audioKicker}
                         </p>
                       ) : null}
-                      <h3 className="text-xl font-semibold sm:text-2xl">
+                      <h3 className={cn("text-xl font-semibold sm:text-2xl", visual.kicker)}>
                         {isAudio ? copy.home.audioTitle : group.title}
                       </h3>
                       <p className="qvi-lead mt-1 text-sm leading-7 text-muted-foreground">

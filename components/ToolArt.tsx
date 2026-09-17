@@ -24,7 +24,8 @@ function PdfDoc({
   const fold = Math.max(6, Math.round(width * 0.26));
   const radius = Math.max(4, Math.round(width * 0.12));
   const compact = width < 50;
-  const badgeHeight = compact ? Math.max(8, height * 0.18) : 24;
+  const showLabel = Boolean(label) && !compact;
+  const badgeHeight = showLabel ? 24 : compact ? Math.max(8, height * 0.18) : 0;
   const fontSize = Math.max(8, Math.min(13, width * 0.17));
   return (
     <g transform={`translate(${x} ${y}) rotate(${rotate} ${width / 2} ${height / 2})`}>
@@ -41,15 +42,17 @@ function PdfDoc({
           <rect x={width * 0.14} y={height * 0.32} width={width * 0.38} height="5" rx="2.5" fill="#fff" opacity="0.32" />
         </>
       )}
-      <rect
-        x={width * 0.12}
-        y={height * (compact ? 0.58 : 0.52)}
-        width={width * 0.76}
-        height={badgeHeight}
-        rx={compact ? 3 : 7}
-        fill="#fff"
-      />
-      {compact ? null : (
+      {showLabel || compact ? (
+        <rect
+          x={width * 0.12}
+          y={height * (compact ? 0.58 : 0.52)}
+          width={width * 0.76}
+          height={badgeHeight}
+          rx={compact ? 3 : 7}
+          fill="#fff"
+        />
+      ) : null}
+      {showLabel ? (
         <text
           x={width / 2}
           y={height * 0.52 + 17}
@@ -61,7 +64,7 @@ function PdfDoc({
         >
           {label}
         </text>
-      )}
+      ) : null}
     </g>
   );
 }
@@ -174,7 +177,7 @@ function Mp4ToMp3Scene({ uid }: SceneProps) {
       </g>
       <ConvertOrb x={158} y={80} uid={uid} />
       <g transform="translate(188 46)">
-        <rect width="72" height="72" rx="18" fill="#0b1524" opacity="0.45" />
+        <rect width="72" height="72" rx="18" fill="#ffffff" opacity="0.14" />
         <WaveBars x={10} y={36} heights={[16, 28, 22, 40, 18, 32]} />
         <path d="M54 22v28c0 6 8 6 8 0V30" fill="none" stroke="#ffe08a" strokeWidth="3.2" strokeLinecap="round" />
         <circle cx="50" cy="50" r="6.5" fill="#ffe08a" />
@@ -344,8 +347,8 @@ function PdfCompressorScene() {
 function PdfMergerScene() {
   return (
     <>
-      <PdfDoc x={36} y={34} rotate={-16} width={70} height={88} />
-      <PdfDoc x={78} y={28} rotate={-4} width={70} height={88} />
+      <PdfDoc x={36} y={34} rotate={-16} width={70} height={88} label="" />
+      <PdfDoc x={78} y={28} rotate={-4} width={70} height={88} label="" />
       <g transform="translate(158 72)">
         <path d="M0 0h22" stroke="#E1251B" strokeWidth="5" strokeLinecap="round" />
         <path d="M14 -8l12 8-12 8" fill="none" stroke="#E1251B" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />

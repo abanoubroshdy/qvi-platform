@@ -105,8 +105,8 @@ export function ToolPage({
           <div
             className={cn(
               "relative h-28 w-full overflow-hidden rounded-2xl border border-border shadow-sm sm:h-32 sm:w-56 sm:shrink-0",
-              toolVisuals[slug].panel,
             )}
+            style={{ background: toolVisuals[slug].background }}
           >
             <ToolArt slug={slug} />
             <span className="absolute bottom-2 start-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-bold tracking-wide text-white">

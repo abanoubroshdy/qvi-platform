@@ -1,69 +1,69 @@
 import type { ToolGroupSlug, ToolSlug } from "@/lib/i18n";
 
 export type ToolVisual = {
-  panel: string;
+  background: string;
   caption: string;
 };
 
 export const toolVisuals: Record<ToolSlug, ToolVisual> = {
   "mp4-to-mp3": {
-    panel: "bg-[linear-gradient(145deg,#10192b_0%,#16344a_48%,#1a7f96_100%)]",
+    background: "linear-gradient(145deg, #132033 0%, #1a4a5c 52%, #1a7f96 100%)",
     caption: "MP4 → Audio",
   },
   "mp3-to-wav": {
-    panel: "bg-[linear-gradient(145deg,#142033_0%,#1d3b4a_52%,#2a8f7b_100%)]",
+    background: "linear-gradient(145deg, #162433 0%, #1c4a48 50%, #1a9b88 100%)",
     caption: "MP3 → WAV",
   },
   "audio-cutter": {
-    panel: "bg-[linear-gradient(145deg,#1a1630_0%,#2a2150_50%,#6d5bff_100%)]",
+    background: "linear-gradient(145deg, #1a1630 0%, #2a2150 52%, #6d5bff 100%)",
     caption: "Trim",
   },
   "image-compressor": {
-    panel: "bg-[linear-gradient(180deg,#e8f4ff_0%,#cde6fb_100%)] dark:bg-[linear-gradient(180deg,#102033_0%,#1a3348_100%)]",
+    background: "linear-gradient(180deg, #e8f4ff 0%, #cde6fb 100%)",
     caption: "Compress",
   },
   "webp-to-jpg": {
-    panel: "bg-[linear-gradient(180deg,#fff4e8_0%,#ffd9b8_100%)] dark:bg-[linear-gradient(180deg,#2a1c12_0%,#3d2818_100%)]",
+    background: "linear-gradient(180deg, #fff4e8 0%, #ffd9b8 100%)",
     caption: "WEBP → JPG",
   },
   "image-resizer": {
-    panel: "bg-[linear-gradient(180deg,#eef6ff_0%,#d4e4f7_100%)] dark:bg-[linear-gradient(180deg,#152033_0%,#24364c_100%)]",
+    background: "linear-gradient(180deg, #eef6ff 0%, #d4e4f7 100%)",
     caption: "Resize",
   },
   "color-picker": {
-    panel: "bg-[linear-gradient(180deg,#f3e9ff_0%,#f8d4e8_100%)] dark:bg-[linear-gradient(180deg,#23182d_0%,#3a2240_100%)]",
+    background: "linear-gradient(180deg, #f3e9ff 0%, #f8d4e8 100%)",
     caption: "HEX · RGB",
   },
   "png-to-pdf": {
-    panel: "bg-[linear-gradient(180deg,#fff8f6_0%,#ffd9d4_100%)] dark:bg-[linear-gradient(180deg,#2c1214_0%,#4a181c_100%)]",
+    background: "linear-gradient(180deg, #fff8f6 0%, #ffd4ce 100%)",
     caption: "PNG → PDF",
   },
   "pdf-compressor": {
-    panel: "bg-[linear-gradient(180deg,#fff6f4_0%,#ffcfc9_100%)] dark:bg-[linear-gradient(180deg,#2a1012_0%,#4c161a_100%)]",
+    background: "linear-gradient(180deg, #fff6f4 0%, #ffcfc9 100%)",
     caption: "PDF",
   },
   "pdf-merger": {
-    panel: "bg-[linear-gradient(180deg,#fff7f5_0%,#ffd2cc_100%)] dark:bg-[linear-gradient(180deg,#2b1113_0%,#4a171b_100%)]",
+    background: "linear-gradient(180deg, #fff7f5 0%, #ffd2cc 100%)",
     caption: "PDF",
   },
   "word-counter": {
-    panel: "bg-[linear-gradient(180deg,#f4f0e6_0%,#e4dcc8_100%)] dark:bg-[linear-gradient(180deg,#262218_0%,#3a3428_100%)]",
+    background: "linear-gradient(180deg, #f4f0e6 0%, #e4dcc8 100%)",
     caption: "Words",
   },
   base64: {
-    panel: "bg-[linear-gradient(180deg,#eef2ff_0%,#d7def7_100%)] dark:bg-[linear-gradient(180deg,#161a2c_0%,#252c44_100%)]",
+    background: "linear-gradient(180deg, #eef2ff 0%, #d7def7 100%)",
     caption: "Base64",
   },
   "qr-generator": {
-    panel: "bg-[linear-gradient(180deg,#ecfbf4_0%,#c8eedd_100%)] dark:bg-[linear-gradient(180deg,#10241c_0%,#1c3a2e_100%)]",
+    background: "linear-gradient(180deg, #ecfbf4 0%, #c8eedd 100%)",
     caption: "QR",
   },
   "qr-reader": {
-    panel: "bg-[linear-gradient(180deg,#e7f6ff_0%,#c9e6f6_100%)] dark:bg-[linear-gradient(180deg,#102030_0%,#1c3348_100%)]",
+    background: "linear-gradient(180deg, #e7f6ff 0%, #c9e6f6 100%)",
     caption: "Scan",
   },
   "password-generator": {
-    panel: "bg-[linear-gradient(180deg,#fff4d8_0%,#f6d48a_100%)] dark:bg-[linear-gradient(180deg,#2a210e_0%,#433318_100%)]",
+    background: "linear-gradient(180deg, #fff4d8 0%, #f6d48a 100%)",
     caption: "Secure",
   },
 };
