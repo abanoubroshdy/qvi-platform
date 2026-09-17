@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AudioWaveform } from "@/components/AudioWaveform";
+import { WaveformPlayer } from "@/components/AudioWaveform";
 import { FFmpegStatus } from "@/components/FFmpegStatus";
 import { ToolLayout } from "@/components/ToolLayout";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 import { downloadBlob } from "@/lib/download";
 import { inputNameFor, runFFmpeg } from "@/lib/ffmpeg";
 import { formatClock, parseClock, peaksFromBuffer } from "@/lib/time";
@@ -146,7 +145,7 @@ export function AudioCutter() {
     }
   }
 
-  const previewSrc = resultUrl || (sourceUrl && duration ? `${sourceUrl}#t=${start},${end}` : sourceUrl);
+  const previewSrc = sourceUrl;
 
   return (
     <ToolLayout
@@ -167,10 +166,22 @@ export function AudioCutter() {
       downloadDisabled={!result || phase !== "idle"}
       error={error}
       extra={<FFmpegStatus phase={phase} progress={progress} />}
-      leading={
-        file && duration ? (
-          <div className="space-y-4 rounded-xl border bg-card p-4 shadow-sm">
-            <AudioWaveform peaks={peaks} start={start} end={end} duration={duration} />
+      preview={
+        file && duration && previewSrc ? (
+          <div className="space-y-4">
+            <p className="text-sm font-semibold">{resultUrl ? copy.audioCutter.trimmed : copy.audioCutter.preview}</p>
+            <WaveformPlayer
+              src={previewSrc}
+              peaks={peaks}
+              start={start}
+              end={end}
+              duration={duration}
+              onRangeChange={clampRange}
+              playLabel={copy.audioCutter.play}
+              pauseLabel={copy.audioCutter.pause}
+              startHandleLabel={copy.audioCutter.startHandle}
+              endHandleLabel={copy.audioCutter.endHandle}
+            />
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="cut-start">{copy.audioCutter.start}</Label>
@@ -180,16 +191,6 @@ export function AudioCutter() {
                   value={formatClock(start)}
                   onChange={(event) => clampRange(parseClock(event.target.value, start), end)}
                 />
-                <div dir="ltr">
-                  <Slider
-                    min={0}
-                    max={Math.max(duration, 0.1)}
-                    step={0.1}
-                    value={[start]}
-                    onValueChange={(value) => clampRange(value[0] ?? 0, end)}
-                    aria-label={copy.audioCutter.start}
-                  />
-                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="cut-end">{copy.audioCutter.end}</Label>
@@ -199,26 +200,8 @@ export function AudioCutter() {
                   value={formatClock(end)}
                   onChange={(event) => clampRange(start, parseClock(event.target.value, end))}
                 />
-                <div dir="ltr">
-                  <Slider
-                    min={0}
-                    max={Math.max(duration, 0.1)}
-                    step={0.1}
-                    value={[end]}
-                    onValueChange={(value) => clampRange(start, value[0] ?? end)}
-                    aria-label={copy.audioCutter.end}
-                  />
-                </div>
               </div>
             </div>
-          </div>
-        ) : null
-      }
-      preview={
-        file ? (
-          <div className="space-y-3">
-            <p className="text-sm font-semibold">{resultUrl ? copy.audioCutter.trimmed : copy.audioCutter.preview}</p>
-            {previewSrc ? <audio controls src={previewSrc} className="w-full" /> : null}
           </div>
         ) : undefined
       }
