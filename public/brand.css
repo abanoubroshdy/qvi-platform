@@ -180,12 +180,11 @@ a {
   gap: 1rem;
 }
 
-.qvi-audio-tools {
-  margin-bottom: 2.5rem;
+.qvi-audio-tools,
+.qvi-tool-group {
+  margin-bottom: 0;
   padding: 1.25rem;
-  border: 1px solid var(--qvi-line);
   border-radius: 1.25rem;
-  background: var(--qvi-card);
 }
 
 .qvi-tool-group h3 {
@@ -193,13 +192,23 @@ a {
   font-size: 1.35rem;
 }
 
-.qvi-card {
+.qvi-card,
+.qvi-tool-card {
   display: block;
   background: var(--qvi-card);
   border: 1px solid var(--qvi-line);
   border-radius: 1.25rem;
-  padding: 1.25rem;
   color: inherit;
+}
+
+.qvi-card {
+  padding: 1.25rem;
+}
+
+.qvi-tool-card {
+  padding: 0;
+  overflow: hidden;
+  height: 100%;
 }
 
 .qvi-card h3 {
