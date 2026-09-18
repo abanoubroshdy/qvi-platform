@@ -68,23 +68,35 @@ export function ContactView() {
   );
 }
 
-export function PrivacyView() {
-  const { copy, t } = useI18n();
-  const page = copy.privacy;
-  const isContentReady = false;
-  const sections = [
-    { title: page.introTitle, body: page.placeholderBody },
-    { title: page.collectTitle, body: page.placeholderBody },
-    { title: page.useTitle, body: page.placeholderBody },
-    { title: page.shareTitle, body: page.placeholderBody },
-    { title: page.rightsTitle, body: page.placeholderBody },
-    { title: page.securityTitle, body: page.placeholderBody },
-    { title: page.contactTitle, body: page.placeholderBody },
-  ] as const;
+function PolicyList({ items }: { items: readonly string[] }) {
+  return (
+    <ul className="list-disc space-y-2 ps-5">
+      {items.map((item) => (
+        <li key={item}>{item}</li>
+      ))}
+    </ul>
+  );
+}
 
-  if (!isContentReady) {
+export function PrivacyView({ isPlaceholder = false }: { isPlaceholder?: boolean }) {
+  const { copy, locale } = useI18n();
+  const page = copy.privacy;
+  const effectiveDate = new Date().toLocaleDateString(locale === "ar" ? "ar-EG" : "en-GB");
+  const privacyEmail = page.privacyEmail;
+
+  if (isPlaceholder) {
+    const sections = [
+      { title: page.introTitle, body: page.placeholderBody },
+      { title: page.collectTitle, body: page.placeholderBody },
+      { title: page.useTitle, body: page.placeholderBody },
+      { title: page.shareTitle, body: page.placeholderBody },
+      { title: page.rightsTitle, body: page.placeholderBody },
+      { title: page.securityTitle, body: page.placeholderBody },
+      { title: page.contactTitle, body: page.placeholderBody },
+    ] as const;
+
     return (
-      <LegalPage title={page.title} updatedAt={t(copy.common.lastUpdated, { date: page.updated })}>
+      <LegalPage title={page.title} updatedAt={`${page.effectiveDateLabel}: ${effectiveDate}`}>
         <p
           className="rounded-xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-medium text-foreground"
           role="status"
@@ -102,47 +114,94 @@ export function PrivacyView() {
   }
 
   return (
-    <LegalPage title={page.title} updatedAt={t(copy.common.lastUpdated, { date: page.updated })}>
-      <p>{page.p1}</p>
-      <h2 className="text-xl font-bold">{page.h1}</h2>
-      <p>{page.p2}</p>
-      <p>{page.p3}</p>
-      <h2 className="text-xl font-bold">{page.h2}</h2>
-      <p>{page.p4}</p>
-      <h2 className="text-xl font-bold">{page.h3}</h2>
-      <p>{page.p5}</p>
-      <ul className="list-disc space-y-2 ps-5">
-        <li>
-          Google:{" "}
-          <a className="text-primary hover:underline" href="https://adssettings.google.com" rel="noopener noreferrer" target="_blank">
-            adssettings.google.com
+    <LegalPage title={page.title} updatedAt={`${page.effectiveDateLabel}: ${effectiveDate}`}>
+      <section className="space-y-3">
+        <h2 className="text-xl font-bold">{page.introTitle}</h2>
+        {page.intro.map((paragraph) => (
+          <p key={paragraph}>{paragraph}</p>
+        ))}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-xl font-bold">{page.collectTitle}</h2>
+        <p>{page.collectLead}</p>
+        <h3 className="text-base font-semibold sm:text-lg">{page.collectYouTitle}</h3>
+        <PolicyList items={page.collectYou} />
+        <h3 className="text-base font-semibold sm:text-lg">{page.collectAutoTitle}</h3>
+        <PolicyList items={page.collectAuto} />
+        <h3 className="text-base font-semibold sm:text-lg">{page.collectNotTitle}</h3>
+        <p>{page.collectNot}</p>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-xl font-bold">{page.useTitle}</h2>
+        <PolicyList items={page.use} />
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-xl font-bold">{page.legalTitle}</h2>
+        <p>{page.legalLead}</p>
+        <PolicyList items={page.legal} />
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-xl font-bold">{page.shareTitle}</h2>
+        <p>{page.shareLead}</p>
+        <PolicyList items={page.share} />
+        <p>{page.shareNot}</p>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-xl font-bold">{page.retentionTitle}</h2>
+        <PolicyList items={page.retention} />
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-xl font-bold">{page.rightsTitle}</h2>
+        <p>{page.rightsLead}</p>
+        <PolicyList items={page.rights} />
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-xl font-bold">{page.securityTitle}</h2>
+        <PolicyList items={page.security} />
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-xl font-bold">{page.cookiesTitle}</h2>
+        <p>{page.cookiesLead}</p>
+        <PolicyList items={page.cookies} />
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-xl font-bold">{page.childrenTitle}</h2>
+        <p>{page.children}</p>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-xl font-bold">{page.marketingTitle}</h2>
+        <PolicyList items={page.marketing} />
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-xl font-bold">{page.changesTitle}</h2>
+        <p>{page.changes}</p>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-xl font-bold">{page.contactTitle}</h2>
+        <p>
+          {page.contact}{" "}
+          <a className="font-semibold text-primary hover:underline" href={`mailto:${privacyEmail}`}>
+            {privacyEmail}
           </a>
-        </li>
-        <li>
-          <a
-            className="text-primary hover:underline"
-            href="https://policies.google.com/technologies/ads"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            policies.google.com/technologies/ads
-          </a>
-        </li>
-      </ul>
-      <h2 className="text-xl font-bold">{page.h4}</h2>
-      <p>{t(page.p6, { email: siteConfig.email })}</p>
-      <h2 className="text-xl font-bold">{page.h5}</h2>
-      <p>{page.p7}</p>
-      <h2 className="text-xl font-bold">{page.h6}</h2>
-      <p>{page.p8}</p>
-      <h2 className="text-xl font-bold">{page.h7}</h2>
-      <p>
-        {t(page.p9, { email: siteConfig.email })}{" "}
-        <Link href="/contact" className="font-semibold text-primary hover:underline">
-          {copy.footer.contact}
-        </Link>
-        .
-      </p>
+          .{" "}
+          <Link href="/contact" className="font-semibold text-primary hover:underline">
+            {page.contactPage}
+          </Link>
+          .
+        </p>
+      </section>
     </LegalPage>
   );
 }
