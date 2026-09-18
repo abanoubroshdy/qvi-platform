@@ -9,12 +9,14 @@ import { getSupabaseClient } from "@/lib/supabase/client";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, loading, configured } = useAuth();
   const { copy } = useI18n();
 
   useEffect(() => {
+    if (loading) return;
+
     const supabase = getSupabaseClient();
-    if (!supabase) {
+    if (!configured || !supabase) {
       router.replace("/login");
       return;
     }
@@ -34,7 +36,7 @@ export default function AuthCallbackPage() {
     return () => {
       cancelled = true;
     };
-  }, [router, user, loading]);
+  }, [configured, loading, router, user]);
 
   return (
     <section className="mx-auto flex min-h-[60vh] max-w-md items-center justify-center px-4">

@@ -1,8 +1,10 @@
+import { resolveSiteUrl } from "@/lib/supabase/config";
+
 export const siteConfig = {
   name: "QVI",
   fullName: "QVI - Quality Virtual Instruments",
   tagline: "The Future of Intelligent Audio",
-  url: process.env.NEXT_PUBLIC_SITE_URL || "https://qvi.audio",
+  url: resolveSiteUrl(),
   description:
     "QVI builds intelligent audio tools that run on your device. From AI stem separation to DDSP instrument synthesis, plus free browser utilities that never upload your files.",
   keywords: [
