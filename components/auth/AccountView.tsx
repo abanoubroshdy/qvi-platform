@@ -66,6 +66,7 @@ export function AccountView() {
       tooYoung: a.tooYoung,
       tooOld: a.tooOld,
       phone: a.invalidPhone,
+      privacyConsent: a.privacyRequired,
     }),
     [a],
   );

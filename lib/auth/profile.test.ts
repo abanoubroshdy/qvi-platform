@@ -8,6 +8,7 @@ import {
   isValidEmail,
   isValidFullName,
   parseIsoDate,
+  passwordStrength,
   toE164,
   validateProfile,
   validateSignIn,
@@ -75,6 +76,7 @@ describe("profile validation", () => {
         email: "bad",
         password: "secret1",
         confirmPassword: "secret1",
+        privacyConsent: true,
       }),
     ).toBe("email");
     expect(
@@ -83,6 +85,7 @@ describe("profile validation", () => {
         email: "you@studio.com",
         password: "123",
         confirmPassword: "123",
+        privacyConsent: true,
       }),
     ).toBe("password");
     expect(
@@ -91,6 +94,7 @@ describe("profile validation", () => {
         email: "you@studio.com",
         password: "secret1",
         confirmPassword: "secret2",
+        privacyConsent: true,
       }),
     ).toBe("passwordMismatch");
     expect(
@@ -99,10 +103,24 @@ describe("profile validation", () => {
         email: "you@studio.com",
         password: "secret1",
         confirmPassword: "secret1",
+        privacyConsent: false,
+      }),
+    ).toBe("privacyConsent");
+    expect(
+      validateSignUpInput({
+        ...validProfile,
+        email: "you@studio.com",
+        password: "secret1",
+        confirmPassword: "secret1",
+        privacyConsent: true,
+        marketingConsent: false,
       }),
     ).toBeNull();
     expect(validateSignIn("you@studio.com", "secret1")).toBeNull();
     expect(validateSignIn("bad", "secret1")).toBe("email");
     expect(validateSignIn("you@studio.com", "12")).toBe("password");
+    expect(passwordStrength("")).toBe("empty");
+    expect(passwordStrength("abc")).toBe("weak");
+    expect(passwordStrength("Abcdef12!")).toBe("strong");
   });
 });

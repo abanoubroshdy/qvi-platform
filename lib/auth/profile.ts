@@ -13,6 +13,8 @@ export type ProfileFields = {
   country: string;
   dateOfBirth: string;
   phone: string;
+  privacyConsent?: boolean;
+  marketingConsent?: boolean;
 };
 
 export type ProfileRecord = {
@@ -22,6 +24,8 @@ export type ProfileRecord = {
   country: string | null;
   date_of_birth: string | null;
   phone: string | null;
+  privacy_consent?: boolean | null;
+  marketing_consent?: boolean | null;
   created_at?: string | null;
   updated_at?: string | null;
 };
@@ -36,7 +40,8 @@ export type ProfileIssue =
   | "phone"
   | "email"
   | "password"
-  | "passwordMismatch";
+  | "passwordMismatch"
+  | "privacyConsent";
 
 export type AuthMetadata = {
   full_name: string;
@@ -44,7 +49,19 @@ export type AuthMetadata = {
   country: string;
   date_of_birth: string;
   phone: string;
+  privacy_consent: boolean;
+  marketing_consent: boolean;
 };
+
+export type SignUpInput = ProfileFields & {
+  email: string;
+  password: string;
+  confirmPassword: string;
+  privacyConsent: boolean;
+  marketingConsent?: boolean;
+};
+
+export type PasswordStrength = "empty" | "weak" | "medium" | "strong";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const E164_RE = /^\+[1-9]\d{7,14}$/;
@@ -152,11 +169,33 @@ export function validateSignIn(email: string, password: string): ProfileIssue | 
   return null;
 }
 
-export function validateSignUpInput(input: ProfileFields & { email: string; password: string; confirmPassword: string }): ProfileIssue | null {
+export function passwordStrength(password: string): PasswordStrength {
+  if (!password) return "empty";
+  let score = 0;
+  if (password.length >= MIN_PASSWORD_LENGTH) score += 1;
+  if (password.length >= 10) score += 1;
+  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score += 1;
+  if (/\d/.test(password)) score += 1;
+  if (/[^A-Za-z0-9]/.test(password)) score += 1;
+  if (score <= 2) return "weak";
+  if (score <= 3) return "medium";
+  return "strong";
+}
+
+export function validateSignUpInput(input: SignUpInput): ProfileIssue | null {
+  const profileIssue = validateProfile({
+    fullName: input.fullName,
+    gender: input.gender,
+    country: input.country,
+    dateOfBirth: input.dateOfBirth,
+    phone: input.phone,
+  });
+  if (profileIssue) return profileIssue;
   if (!isValidEmail(input.email)) return "email";
   if (input.password.length < MIN_PASSWORD_LENGTH) return "password";
   if (input.password !== input.confirmPassword) return "passwordMismatch";
-  return validateProfile(input);
+  if (!input.privacyConsent) return "privacyConsent";
+  return null;
 }
 
 export function toAuthMetadata(fields: ProfileFields): AuthMetadata {
@@ -166,12 +205,14 @@ export function toAuthMetadata(fields: ProfileFields): AuthMetadata {
     country: fields.country,
     date_of_birth: fields.dateOfBirth,
     phone: fields.phone,
+    privacy_consent: fields.privacyConsent === true,
+    marketing_consent: fields.marketingConsent === true,
   };
 }
 
 export function toProfileRow(userId: string, fields: ProfileFields) {
   const meta = toAuthMetadata(fields);
-  return {
+  const row: Record<string, unknown> = {
     id: userId,
     full_name: meta.full_name,
     gender: meta.gender,
@@ -180,6 +221,9 @@ export function toProfileRow(userId: string, fields: ProfileFields) {
     phone: meta.phone,
     updated_at: new Date().toISOString(),
   };
+  if (fields.privacyConsent !== undefined) row.privacy_consent = meta.privacy_consent;
+  if (fields.marketingConsent !== undefined) row.marketing_consent = meta.marketing_consent;
+  return row;
 }
 
 export function profileFromUnknown(data: Record<string, unknown> | null | undefined): ProfileFields {

@@ -25,9 +25,18 @@ export async function saveProfile(
   const { error: upsertError } = await supabase.from("profiles").upsert(row, { onConflict: "id" });
   if (upsertError) return { error: upsertError.message };
 
-  const { error: metaError } = await supabase.auth.updateUser({
-    data: toAuthMetadata(fields),
-  });
+  const meta = toAuthMetadata(fields);
+  const data: Record<string, unknown> = {
+    full_name: meta.full_name,
+    gender: meta.gender,
+    country: meta.country,
+    date_of_birth: meta.date_of_birth,
+    phone: meta.phone,
+  };
+  if (fields.privacyConsent !== undefined) data.privacy_consent = meta.privacy_consent;
+  if (fields.marketingConsent !== undefined) data.marketing_consent = meta.marketing_consent;
+
+  const { error: metaError } = await supabase.auth.updateUser({ data });
   if (metaError) return { error: metaError.message };
   return { error: null };
 }

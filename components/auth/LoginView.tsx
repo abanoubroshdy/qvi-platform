@@ -16,7 +16,7 @@ export function LoginView({ initialMode = "signin" }: { initialMode?: "signin" |
   }, [loading, user, router]);
 
   return (
-    <section className="mx-auto flex min-h-[70vh] max-w-lg flex-col justify-center px-4 py-16">
+    <section className="mx-auto flex min-h-[70vh] max-w-xl flex-col justify-center px-4 py-12 sm:py-16">
       <AuthForm initialMode={initialMode} />
     </section>
   );
