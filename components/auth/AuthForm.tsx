@@ -34,7 +34,7 @@ function emptyProfile(locale: string, language: string): ProfileFormValues {
 
 export function AuthForm({ initialMode = "signin" }: { initialMode?: Mode }) {
   const { copy, t, locale } = useI18n();
-  const { configured } = useAuth();
+  const { configured, loading } = useAuth();
   const router = useRouter();
 
   const [mode, setMode] = useState<Mode>(initialMode);
@@ -178,7 +178,7 @@ export function AuthForm({ initialMode = "signin" }: { initialMode?: Mode }) {
         <p className="text-sm text-muted-foreground">{isSignUp ? a.signUpLead : a.signInLead}</p>
       </div>
 
-      {!configured ? (
+      {!loading && !configured ? (
         <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground" role="alert">
           {a.notConfigured}
         </p>
@@ -259,7 +259,7 @@ export function AuthForm({ initialMode = "signin" }: { initialMode?: Mode }) {
           </p>
         ) : null}
 
-        <Button type="submit" size="lg" className="w-full" disabled={status === "working"}>
+        <Button type="submit" size="lg" className="w-full" disabled={status === "working" || loading || !configured}>
           {status === "working" ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
