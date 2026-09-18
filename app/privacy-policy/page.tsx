@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { PrivacyView } from "@/components/views/LegalViews";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy",
+  title: "سياسة الخصوصية - QVI",
   description:
-    "Privacy Policy for QVI - Quality Virtual Instruments: on-device processing, cookies, and advertising.",
+    "سياسة خصوصية QVI — Quality Virtual Instruments. سيتم تحديث المحتوى قريباً.",
   alternates: { canonical: "/privacy-policy" },
 };
 

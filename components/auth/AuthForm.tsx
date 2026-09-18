@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Loader2 } from "lucide-react";
+import { ConsentFields } from "@/components/auth/ConsentFields";
+import { PasswordField } from "@/components/auth/PasswordField";
 import { ProfileFields, type ProfileFormValues } from "@/components/auth/ProfileFields";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useI18n } from "@/components/i18n/I18nProvider";
@@ -12,13 +14,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  isValidEmail,
+  isValidFullName,
   toAuthMetadata,
   toE164,
+  validateProfile,
   validateSignIn,
   validateSignUpInput,
   type ProfileIssue,
 } from "@/lib/auth/profile";
-import { detectCountryFromLocale } from "@/lib/geo/countries";
+import { detectCountryFromLocale, isCountryCode } from "@/lib/geo/countries";
 
 type Mode = "signin" | "signup";
 
@@ -30,6 +35,15 @@ function emptyProfile(locale: string, language: string): ProfileFormValues {
     dateOfBirth: "",
     nationalPhone: "",
   };
+}
+
+function FormSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="space-y-4 rounded-2xl border border-border bg-background/55 p-4 shadow-sm sm:p-5">
+      <h2 className="text-base font-semibold tracking-tight text-foreground">{title}</h2>
+      {children}
+    </section>
+  );
 }
 
 export function AuthForm({ initialMode = "signin" }: { initialMode?: Mode }) {
@@ -44,9 +58,13 @@ export function AuthForm({ initialMode = "signin" }: { initialMode?: Mode }) {
   const [profile, setProfile] = useState<ProfileFormValues>(() =>
     emptyProfile(locale, typeof navigator === "undefined" ? locale : navigator.language),
   );
+  const [agreedToPrivacy, setAgreedToPrivacy] = useState(false);
+  const [agreedToMarketing, setAgreedToMarketing] = useState(false);
   const [status, setStatus] = useState<"idle" | "working">("idle");
   const [error, setError] = useState<string | null>(null);
   const [confirmSent, setConfirmSent] = useState<string | null>(null);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const countryTouched = useRef(false);
 
   const a = copy.auth;
   const isSignUp = mode === "signup";
@@ -63,13 +81,94 @@ export function AuthForm({ initialMode = "signin" }: { initialMode?: Mode }) {
       tooYoung: a.tooYoung,
       tooOld: a.tooOld,
       phone: a.invalidPhone,
+      privacyConsent: a.privacyRequired,
     }),
     [a],
   );
 
+  useEffect(() => {
+    if (!isSignUp) return;
+    let cancelled = false;
+    fetch("/api/geo", { cache: "no-store" })
+      .then((response) => response.json() as Promise<{ country?: string | null }>)
+      .then((data) => {
+        if (cancelled || countryTouched.current) return;
+        const country = data.country?.toUpperCase();
+        if (!country || !isCountryCode(country)) return;
+        setProfile((current) => ({ ...current, country }));
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [isSignUp]);
+
+  const signupFields = useMemo(() => {
+    const phone = toE164(profile.country, profile.nationalPhone);
+    return {
+      fullName: profile.fullName,
+      gender: profile.gender,
+      country: profile.country,
+      dateOfBirth: profile.dateOfBirth,
+      phone,
+      email: email.trim().toLowerCase(),
+      password,
+      confirmPassword,
+      privacyConsent: agreedToPrivacy,
+      marketingConsent: agreedToMarketing,
+    };
+  }, [agreedToMarketing, agreedToPrivacy, confirmPassword, email, password, profile]);
+
+  const signupIssue = isSignUp ? validateSignUpInput(signupFields) : null;
+  const canSubmit = isSignUp
+    ? Boolean(configured) && !loading && signupIssue === null
+    : Boolean(configured) && !loading && validateSignIn(email.trim().toLowerCase(), password) === null;
+
+  function markTouched(field: string) {
+    setTouched((current) => ({ ...current, [field]: true }));
+  }
+
+  function messageFor(issue: ProfileIssue | null, field: string) {
+    if (!touched[field] || !issue) return undefined;
+    return issueCopy[issue];
+  }
+
+  const profileIssue = validateProfile({
+    fullName: profile.fullName,
+    gender: profile.gender,
+    country: profile.country,
+    dateOfBirth: profile.dateOfBirth,
+    phone: toE164(profile.country, profile.nationalPhone),
+  });
+
+  const profileErrors = {
+    fullName: touched.fullName && !isValidFullName(profile.fullName) ? issueCopy.fullName : undefined,
+    gender: touched.gender && profileIssue === "gender" ? issueCopy.gender : undefined,
+    country: touched.country && profileIssue === "country" ? issueCopy.country : undefined,
+    dateOfBirth:
+      touched.dateOfBirth && (profileIssue === "dateOfBirth" || profileIssue === "tooYoung" || profileIssue === "tooOld")
+        ? issueCopy[profileIssue]
+        : undefined,
+    tooYoung: undefined,
+    tooOld: undefined,
+    nationalPhone: touched.nationalPhone && profileIssue === "phone" ? issueCopy.phone : undefined,
+    phone: touched.nationalPhone && profileIssue === "phone" ? issueCopy.phone : undefined,
+  };
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    setTouched({
+      fullName: true,
+      gender: true,
+      country: true,
+      dateOfBirth: true,
+      nationalPhone: true,
+      email: true,
+      password: true,
+      confirmPassword: true,
+      privacy: true,
+    });
 
     const value = email.trim().toLowerCase();
     const supabase = getSupabaseClient();
@@ -105,20 +204,7 @@ export function AuthForm({ initialMode = "signin" }: { initialMode?: Mode }) {
       return;
     }
 
-    const phone = toE164(profile.country, profile.nationalPhone);
-    const fields = {
-      fullName: profile.fullName,
-      gender: profile.gender,
-      country: profile.country,
-      dateOfBirth: profile.dateOfBirth,
-      phone,
-    };
-    const issue = validateSignUpInput({
-      ...fields,
-      email: value,
-      password,
-      confirmPassword,
-    });
+    const issue = validateSignUpInput(signupFields);
     if (issue) {
       setError(issueCopy[issue]);
       return;
@@ -127,12 +213,25 @@ export function AuthForm({ initialMode = "signin" }: { initialMode?: Mode }) {
     setStatus("working");
     try {
       const origin = window.location.origin;
+      const fields = {
+        fullName: signupFields.fullName,
+        gender: signupFields.gender,
+        country: signupFields.country,
+        dateOfBirth: signupFields.dateOfBirth,
+        phone: signupFields.phone,
+        privacyConsent: true,
+        marketingConsent: agreedToMarketing,
+      };
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: value,
         password,
         options: {
           emailRedirectTo: `${origin}/auth/callback`,
-          data: toAuthMetadata(fields),
+          data: {
+            ...toAuthMetadata(fields),
+            privacy_consent: true,
+            marketing_consent: agreedToMarketing,
+          },
         },
       });
       if (signUpError) {
@@ -153,6 +252,72 @@ export function AuthForm({ initialMode = "signin" }: { initialMode?: Mode }) {
     }
   }
 
+  const credentialFields = (
+    <>
+      <div className="space-y-2">
+        <Label htmlFor="auth-email" className="text-sm font-semibold">
+          {a.emailLabel}
+          <span className="ms-1 text-destructive">*</span>
+        </Label>
+        <Input
+          id="auth-email"
+          type="email"
+          autoComplete="email"
+          required
+          placeholder={a.emailPlaceholder}
+          value={email}
+          aria-invalid={Boolean(messageFor(isValidEmail(email.trim()) ? null : "email", "email"))}
+          onBlur={() => markTouched("email")}
+          onChange={(event) => {
+            setEmail(event.target.value);
+            if (error) setError(null);
+          }}
+          className="h-11 bg-background text-foreground placeholder:text-muted-foreground/80"
+        />
+        {messageFor(isValidEmail(email.trim()) ? null : "email", "email") ? (
+          <p className="text-xs text-destructive" role="alert">
+            {a.invalidEmail}
+          </p>
+        ) : null}
+      </div>
+
+      <PasswordField
+        id="auth-password"
+        label={a.passwordLabel}
+        value={password}
+        placeholder={a.passwordPlaceholder}
+        autoComplete={isSignUp ? "new-password" : "current-password"}
+        showStrength={isSignUp}
+        error={touched.password && password.length < 6 ? a.shortPassword : undefined}
+        onBlur={() => markTouched("password")}
+        onChange={(value) => {
+          setPassword(value);
+          if (error) setError(null);
+        }}
+      />
+
+      {isSignUp ? (
+        <PasswordField
+          id="auth-password-confirm"
+          label={a.confirmPasswordLabel}
+          value={confirmPassword}
+          placeholder={a.confirmPasswordPlaceholder}
+          autoComplete="new-password"
+          error={
+            touched.confirmPassword && confirmPassword && confirmPassword !== password
+              ? a.passwordMismatch
+              : undefined
+          }
+          onBlur={() => markTouched("confirmPassword")}
+          onChange={(value) => {
+            setConfirmPassword(value);
+            if (error) setError(null);
+          }}
+        />
+      ) : null}
+    </>
+  );
+
   if (confirmSent) {
     return (
       <div
@@ -172,10 +337,10 @@ export function AuthForm({ initialMode = "signin" }: { initialMode?: Mode }) {
   }
 
   return (
-    <div className="space-y-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
+    <div className="space-y-6 rounded-2xl border border-border bg-card p-5 shadow-sm sm:p-6">
       <div className="space-y-1">
-        <h1 className="text-2xl font-semibold">{isSignUp ? a.signUpTitle : a.signInTitle}</h1>
-        <p className="text-sm text-muted-foreground">{isSignUp ? a.signUpLead : a.signInLead}</p>
+        <h1 className="text-2xl font-semibold tracking-tight">{isSignUp ? a.signUpTitle : a.signInTitle}</h1>
+        <p className="text-sm leading-6 text-muted-foreground">{isSignUp ? a.signUpLead : a.signInLead}</p>
       </div>
 
       {!loading && !configured ? (
@@ -184,73 +349,48 @@ export function AuthForm({ initialMode = "signin" }: { initialMode?: Mode }) {
         </p>
       ) : null}
 
-      <form onSubmit={onSubmit} className="space-y-4">
+      <form onSubmit={onSubmit} className="space-y-4" noValidate={isSignUp}>
         {isSignUp ? (
-          <div className="space-y-4">
-            <p className="text-sm font-semibold text-foreground">{a.accountSection}</p>
-          </div>
-        ) : null}
-
-        <div className="space-y-2">
-          <Label htmlFor="auth-email">{a.emailLabel}</Label>
-          <Input
-            id="auth-email"
-            type="email"
-            autoComplete="email"
-            required
-            placeholder={a.emailPlaceholder}
-            value={email}
-            onChange={(event) => {
-              setEmail(event.target.value);
-              if (error) setError(null);
-            }}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="auth-password">{a.passwordLabel}</Label>
-          <Input
-            id="auth-password"
-            type="password"
-            autoComplete={isSignUp ? "new-password" : "current-password"}
-            required
-            placeholder={a.passwordPlaceholder}
-            value={password}
-            onChange={(event) => {
-              setPassword(event.target.value);
-              if (error) setError(null);
-            }}
-          />
-        </div>
-        {isSignUp ? (
-          <div className="space-y-2">
-            <Label htmlFor="auth-password-confirm">{a.confirmPasswordLabel}</Label>
-            <Input
-              id="auth-password-confirm"
-              type="password"
-              autoComplete="new-password"
-              required
-              placeholder={a.passwordPlaceholder}
-              value={confirmPassword}
-              onChange={(event) => {
-                setConfirmPassword(event.target.value);
-                if (error) setError(null);
-              }}
-            />
-          </div>
-        ) : null}
-
-        {isSignUp ? (
-          <div className="space-y-4 border-t border-border pt-4">
-            <p className="text-sm font-semibold text-foreground">{a.profileSection}</p>
+          <FormSection title={a.profileSection}>
             <ProfileFields
               idPrefix="signup"
               values={profile}
+              errors={profileErrors}
+              onBlurField={(field) => {
+                if (field === "country") countryTouched.current = true;
+                markTouched(field);
+              }}
               onChange={(patch) => {
+                if (patch.country !== undefined) countryTouched.current = true;
                 setProfile((current) => ({ ...current, ...patch }));
                 if (error) setError(null);
               }}
             />
-          </div>
+          </FormSection>
+        ) : null}
+
+        {isSignUp ? (
+          <FormSection title={a.accountSection}>
+            {credentialFields}
+          </FormSection>
+        ) : (
+          <div className="space-y-4">{credentialFields}</div>
+        )}
+
+        {isSignUp ? (
+          <FormSection title={a.consentSection}>
+            <ConsentFields
+              agreedToPrivacy={agreedToPrivacy}
+              agreedToMarketing={agreedToMarketing}
+              privacyError={touched.privacy && !agreedToPrivacy ? a.privacyRequired : undefined}
+              onPrivacyChange={(value) => {
+                setAgreedToPrivacy(value);
+                markTouched("privacy");
+                if (error) setError(null);
+              }}
+              onMarketingChange={setAgreedToMarketing}
+            />
+          </FormSection>
         ) : null}
 
         {error ? (
@@ -259,7 +399,12 @@ export function AuthForm({ initialMode = "signin" }: { initialMode?: Mode }) {
           </p>
         ) : null}
 
-        <Button type="submit" size="lg" className="w-full" disabled={status === "working" || loading || !configured}>
+        <Button
+          type="submit"
+          size="lg"
+          className="h-11 w-full text-base"
+          disabled={status === "working" || !canSubmit}
+        >
           {status === "working" ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
@@ -281,6 +426,9 @@ export function AuthForm({ initialMode = "signin" }: { initialMode?: Mode }) {
           onClick={() => {
             setMode(isSignUp ? "signin" : "signup");
             setError(null);
+            setTouched({});
+            setAgreedToPrivacy(false);
+            setAgreedToMarketing(false);
           }}
         >
           {isSignUp ? a.switchToSignIn : a.switchToSignUp}

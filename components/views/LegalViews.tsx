@@ -71,6 +71,35 @@ export function ContactView() {
 export function PrivacyView() {
   const { copy, t } = useI18n();
   const page = copy.privacy;
+  const isContentReady = false;
+  const sections = [
+    { title: page.introTitle, body: page.placeholderBody },
+    { title: page.collectTitle, body: page.placeholderBody },
+    { title: page.useTitle, body: page.placeholderBody },
+    { title: page.shareTitle, body: page.placeholderBody },
+    { title: page.rightsTitle, body: page.placeholderBody },
+    { title: page.securityTitle, body: page.placeholderBody },
+    { title: page.contactTitle, body: page.placeholderBody },
+  ] as const;
+
+  if (!isContentReady) {
+    return (
+      <LegalPage title={page.title} updatedAt={t(copy.common.lastUpdated, { date: page.updated })}>
+        <p
+          className="rounded-xl border border-primary/30 bg-primary/10 px-4 py-3 text-sm font-medium text-foreground"
+          role="status"
+        >
+          {page.comingSoon}
+        </p>
+        {sections.map((section) => (
+          <section key={section.title} className="space-y-2">
+            <h2 className="text-xl font-bold">{section.title}</h2>
+            <p className="text-muted-foreground">{section.body}</p>
+          </section>
+        ))}
+      </LegalPage>
+    );
+  }
 
   return (
     <LegalPage title={page.title} updatedAt={t(copy.common.lastUpdated, { date: page.updated })}>
