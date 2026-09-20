@@ -358,6 +358,60 @@ function PdfMergerScene() {
   );
 }
 
+function WordDoc({
+  x,
+  y,
+  width = 78,
+  height = 96,
+  rotate = 0,
+}: {
+  x: number;
+  y: number;
+  width?: number;
+  height?: number;
+  rotate?: number;
+}) {
+  const fold = Math.max(6, Math.round(width * 0.26));
+  const radius = Math.max(4, Math.round(width * 0.12));
+  return (
+    <g transform={`translate(${x} ${y}) rotate(${rotate} ${width / 2} ${height / 2})`}>
+      <rect x="3" y="6" width={width} height={height} rx={radius} fill="#1b3a72" opacity="0.28" />
+      <path
+        d={`M${radius} 0h${width - fold - radius}l${fold} ${fold}v${height - fold - radius}a${radius} ${radius} 0 0 1-${radius} ${radius}H${radius}A${radius} ${radius} 0 0 1 0 ${height - radius}V${radius}A${radius} ${radius} 0 0 1 ${radius} 0z`}
+        fill="#2B579A"
+      />
+      <path d={`M${width - fold} 0v${fold}h${fold}z`} fill="#8CB4FF" />
+      <rect x={width * 0.14} y={height * 0.22} width={width * 0.5} height="6" rx="3" fill="#fff" opacity="0.55" />
+      <rect x={width * 0.14} y={height * 0.32} width={width * 0.38} height="5" rx="2.5" fill="#fff" opacity="0.32" />
+      <rect x={width * 0.12} y={height * 0.52} width={width * 0.76} height="24" rx="7" fill="#fff" />
+      <text
+        x={width / 2}
+        y={height * 0.52 + 17}
+        textAnchor="middle"
+        fontSize={Math.max(8, Math.min(13, width * 0.17))}
+        fontWeight="800"
+        fill="#2B579A"
+        fontFamily="Outfit, ui-sans-serif, system-ui"
+      >
+        DOC
+      </text>
+    </g>
+  );
+}
+
+function PdfToWordScene() {
+  return (
+    <>
+      <PdfDoc x={28} y={32} width={78} height={96} />
+      <g transform="translate(122 72)">
+        <path d="M0 0h28" stroke="#2B579A" strokeWidth="5" strokeLinecap="round" />
+        <path d="M18 -8l12 8-12 8" fill="none" stroke="#2B579A" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+      </g>
+      <WordDoc x={168} y={28} />
+    </>
+  );
+}
+
 function WordCounterScene() {
   return (
     <g transform="translate(58 24)">
@@ -509,6 +563,7 @@ const scenes: Record<ToolSlug, (props: SceneProps) => ReactElement> = {
   "png-to-pdf": PngToPdfScene,
   "pdf-compressor": PdfCompressorScene,
   "pdf-merger": PdfMergerScene,
+  "pdf-to-word": PdfToWordScene,
   "word-counter": WordCounterScene,
   base64: Base64Scene,
   "qr-generator": QrGeneratorScene,

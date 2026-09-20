@@ -66,6 +66,7 @@ const nextConfig = {
       fs: false,
       path: false,
       crypto: false,
+      stream: false,
     };
     return config;
   },

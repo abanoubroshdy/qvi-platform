@@ -46,6 +46,10 @@ export const toolVisuals: Record<ToolSlug, ToolVisual> = {
     background: "linear-gradient(180deg, #fff7f5 0%, #ffd2cc 100%)",
     caption: "PDF",
   },
+  "pdf-to-word": {
+    background: "linear-gradient(180deg, #f5f8ff 0%, #d6e2ff 100%)",
+    caption: "PDF → Word",
+  },
   "word-counter": {
     background: "linear-gradient(180deg, #f4f0e6 0%, #e4dcc8 100%)",
     caption: "Words",

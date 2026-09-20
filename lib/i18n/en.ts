@@ -156,7 +156,7 @@ export const en = {
     },
     pdf: {
       title: "PDF tools",
-      lead: "Turn images into PDFs and prepare documents without uploading a file.",
+      lead: "Convert PDFs to Word, merge files, and compress documents without uploading a file.",
     },
     text: {
       title: "Text tools",
@@ -338,6 +338,10 @@ export const en = {
       title: "PDF Merger",
       description: "Combine several PDFs into a single ordered document in seconds.",
     },
+    "pdf-to-word": {
+      title: "PDF to Word",
+      description: "Convert a PDF to an editable Word file in your browser. Text size, bold, and images stay on the page.",
+    },
     "qr-generator": {
       title: "QR Generator",
       description: "Create a high-quality QR code from any link or text and download it as PNG.",
@@ -486,6 +490,30 @@ export const en = {
     needTwo: "Add at least two PDF files to merge.",
     badFormat: "No PDF files found. Choose one or more PDF documents.",
     failed: "Could not merge these files. Make sure they are valid, unencrypted PDFs.",
+  },
+  pdfToWord: {
+    action: "Convert to Word",
+    download: "Download Word",
+    dropTitle: "Drop a PDF here or click to choose",
+    dropHint: "Conversion runs in this tab with PDF.js and a high-fidelity Word builder. The file is never uploaded.",
+    empty: "Extracted text and conversion stats will appear here after you choose a PDF.",
+    file: "File",
+    pages: "Pages",
+    words: "Words",
+    images: "Images",
+    output: "Word size",
+    visualPages: "Visual pages",
+    status: "Status",
+    working: "Converting…",
+    ready: "Ready to download",
+    waiting: "Waiting for a PDF",
+    mode: "Conversion mode",
+    modeAuto: "Auto — editable text, visual copy for scans",
+    modeEditable: "Editable text — reconstruct words, size, bold, and images",
+    modeVisual: "Visual copy — each page as a high-resolution image",
+    modeHint: "Auto is best for simple single-column PDFs. Use visual copy for scans or complex page art.",
+    badFormat: "Unsupported format. Choose a PDF file.",
+    failed: "Could not convert this PDF. Try another file, or switch to visual copy for scanned pages.",
   },
   qr: {
     action: "Create code",
@@ -840,6 +868,43 @@ export const en = {
         {
           q: "How many files can I merge?",
           a: "As many as your browser memory allows. Very large documents may be slow on a phone.",
+        },
+      ],
+    },
+    "pdf-to-word": {
+      category: "PDF tools",
+      title: "Convert PDF to Word online — no upload",
+      description:
+        "Turn a PDF into a .docx file in your browser. The converter rebuilds text size, bold, and images, and uses a high-resolution page copy for scans.",
+      howToTitle: "How do I convert PDF to Word?",
+      howToNote:
+        "Best results are simple single-column PDFs with selectable text. Scanned pages are stored as images so nothing is lost. The file never leaves this device.",
+      howToSteps: [
+        "Drop a PDF or choose it from your device.",
+        "Keep Auto mode, or pick editable text / visual copy.",
+        "Wait for local conversion, then preview the extracted text.",
+        "Download the Word file. Nothing is uploaded.",
+      ],
+      faqs: [
+        {
+          q: "Is the PDF uploaded?",
+          a: "No. PDF.js reads the file in this tab and the Word document is built with the docx library on your device.",
+        },
+        {
+          q: "What formatting is kept?",
+          a: "For selectable text the tool preserves font size, bold, italic, color when available, right-to-left Arabic, and embedded images with their positions.",
+        },
+        {
+          q: "What about scanned PDFs?",
+          a: "Auto mode detects pages with almost no text and inserts a high-resolution image of the page so the Word file still matches the original look.",
+        },
+        {
+          q: "Does it handle Arabic?",
+          a: "Yes. Right-to-left runs are detected and written as RTL text in Word. Complex multi-column layouts may still need a visual copy.",
+        },
+        {
+          q: "Is it free?",
+          a: "Yes. No account and no daily limit.",
         },
       ],
     },
