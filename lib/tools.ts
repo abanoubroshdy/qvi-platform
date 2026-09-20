@@ -162,5 +162,13 @@ export function groupedTools(): { category: ToolCategory; tools: Tool[] }[] {
   }));
 }
 
+export function isToolCategory(value: string): value is ToolCategory {
+  return (toolCategoryOrder as readonly string[]).includes(value);
+}
+
+export function toolCategoryPath(category: ToolCategory): string {
+  return `/tools/${category}`;
+}
+
 export const upcomingTools = tools.filter((tool) => !tool.available);
 export const availableTools = tools.filter((tool) => tool.available);

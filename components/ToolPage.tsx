@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import {
   Accordion,
   AccordionContent,
@@ -32,6 +33,7 @@ type ToolPageProps = {
   canonicalPath: string;
   applicationCategory?: string;
   faqTitle?: string;
+  categoryHref?: string;
 };
 
 export function ToolPage({
@@ -48,6 +50,7 @@ export function ToolPage({
   canonicalPath,
   applicationCategory = "UtilitiesApplication",
   faqTitle = "FAQ",
+  categoryHref,
 }: ToolPageProps) {
   const url = `${siteConfig.url}${canonicalPath}`;
   const tool = slug ? getToolBySlug(slug) : undefined;
@@ -115,7 +118,15 @@ export function ToolPage({
           </div>
         ) : null}
         <div className="min-w-0">
-          <p className={cn("mb-2 text-sm font-bold", kickerClass)}>{category}</p>
+          <p className={cn("mb-2 text-sm font-bold", kickerClass)}>
+            {categoryHref ? (
+              <Link href={categoryHref} className="hover:underline">
+                {category}
+              </Link>
+            ) : (
+              category
+            )}
+          </p>
           <h1 className="text-3xl font-extrabold leading-snug sm:text-4xl">{title}</h1>
           <p className="mt-3 max-w-2xl text-sm leading-8 text-muted-foreground sm:text-base">{description}</p>
         </div>

@@ -135,6 +135,12 @@ export const en = {
     toolsTitle: "Free online tools — powered by QVI",
     toolsLead:
       "Fast browser utilities that process files locally. Use them freely while the flagship audio engines come online.",
+    toolsName: "Tools",
+    toolsStatus: "Free",
+    toolsCardTitle: "Free browser tools — QVI utilities",
+    toolsCardDescription:
+      "Open a dedicated tools page, pick a group — audio, PDF, images, text, or quick utilities — then use the tool you need. Files stay on your device.",
+    toolsCta: "Open tools",
     audioKicker: "New",
     audioTitle: "Audio & video tools — new",
     audioLead: "Extract audio, convert formats, and trim clips entirely in your browser. Nothing is uploaded.",
@@ -160,6 +166,16 @@ export const en = {
       title: "Quick tools",
       lead: "QR codes and strong passwords, generated locally.",
     },
+  },
+  toolsHub: {
+    kicker: "Free utilities",
+    title: "QVI tools",
+    lead:
+      "Choose a group. Each box opens every tool in that family — audio, PDF, images, text, or quick utilities. Processing stays in your browser.",
+    count: "{count} tools",
+    open: "View tools",
+    back: "All tool groups",
+    backHome: "Back to QVI",
   },
   footer: {
     blurb:

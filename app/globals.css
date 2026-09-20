@@ -124,6 +124,12 @@
       0 18px 48px -28px hsl(var(--wave-violet) / 0.32);
   }
 
+  .glow-sand {
+    box-shadow:
+      0 0 0 1px hsl(38 92% 50% / 0.2),
+      0 18px 48px -28px hsl(38 92% 50% / 0.35);
+  }
+
   .wave-bar {
     animation: wave 1.4s ease-in-out infinite;
     transform-origin: center bottom;

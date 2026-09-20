@@ -42,7 +42,7 @@ export function Footer() {
               </li>
             ))}
             <li>
-              <Link href="/#tools" className="text-muted-foreground transition hover:text-primary">
+              <Link href="/tools" className="text-muted-foreground transition hover:text-primary">
                 {copy.footer.freeTools}
               </Link>
             </li>

@@ -259,6 +259,10 @@ a {
     display: flex;
   }
 
+  .qvi-product-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
   .qvi-menu-btn,
   .qvi-nav-mobile {
     display: none !important;

@@ -8,7 +8,7 @@ import { useI18n } from "@/components/i18n/I18nProvider";
 import { Button } from "@/components/ui/button";
 import type { ToolSlug } from "@/lib/i18n";
 import { toolVisuals } from "@/lib/tool-visuals";
-import { getRelatedTools, getToolBySlug } from "@/lib/tools";
+import { getRelatedTools, getToolBySlug, toolCategoryPath } from "@/lib/tools";
 
 export function UpcomingToolView({ slug }: { slug: string }) {
   const { copy, t } = useI18n();
@@ -36,7 +36,7 @@ export function UpcomingToolView({ slug }: { slug: string }) {
         </p>
         <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
           <Button asChild size="lg">
-            <Link href="/#tools">{copy.upcoming.back}</Link>
+            <Link href={toolCategoryPath(tool.category)}>{copy.upcoming.back}</Link>
           </Button>
         </div>
       </div>

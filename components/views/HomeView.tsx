@@ -2,16 +2,12 @@
 
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { CategoryMark } from "@/components/ToolArt";
 import { JsonLd } from "@/components/JsonLd";
 import { ProductSpotlight } from "@/components/ProductSpotlight";
-import { ToolCard } from "@/components/ToolCard";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { Button } from "@/components/ui/button";
 import { siteConfig } from "@/lib/site";
-import { categoryVisuals } from "@/lib/tool-visuals";
-import { groupedTools } from "@/lib/tools";
-import { cn } from "@/lib/utils";
+import { toolCategoryOrder } from "@/lib/tools";
 
 export function HomeView() {
   const { copy } = useI18n();
@@ -48,7 +44,7 @@ export function HomeView() {
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="qvi-btn qvi-btn-outline">
-              <Link href="/#tools">{copy.home.tryTools}</Link>
+              <Link href="/tools">{copy.home.tryTools}</Link>
             </Button>
           </div>
         </div>
@@ -62,7 +58,7 @@ export function HomeView() {
           <h2 className="mt-2 text-3xl font-semibold sm:text-4xl">{copy.home.productsTitle}</h2>
           <p className="qvi-lead mt-3 text-muted-foreground">{copy.home.productsLead}</p>
         </div>
-        <div className="qvi-product-grid grid gap-6 lg:grid-cols-2">
+        <div className="qvi-product-grid grid gap-6 lg:grid-cols-3">
           <ProductSpotlight
             name={copy.products.qv1.name}
             title={copy.products.qv1.title}
@@ -83,64 +79,16 @@ export function HomeView() {
             cta={copy.home.neyoraCta}
             tone="violet"
           />
-        </div>
-      </section>
-
-      <section id="tools" className="qvi-section scroll-mt-20 border-t border-border bg-muted/40">
-        <div className="mx-auto max-w-6xl px-4 py-14 sm:py-16">
-          <div className="mb-10 max-w-2xl">
-            <p className="qvi-kicker text-xs font-semibold uppercase tracking-[0.24em] text-primary">
-              {copy.home.toolsKicker}
-            </p>
-            <h2 className="mt-2 text-3xl font-semibold sm:text-4xl">{copy.home.toolsTitle}</h2>
-            <p className="qvi-lead mt-3 text-muted-foreground">{copy.home.toolsLead}</p>
-          </div>
-          <div className="qvi-tool-groups space-y-8">
-            {groupedTools().map(({ category, tools: groupTools }) => {
-              const group = copy.toolGroups[category];
-              const visual = categoryVisuals[category];
-              const isAudio = category === "audio";
-              return (
-                <div
-                  key={category}
-                  id={isAudio ? "audio-tools" : undefined}
-                  className={cn(
-                    "qvi-tool-group scroll-mt-20 rounded-2xl border p-5 shadow-sm sm:p-6",
-                    visual.wrap,
-                  )}
-                >
-                  <div className="mb-5 flex items-start gap-3">
-                    <span
-                      className={cn(
-                        "flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl shadow-sm",
-                        visual.mark,
-                      )}
-                    >
-                      <CategoryMark category={category} className="h-9 w-9" />
-                    </span>
-                    <div className="min-w-0">
-                      {isAudio ? (
-                        <p className={cn("qvi-kicker text-xs font-semibold uppercase tracking-[0.24em]", visual.kicker)}>
-                          {copy.home.audioKicker}
-                        </p>
-                      ) : null}
-                      <h3 className={cn("text-xl font-semibold sm:text-2xl", visual.kicker)}>
-                        {isAudio ? copy.home.audioTitle : group.title}
-                      </h3>
-                      <p className="qvi-lead mt-1 text-sm leading-7 text-muted-foreground">
-                        {isAudio ? copy.home.audioLead : group.lead}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="qvi-tool-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {groupTools.map((tool) => (
-                      <ToolCard key={tool.slug} tool={tool} />
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <ProductSpotlight
+            name={copy.home.toolsName}
+            title={copy.home.toolsCardTitle}
+            description={copy.home.toolsCardDescription}
+            status={copy.home.toolsStatus}
+            features={toolCategoryOrder.map((category) => copy.toolGroups[category].title)}
+            href="/tools"
+            cta={copy.home.toolsCta}
+            tone="sand"
+          />
         </div>
       </section>
     </div>
