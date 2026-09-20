@@ -95,6 +95,14 @@ export const tools: Tool[] = [
     category: "pdf",
   },
   {
+    slug: "pdf-to-word",
+    title: "PDF to Word",
+    description: "Convert a PDF to an editable Word document in the browser, keeping text formatting and images.",
+    href: "/tools/pdf-to-word",
+    available: true,
+    category: "pdf",
+  },
+  {
     slug: "word-counter",
     title: "Word Counter",
     description: "Count words, characters, and paragraphs in any text instantly.",

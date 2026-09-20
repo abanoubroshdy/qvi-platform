@@ -34,3 +34,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# generated pdf.js assets copied from node_modules on install
+/public/pdfjs/cmaps/
+/public/pdfjs/standard_fonts/

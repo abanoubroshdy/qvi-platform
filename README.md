@@ -52,6 +52,7 @@ Do not put the Supabase project URL in `NEXT_PUBLIC_SITE_URL`.
 - `/tools/png-to-pdf` PNG to PDF
 - `/tools/pdf-compressor` PDF compressor
 - `/tools/pdf-merger` PDF merger
+- `/tools/pdf-to-word` PDF to Word (client-side, no upload)
 - `/tools/qr-generator` QR Generator
 - `/tools/color-picker` Color picker (HEX / RGB / HSL)
 - `/tools/qr-reader` QR reader from image (no camera)
@@ -72,4 +73,4 @@ The header lets you switch **English / Arabic** (RTL) and **Light / Dark / Syste
 
 ## Stack
 
-Next.js 14 App Router, TypeScript, Tailwind CSS, ESLint, shadcn/ui, lucide-react, Supabase Auth, browser-image-compression, pdf-lib, pdfjs-dist, qrcode, jsqr, ffmpeg.wasm.
+Next.js 14 App Router, TypeScript, Tailwind CSS, ESLint, shadcn/ui, lucide-react, Supabase Auth, browser-image-compression, pdf-lib, pdfjs-dist, docx, qrcode, jsqr, ffmpeg.wasm.
