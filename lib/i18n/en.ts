@@ -380,7 +380,7 @@ export const en = {
     },
     "audio-cutter": {
       title: "Audio Cutter",
-      description: "Trim an audio clip by start and end time without uploading the file.",
+      description: "Trim a clip, add fades, and choose export Hz and bitrate without uploading the file.",
     },
   },
   upcoming: {
@@ -694,8 +694,9 @@ export const en = {
   audioCutter: {
     action: "Trim audio",
     download: "Download clip",
+    downloadFormat: "Download {format}",
     dropTitle: "Drop an audio file here or click to choose",
-    dropHint: "MP3, WAV, M4A, or OGG. Trimming stays on your device.",
+    dropHint: "MP3, WAV, M4A, or OGG. Trim, fade, and re-encode stay on your device.",
     empty: "The waveform player appears after you choose a file.",
     start: "Start (mm:ss)",
     end: "End (mm:ss)",
@@ -705,8 +706,17 @@ export const en = {
     pause: "Pause",
     startHandle: "Selection start",
     endHandle: "Selection end",
+    sourceQuality: "Source quality",
+    sourceUnknown: "Could not read sample rate from this file.",
+    duration: "Duration",
+    fileSize: "File size",
+    outputFormat: "Output format",
+    qualityCompare: "Source {source} → Output {output}",
+    fadeIn: "Fade in",
+    fadeOut: "Fade out",
+    fadeHint: "Fades re-encode the clip. Keep both at 0 for a fast stream copy when the output matches the source.",
     badFormat: "Unsupported format. Choose an audio file.",
-    failed: "Could not trim this file. Try a slightly different range.",
+    failed: "Could not trim this file. Try a slightly different range or turn fades off.",
     failedWaveform: "Could not draw a waveform, but you can still set start and end times.",
   },
   toolPages: {
@@ -1168,14 +1178,17 @@ export const en = {
     },
     "audio-cutter": {
       category: "Audio & video tools",
-      title: "Trim audio online — no upload",
-      description: "Set start and end times, preview the selection, and download a trimmed MP3. Cutting stays on your device.",
+      title: "Trim audio online — fade & export quality",
+      description:
+        "Set start and end, add fade in/out, compare source quality with your export settings, and download MP3 or WAV. Everything stays on your device.",
       howToTitle: "How do I cut an audio clip?",
-      howToNote: "Copy-based trim is fast but may snap to codec frames. If that fails, the tool re-encodes the range.",
+      howToNote:
+        "Fades and sample-rate changes re-encode the clip. Leave fades at 0 and keep matching MP3 settings for a fast stream copy when possible.",
       howToSteps: [
-        "Drop an audio file and wait for the waveform.",
-        "Set start and end with the fields or sliders.",
-        "Tap Trim audio, preview the clip, then download.",
+        "Drop an audio file and wait for the waveform and source quality.",
+        "Set start and end, then optionally add fade in and fade out.",
+        "Choose MP3 or WAV and set Hz / bitrate (or bit depth).",
+        "Tap Trim audio, preview the result, then download.",
       ],
       faqs: [
         {
@@ -1183,12 +1196,16 @@ export const en = {
           a: "No. Waveform drawing uses the Web Audio API and trimming uses FFmpeg in the browser.",
         },
         {
-          q: "What do the time fields use?",
-          a: "Minutes and seconds (mm:ss). You can also drag the sliders.",
+          q: "What is source quality?",
+          a: "We read duration, sample rate, and channels from the decoded file, and estimate bitrate from file size. Use that to decide the export Hz and bitrate.",
         },
         {
-          q: "Why is the cut a little off?",
-          a: "Stream copy follows codec frames. For a tighter cut, the tool falls back to re-encoding the selected range.",
+          q: "When do fades apply?",
+          a: "Fade in starts at the beginning of your selection. Fade out ends at the selection end. Both require re-encoding.",
+        },
+        {
+          q: "Why is a cut without fades sometimes faster?",
+          a: "Matching MP3 output can stream-copy. Changing format, sample rate, channels, bitrate, or adding fades re-encodes the range.",
         },
       ],
     },

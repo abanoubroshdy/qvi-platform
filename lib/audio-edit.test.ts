@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   amixFilter,
+  buildTrimExportPlan,
   concatFilter,
   estimateAmixDuration,
   estimateConcatDuration,
+  maxFadeSeconds,
   trimFadeFilter,
 } from "@/lib/audio-edit";
 
@@ -75,5 +77,81 @@ describe("duration estimates", () => {
   it("uses the longest clip for amix", () => {
     expect(estimateAmixDuration([3, 8, 5])).toBe(8);
     expect(estimateAmixDuration([])).toBe(0);
+  });
+});
+
+describe("maxFadeSeconds", () => {
+  it("caps fades at half the selection and 5 seconds", () => {
+    expect(maxFadeSeconds(20)).toBe(5);
+    expect(maxFadeSeconds(4)).toBe(2);
+    expect(maxFadeSeconds(0)).toBe(0);
+  });
+});
+
+describe("buildTrimExportPlan", () => {
+  const baseSettings = {
+    sampleRate: 44100,
+    channels: 2 as const,
+    bitrate: 192,
+    mp3Mode: "cbr" as const,
+    vbrQuality: 5,
+    wavBitDepth: 16 as const,
+    flacLevel: 5,
+  };
+
+  it("allows stream copy for MP3 with no fades when rate matches", () => {
+    const plan = buildTrimExportPlan({
+      inputName: "input.mp3",
+      start: 1,
+      end: 5,
+      fadeIn: 0,
+      fadeOut: 0,
+      format: "mp3",
+      settings: baseSettings,
+      sourceSampleRate: 44100,
+      sourceChannels: 2,
+      bitrateUnchanged: true,
+    });
+    expect(plan.canStreamCopy).toBe(true);
+    expect(plan.copyArgs).toEqual(["-i", "input.mp3", "-ss", "1.000", "-to", "5.000", "-c", "copy", "output.mp3"]);
+    expect(plan.args).toContain("-vn");
+    expect(plan.args).toContain("libmp3lame");
+  });
+
+  it("disables copy and inserts afade with fade-out start on the trimmed timeline", () => {
+    const plan = buildTrimExportPlan({
+      inputName: "input.mp3",
+      start: 2,
+      end: 12,
+      fadeIn: 1,
+      fadeOut: 1.5,
+      format: "mp3",
+      settings: baseSettings,
+      sourceSampleRate: 44100,
+      sourceChannels: 2,
+    });
+    expect(plan.canStreamCopy).toBe(false);
+    expect(plan.copyArgs).toBeNull();
+    expect(plan.fade.fadeOutStart).toBe(8.5);
+    expect(plan.args).toContain("-af");
+    expect(plan.args).toContain("afade=t=in:st=0:d=1,afade=t=out:st=8.5:d=1.5");
+    expect(plan.args).toContain("-ar");
+    expect(plan.args).toContain("44100");
+  });
+
+  it("builds a WAV export without stream copy", () => {
+    const plan = buildTrimExportPlan({
+      inputName: "input.wav",
+      start: 0,
+      end: 3,
+      fadeIn: 0,
+      fadeOut: 0,
+      format: "wav",
+      settings: { ...baseSettings, sampleRate: 48000, wavBitDepth: 16 },
+    });
+    expect(plan.extension).toBe("wav");
+    expect(plan.canStreamCopy).toBe(false);
+    expect(plan.args).toContain("pcm_s16le");
+    expect(plan.args).toContain("48000");
   });
 });

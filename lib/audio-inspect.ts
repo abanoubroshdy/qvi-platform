@@ -64,14 +64,38 @@ export function inspectAudioBuffer(
   };
 }
 
+/** Human-readable sample rate, e.g. "44.1 kHz". */
+export function formatSampleRateLabel(sampleRate: number): string {
+  if (!Number.isFinite(sampleRate) || sampleRate <= 0) return "—";
+  if (sampleRate >= 1000) {
+    return `${(sampleRate / 1000).toFixed(sampleRate % 1000 === 0 ? 0 : 1)} kHz`;
+  }
+  return `${sampleRate} Hz`;
+}
+
 /** Human-readable quality line, e.g. "44.1 kHz · stereo · ~192 kbps · MP3". */
 export function formatAudioSourceSummary(info: AudioSourceInfo): string {
-  const rate =
-    info.sampleRate >= 1000
-      ? `${(info.sampleRate / 1000).toFixed(info.sampleRate % 1000 === 0 ? 0 : 1)} kHz`
-      : `${info.sampleRate} Hz`;
+  const rate = formatSampleRateLabel(info.sampleRate);
   const channels = info.channels <= 1 ? "mono" : info.channels === 2 ? "stereo" : `${info.channels} ch`;
   const bitrate = info.estimatedKbps != null ? `~${info.estimatedKbps} kbps` : null;
   const format = info.format === "unknown" ? null : info.format.toUpperCase();
   return [rate, channels, bitrate, format].filter(Boolean).join(" · ");
+}
+
+/** Short export target line, e.g. "320 kbps / 48 kHz · MP3". */
+export function formatAudioExportSummary(options: {
+  sampleRate: number;
+  format: string;
+  bitrateKbps?: number | null;
+  bitDepth?: number | null;
+}): string {
+  const rate = formatSampleRateLabel(options.sampleRate);
+  const quality =
+    options.bitrateKbps != null
+      ? `${options.bitrateKbps} kbps`
+      : options.bitDepth != null
+        ? `${options.bitDepth}-bit`
+        : null;
+  const left = [quality, rate].filter(Boolean).join(" / ");
+  return [left, options.format.toUpperCase()].filter(Boolean).join(" · ");
 }

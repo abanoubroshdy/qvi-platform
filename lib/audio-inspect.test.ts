@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   detectAudioFormat,
   estimateKbps,
+  formatAudioExportSummary,
   formatAudioSourceSummary,
   inspectAudioBuffer,
 } from "@/lib/audio-inspect";
@@ -63,5 +64,14 @@ describe("inspectAudioBuffer", () => {
     );
     expect(info.estimatedKbps).toBeNull();
     expect(formatAudioSourceSummary(info)).toBe("48 kHz · mono · WAV");
+  });
+
+  it("formats an export target summary", () => {
+    expect(
+      formatAudioExportSummary({ sampleRate: 48000, format: "mp3", bitrateKbps: 320 }),
+    ).toBe("320 kbps / 48 kHz · MP3");
+    expect(formatAudioExportSummary({ sampleRate: 44100, format: "wav", bitDepth: 16 })).toBe(
+      "16-bit / 44.1 kHz · WAV",
+    );
   });
 });

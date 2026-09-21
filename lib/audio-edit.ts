@@ -1,3 +1,12 @@
+import {
+  audioCodecArgs,
+  audioExportMimeType,
+  audioExportOutputName,
+  clampAudioExportSettings,
+  type AudioExportFormat,
+  type AudioExportSettings,
+} from "@/lib/audio-export";
+
 export type TrimFadeOptions = {
   /** Selection start on the source timeline (seconds). */
   start: number;
@@ -33,6 +42,19 @@ export type ConcatFilterOptions = StreamFormatOptions & {
 
 export type AmixFilterOptions = StreamFormatOptions;
 
+export type TrimExportPlan = {
+  fade: TrimFadeResult;
+  canStreamCopy: boolean;
+  outputName: string;
+  mimeType: string;
+  extension: AudioExportFormat;
+  /** Fast path when no fades and output can stay MP3 stream-copy. */
+  copyArgs: string[] | null;
+  /** Primary re-encode / filtered args. */
+  args: string[];
+  fallbackArgs: string[][];
+};
+
 function round3(value: number) {
   return Math.round(value * 1000) / 1000;
 }
@@ -48,6 +70,12 @@ function channelLayout(channels: 1 | 2) {
 
 function aformatFilter(options: StreamFormatOptions) {
   return `aformat=sample_rates=${options.sampleRate}:channel_layouts=${channelLayout(options.channels)}`;
+}
+
+/** Max fade length for a selection: half the clip, capped (default 5s). */
+export function maxFadeSeconds(selectionDuration: number, cap = 5) {
+  if (!Number.isFinite(selectionDuration) || selectionDuration <= 0) return 0;
+  return Math.min(cap, selectionDuration / 2);
 }
 
 /**
@@ -78,6 +106,86 @@ export function trimFadeFilter(options: TrimFadeOptions): TrimFadeResult {
     fadeOut,
     fadeOutStart,
     filter: parts.join(","),
+  };
+}
+
+/**
+ * Decide whether stream copy is safe: MP3 out, no fades, and export rate/channels match the source.
+ * Bitrate changes always require a re-encode (copy cannot apply a new bitrate).
+ */
+export function canTrimStreamCopy(options: {
+  format: AudioExportFormat;
+  fadeFilter: string;
+  settings: AudioExportSettings;
+  sourceSampleRate?: number | null;
+  sourceChannels?: number | null;
+  bitrateUnchanged?: boolean;
+}): boolean {
+  if (options.format !== "mp3") return false;
+  if (options.fadeFilter) return false;
+  if (options.bitrateUnchanged === false) return false;
+  const settings = clampAudioExportSettings(options.format, options.settings);
+  if (settings.mp3Mode !== "cbr") return false;
+  if (options.sourceSampleRate != null && options.sourceSampleRate > 0 && settings.sampleRate !== options.sourceSampleRate) {
+    return false;
+  }
+  if (options.sourceChannels != null && options.sourceChannels > 0) {
+    const sourceChannels = options.sourceChannels >= 2 ? 2 : 1;
+    if (settings.channels !== sourceChannels) return false;
+  }
+  return true;
+}
+
+/** Build FFmpeg args for a single-file trim (+ optional fades) and export. */
+export function buildTrimExportPlan(options: {
+  inputName: string;
+  start: number;
+  end: number;
+  fadeIn: number;
+  fadeOut: number;
+  format: AudioExportFormat;
+  settings: AudioExportSettings;
+  sourceSampleRate?: number | null;
+  sourceChannels?: number | null;
+  /** When false, never attempt `-c copy` (e.g. user changed bitrate). Default true. */
+  bitrateUnchanged?: boolean;
+}): TrimExportPlan {
+  const format = options.format;
+  const settings = clampAudioExportSettings(format, options.settings);
+  const fade = trimFadeFilter({
+    start: options.start,
+    end: options.end,
+    fadeIn: options.fadeIn,
+    fadeOut: options.fadeOut,
+  });
+  const startArg = round3(Math.max(0, options.start)).toFixed(3);
+  const endArg = round3(Math.max(options.start, options.end)).toFixed(3);
+  const outputName = audioExportOutputName(format);
+  const mimeType = audioExportMimeType(format);
+  const codec = audioCodecArgs(format, settings);
+  const filterArgs = fade.filter ? ["-af", fade.filter] : [];
+
+  const reencode = ["-i", options.inputName, "-ss", startArg, "-to", endArg, ...filterArgs, "-vn", ...codec, outputName];
+  const reencodeUnmapped = ["-i", options.inputName, "-ss", startArg, "-to", endArg, ...filterArgs, ...codec, outputName];
+
+  const allowCopy = canTrimStreamCopy({
+    format,
+    fadeFilter: fade.filter,
+    settings,
+    sourceSampleRate: options.sourceSampleRate,
+    sourceChannels: options.sourceChannels,
+    bitrateUnchanged: options.bitrateUnchanged,
+  });
+
+  return {
+    fade,
+    canStreamCopy: allowCopy,
+    outputName,
+    mimeType,
+    extension: format,
+    copyArgs: allowCopy ? ["-i", options.inputName, "-ss", startArg, "-to", endArg, "-c", "copy", outputName] : null,
+    args: reencode,
+    fallbackArgs: [reencodeUnmapped],
   };
 }
 
