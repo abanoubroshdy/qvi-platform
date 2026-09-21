@@ -44,7 +44,7 @@ import {
 } from "@/lib/audio-inspect";
 import { downloadBlob } from "@/lib/download";
 import { formatBytes } from "@/lib/format";
-import { inputNameFor, runFFmpeg, runFFmpegFiles } from "@/lib/ffmpeg";
+import { FFMPEG_LARGE_FILE_BYTES, inputNameFor, runFFmpeg, runFFmpegFiles } from "@/lib/ffmpeg";
 import { interpolate } from "@/lib/i18n";
 import { formatClock, parseClock, peaksFromBuffer } from "@/lib/time";
 
@@ -164,6 +164,36 @@ function patchClip(clips: AudioClip[], id: string, patch: Partial<AudioClip>) {
   return clips.map((clip) => (clip.id === id ? { ...clip, ...patch } : clip));
 }
 
+function stemName(fileName: string) {
+  return fileName.replace(/\.[^.]+$/, "") || "audio";
+}
+
+function downloadStem(clips: AudioClip[], mode: ExportMode) {
+  if (mode === "concat" && clips.length > 1) {
+    const a = stemName(clips[0]!.file.name);
+    const b = stemName(clips[1]!.file.name);
+    const extra = clips.length > 2 ? `+${clips.length - 2}` : "";
+    return `${a}+${b}${extra}-joined`;
+  }
+  if (mode === "mix" && clips.length > 1) {
+    const a = stemName(clips[0]!.file.name);
+    const b = stemName(clips[1]!.file.name);
+    const extra = clips.length > 2 ? `+${clips.length - 2}` : "";
+    return `${a}+${b}${extra}-mixed`;
+  }
+  return `${stemName(clips[0]?.file.name ?? "clip")}-trim`;
+}
+
+async function peaksFromBlob(blob: Blob): Promise<{ peaks: number[]; duration: number }> {
+  const context = new AudioContext();
+  try {
+    const buffer = await context.decodeAudioData(await blob.arrayBuffer());
+    return { peaks: peaksFromBuffer(buffer), duration: buffer.duration };
+  } finally {
+    await context.close();
+  }
+}
+
 export function AudioCutter() {
   const { copy } = useI18n();
   const [clips, setClips] = useState<AudioClip[]>([]);
@@ -176,6 +206,8 @@ export function AudioCutter() {
   const [result, setResult] = useState<Blob | null>(null);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [resultFormat, setResultFormat] = useState<CutterFormat>("mp3");
+  const [resultPeaks, setResultPeaks] = useState<number[]>([]);
+  const [resultDuration, setResultDuration] = useState(0);
   const [phase, setPhase] = useState<"idle" | "loading" | "converting">("idle");
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -196,6 +228,8 @@ export function AudioCutter() {
   const fadeCap = maxFadeSeconds(selectionDuration);
   const safeFadeIn = selected ? Math.min(selected.fadeIn, fadeCap) : 0;
   const safeFadeOut = selected ? Math.min(selected.fadeOut, fadeCap) : 0;
+  const totalBytes = clips.reduce((sum, clip) => sum + clip.bytes, 0);
+  const largeFiles = totalBytes >= FFMPEG_LARGE_FILE_BYTES;
 
   const exportSummary = useMemo(() => {
     const clamped = clampAudioExportSettings(format, settings);
@@ -212,6 +246,8 @@ export function AudioCutter() {
     resultRef.current = null;
     setResult(null);
     setResultUrl(null);
+    setResultPeaks([]);
+    setResultDuration(0);
   }
 
   function revokeClips(next: AudioClip[]) {
@@ -255,11 +291,15 @@ export function AudioCutter() {
     clearResult();
 
     const decoded = await Promise.all(audioFiles.map((file) => decodeClip(file)));
-    revokeClips(clips);
-    setClips(decoded);
-    setSelectedId(decoded[0]?.id ?? null);
-    const firstOk = decoded.find((clip) => !clip.decodeFailed);
-    if (firstOk) applyExportDefaultsFromClip(firstOk);
+    const hadClips = clips.length > 0;
+    setClips((current) => [...current, ...decoded]);
+    if (!hadClips) {
+      setSelectedId(decoded[0]?.id ?? null);
+      const firstOk = decoded.find((clip) => !clip.decodeFailed);
+      if (firstOk) applyExportDefaultsFromClip(firstOk);
+    } else if (!selectedId) {
+      setSelectedId(decoded[0]?.id ?? null);
+    }
     if (decoded.some((clip) => clip.decodeFailed)) {
       setError(copy.audioCutter.failedWaveform);
     }
@@ -482,6 +522,14 @@ export function AudioCutter() {
       setResultUrl(url);
       setResultFormat(extension);
       setProgress(1);
+      try {
+        const preview = await peaksFromBlob(blob);
+        setResultPeaks(preview.peaks);
+        setResultDuration(preview.duration);
+      } catch {
+        setResultPeaks([]);
+        setResultDuration(0);
+      }
     } catch {
       clearResult();
       setError(
@@ -501,7 +549,7 @@ export function AudioCutter() {
   const sourceInfo = selected && !selected.decodeFailed ? clipToSourceInfo(selected) : null;
   const canRun = multiExport ? exportableClips.length >= 1 : Boolean(selected && selected.end > selected.start);
   const actionLabel = result
-    ? copy.ffmpeg.newConversion
+    ? copy.audioCutter.exportAgain
     : mode === "mix"
       ? copy.audioCutter.actionMix
       : mode === "concat"
@@ -513,32 +561,38 @@ export function AudioCutter() {
       : mode === "concat"
         ? copy.audioCutter.modeConcatHint
         : copy.audioCutter.modeClipHint;
+  const resultTitle =
+    mode === "mix" && exportableClips.length > 1
+      ? copy.audioCutter.mixedReady
+      : mode === "concat" && exportableClips.length > 1
+        ? copy.audioCutter.joinedReady
+        : copy.audioCutter.trimmed;
+  const dropTitle = clips.length ? copy.audioCutter.addMoreTitle : copy.audioCutter.dropTitle;
+  const dropHint = clips.length ? copy.audioCutter.addMoreHint : copy.audioCutter.dropHint;
 
   return (
     <ToolLayout
       accept="audio/mpeg,audio/wav,audio/mp4,audio/ogg,audio/aac,.mp3,.wav,.m4a,.ogg,.oga,.aac,.flac"
       multiple
-      onFiles={(files) => void onFiles(files)}
-      dropTitle={copy.audioCutter.dropTitle}
-      dropHint={copy.audioCutter.dropHint}
+      onFiles={(files) => {
+        if (busy) return;
+        void onFiles(files);
+      }}
+      dropTitle={dropTitle}
+      dropHint={dropHint}
       emptyPreviewText={copy.audioCutter.empty}
       actionLabel={actionLabel}
-      onAction={() => (result ? reset() : void convert())}
+      onAction={() => (result ? clearResult() : void convert())}
       actionDisabled={!canRun && !result}
       actionLoading={busy}
       downloadLabel={interpolate(copy.audioCutter.downloadFormat, { format: formatLabel })}
       onDownload={() => {
         if (!result) return;
-        if (mode === "concat" && exportableClips.length > 1) {
-          downloadBlob(result, `joined.${resultFormat}`);
-          return;
-        }
-        if (mode === "mix" && exportableClips.length > 1) {
-          downloadBlob(result, `mixed.${resultFormat}`);
-          return;
-        }
-        if (!selected) return;
-        downloadBlob(result, `${selected.file.name.replace(/\.[^.]+$/, "")}-trim.${resultFormat}`);
+        const name = downloadStem(
+          multiExport && exportableClips.length > 1 ? exportableClips : selected ? [selected] : exportableClips,
+          mode,
+        );
+        downloadBlob(result, `${name}.${resultFormat}`);
       }}
       downloadDisabled={!result || busy}
       error={error}
@@ -552,6 +606,7 @@ export function AudioCutter() {
                 bytes: clip.bytes,
                 duration: clip.duration,
                 qualityLabel: qualityLabelFor(clip),
+                decodeFailed: clip.decodeFailed,
                 selectionLabel:
                   mode === "mix"
                     ? `${interpolate(copy.audioCutter.selectionRange, {
@@ -572,10 +627,16 @@ export function AudioCutter() {
               moveDownLabel={copy.audioCutter.moveDown}
               removeLabel={copy.audioCutter.removeClip}
               selectedHint={copy.audioCutter.selectedHint}
+              decodeFailedLabel={copy.audioCutter.decodeFailedClip}
               onSelect={selectClip}
               onMove={moveClip}
               onRemove={removeClip}
             />
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" size="sm" variant="outline" onClick={reset} disabled={busy}>
+                {copy.audioCutter.clearAll}
+              </Button>
+            </div>
 
             <div className="space-y-4 rounded-xl border bg-card p-4 shadow-sm">
               <div className="space-y-3">
@@ -655,7 +716,7 @@ export function AudioCutter() {
                     <Stat label={copy.audioCutter.filesCountLabel} value={`${exportableClips.length}`} />
                     <Stat label={copy.audioCutter.mixedDuration} value={formatClock(mixedDuration)} valueDir="ltr" />
                     <Stat
-                      label={copy.audioCutter.gain}
+                      label={copy.audioCutter.selectedGain}
                       value={`${safeGainDb >= 0 ? "+" : ""}${safeGainDb.toFixed(0)} dB`}
                       valueDir="ltr"
                     />
@@ -723,11 +784,51 @@ export function AudioCutter() {
           </div>
         ) : null
       }
-      extra={<FFmpegStatus phase={phase} progress={progress} />}
+      extra={
+        <>
+          {largeFiles ? (
+            <p className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-start text-sm text-muted-foreground">
+              {copy.audioCutter.largeFileHint}
+            </p>
+          ) : null}
+          <FFmpegStatus phase={phase} progress={progress} />
+        </>
+      }
       preview={
-        selected && selected.duration > 0 ? (
-          <div className="space-y-4">
-            <p className="text-sm font-semibold">{resultUrl ? copy.audioCutter.trimmed : copy.audioCutter.preview}</p>
+        resultUrl ? (
+          <div className="space-y-4" aria-busy={busy}>
+            <p className="text-sm font-semibold">{resultTitle}</p>
+            {resultPeaks.length && resultDuration > 0 ? (
+              <WaveformPlayer
+                src={resultUrl}
+                peaks={resultPeaks}
+                start={0}
+                end={resultDuration}
+                duration={resultDuration}
+                readOnly
+                disabled={busy}
+                playLabel={copy.audioCutter.play}
+                pauseLabel={copy.audioCutter.pause}
+                startHandleLabel={copy.audioCutter.startHandle}
+                endHandleLabel={copy.audioCutter.endHandle}
+              />
+            ) : (
+              <audio controls src={resultUrl} className="w-full" />
+            )}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <Stat label={copy.audioCutter.duration} value={formatClock(resultDuration || 0)} valueDir="ltr" />
+              <Stat
+                label={interpolate(copy.audioCutter.outputSize, { format: formatLabel })}
+                value={result ? formatBytes(result.size) : "—"}
+                valueDir="ltr"
+              />
+              <Stat label={copy.audioCutter.filesCountLabel} value={`${exportableClips.length || 1}`} />
+            </div>
+            <p className="text-start text-xs text-muted-foreground">{copy.audioCutter.exportAgainHint}</p>
+          </div>
+        ) : selected && selected.duration > 0 ? (
+          <div className="space-y-4" aria-busy={busy}>
+            <p className="text-sm font-semibold">{copy.audioCutter.preview}</p>
             <p className="truncate text-xs text-muted-foreground" title={selected.file.name}>
               {mode === "concat" && exportableClips.length > 1
                 ? interpolate(copy.audioCutter.editingForJoin, { name: selected.file.name })
@@ -742,12 +843,23 @@ export function AudioCutter() {
               end={selected.end}
               duration={selected.duration}
               onRangeChange={clampRange}
+              disabled={busy}
               playLabel={copy.audioCutter.play}
               pauseLabel={copy.audioCutter.pause}
               startHandleLabel={copy.audioCutter.startHandle}
               endHandleLabel={copy.audioCutter.endHandle}
             />
-            {resultUrl ? <audio controls src={resultUrl} className="w-full" /> : null}
+            {busy ? (
+              <p className="text-start text-sm text-muted-foreground">
+                {phase === "loading"
+                  ? copy.ffmpeg.loadingEngine
+                  : mode === "mix"
+                    ? copy.audioCutter.convertingMix
+                    : mode === "concat"
+                      ? copy.audioCutter.convertingJoin
+                      : copy.ffmpeg.converting}
+              </p>
+            ) : null}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="cut-start">{copy.audioCutter.start}</Label>
@@ -838,6 +950,13 @@ export function AudioCutter() {
               </div>
             ) : null}
           </div>
+        ) : selected?.decodeFailed ? (
+          <div className="space-y-2">
+            <p className="text-sm font-semibold">{selected.file.name}</p>
+            <p className="text-sm text-destructive">{copy.audioCutter.decodeFailedClip}</p>
+          </div>
+        ) : clips.length ? (
+          <p className="text-sm text-muted-foreground">{copy.audioCutter.selectClipHint}</p>
         ) : undefined
       }
     />

@@ -13,6 +13,7 @@ export type AudioClipListItem = {
   duration: number;
   qualityLabel: string;
   selectionLabel: string;
+  decodeFailed?: boolean;
 };
 
 type Props = {
@@ -24,6 +25,7 @@ type Props = {
   moveDownLabel: string;
   removeLabel: string;
   selectedHint: string;
+  decodeFailedLabel: string;
   onSelect: (id: string) => void;
   onMove: (id: string, direction: -1 | 1) => void;
   onRemove: (id: string) => void;
@@ -38,6 +40,7 @@ export function AudioClipList({
   moveDownLabel,
   removeLabel,
   selectedHint,
+  decodeFailedLabel,
   onSelect,
   onMove,
   onRemove,
@@ -57,8 +60,9 @@ export function AudioClipList({
             <li key={clip.id}>
               <div
                 className={cn(
-                  "flex items-stretch gap-2 rounded-lg border px-2 py-2 transition",
+                  "flex flex-col gap-2 rounded-lg border px-2 py-2 transition sm:flex-row sm:items-stretch sm:gap-2",
                   selected ? "border-primary bg-primary/5" : "border-border",
+                  clip.decodeFailed && "border-destructive/40 bg-destructive/5",
                 )}
               >
                 <button
@@ -71,14 +75,20 @@ export function AudioClipList({
                   <p className="truncate text-sm font-semibold">
                     {index + 1}. {clip.name}
                   </p>
-                  <p className="mt-1 text-xs text-muted-foreground" dir="ltr">
-                    {formatClock(clip.duration)} · {formatBytes(clip.bytes)} · {clip.qualityLabel}
-                  </p>
-                  <p className="mt-0.5 text-xs text-muted-foreground" dir="ltr">
-                    {clip.selectionLabel}
-                  </p>
+                  {clip.decodeFailed ? (
+                    <p className="mt-1 text-xs text-destructive">{decodeFailedLabel}</p>
+                  ) : (
+                    <>
+                      <p className="mt-1 text-xs text-muted-foreground" dir="ltr">
+                        {formatClock(clip.duration)} · {formatBytes(clip.bytes)} · {clip.qualityLabel}
+                      </p>
+                      <p className="mt-0.5 text-xs text-muted-foreground" dir="ltr">
+                        {clip.selectionLabel}
+                      </p>
+                    </>
+                  )}
                 </button>
-                <div className="flex shrink-0 flex-col justify-center gap-1">
+                <div className="flex shrink-0 flex-row justify-end gap-1 sm:flex-col sm:justify-center">
                   <Button
                     type="button"
                     size="icon"
