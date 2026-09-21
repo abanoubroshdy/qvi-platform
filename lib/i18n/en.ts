@@ -695,8 +695,8 @@ export const en = {
     action: "Trim audio",
     download: "Download clip",
     downloadFormat: "Download {format}",
-    dropTitle: "Drop an audio file here or click to choose",
-    dropHint: "MP3, WAV, M4A, or OGG. Trim, fade, and re-encode stay on your device.",
+    dropTitle: "Drop audio files here or click to choose",
+    dropHint: "MP3, WAV, M4A, or OGG. Add one or more clips, reorder them, then trim the selected one on your device.",
     empty: "The waveform player appears after you choose a file.",
     start: "Start (mm:ss)",
     end: "End (mm:ss)",
@@ -715,9 +715,16 @@ export const en = {
     fadeIn: "Fade in",
     fadeOut: "Fade out",
     fadeHint: "Fades re-encode the clip. Keep both at 0 for a fast stream copy when the output matches the source.",
+    filesCount: "{count} clips",
+    moveUp: "Move up",
+    moveDown: "Move down",
+    removeClip: "Remove clip",
+    selectedHint: "Tap a clip to edit it",
+    selectionRange: "Selection {start}–{end}",
+    exportSelectedNote: "Download exports the selected clip only. Joining clips comes in a later update.",
     badFormat: "Unsupported format. Choose an audio file.",
     failed: "Could not trim this file. Try a slightly different range or turn fades off.",
-    failedWaveform: "Could not draw a waveform, but you can still set start and end times.",
+    failedWaveform: "Could not draw a waveform for at least one file. You can still set times on decoded clips.",
   },
   toolPages: {
     "image-compressor": {
@@ -1178,17 +1185,17 @@ export const en = {
     },
     "audio-cutter": {
       category: "Audio & video tools",
-      title: "Trim audio online — fade & export quality",
+      title: "Trim audio online — fades, quality, multi-clip",
       description:
-        "Set start and end, add fade in/out, compare source quality with your export settings, and download MP3 or WAV. Everything stays on your device.",
+        "Add one or more clips, reorder them, trim the selected range with fades, and export MP3 or WAV at the Hz and bitrate you choose. Everything stays on your device.",
       howToTitle: "How do I cut an audio clip?",
       howToNote:
         "Fades and sample-rate changes re-encode the clip. Leave fades at 0 and keep matching MP3 settings for a fast stream copy when possible.",
       howToSteps: [
-        "Drop an audio file and wait for the waveform and source quality.",
-        "Set start and end, then optionally add fade in and fade out.",
-        "Choose MP3 or WAV and set Hz / bitrate (or bit depth).",
-        "Tap Trim audio, preview the result, then download.",
+        "Drop one or more audio files and wait for the waveforms.",
+        "Select a clip in the list, set start/end, and optionally add fades.",
+        "Reorder clips if you want (join/merge comes later). Choose MP3 or WAV and export quality.",
+        "Tap Trim audio to export the selected clip, then download.",
       ],
       faqs: [
         {
@@ -1198,6 +1205,10 @@ export const en = {
         {
           q: "What is source quality?",
           a: "We read duration, sample rate, and channels from the decoded file, and estimate bitrate from file size. Use that to decide the export Hz and bitrate.",
+        },
+        {
+          q: "Can I edit several files?",
+          a: "Yes. Drop multiple clips, reorder them, and trim each one. Download currently exports the selected clip only.",
         },
         {
           q: "When do fades apply?",
