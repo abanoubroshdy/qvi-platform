@@ -694,10 +694,12 @@ export const en = {
   audioCutter: {
     action: "Trim audio",
     actionJoin: "Join clips",
+    actionMix: "Mix tracks",
     download: "Download clip",
     downloadFormat: "Download {format}",
     dropTitle: "Drop audio files here or click to choose",
-    dropHint: "MP3, WAV, M4A, or OGG. Add clips, trim each one, then export the selection or join them in order.",
+    dropHint:
+      "MP3, WAV, M4A, or OGG. Add clips, trim each one, then export one clip, join them in order, or mix them as layers.",
     empty: "The waveform player appears after you choose a file.",
     start: "Start (mm:ss)",
     end: "End (mm:ss)",
@@ -726,15 +728,25 @@ export const en = {
     exportMode: "Export mode",
     modeClip: "Selected clip",
     modeConcat: "Join in order",
+    modeMix: "Mix tracks",
     modeClipHint: "Export only the clip you selected, with its trim and fades.",
     modeConcatHint: "Join every clip in list order after applying each trim and fade. Sample rate and bitrate are unified.",
+    modeMixHint:
+      "Layer every clip from the start of each selection. Adjust per-clip gain, then export one mixed file at unified quality.",
     spliceFade: "Splice fade",
     spliceFadeHint: "Short crossfade at each join (0–0.5s) reduces clicks between clips.",
     joinedDuration: "Joined length",
+    mixedDuration: "Mix length",
+    mixAlignHint: "Tracks line up at the start of each trimmed selection. Shorter clips end first; length follows the longest.",
+    gain: "Gain",
+    gainLabel: "{value} dB",
+    gainHint: "Per-clip gain for Mix tracks (−24 to +6 dB). Mix output is normalized to reduce clipping.",
     editingForJoin: "Editing {name} for the join",
+    editingForMix: "Editing {name} for the mix",
     badFormat: "Unsupported format. Choose an audio file.",
     failed: "Could not trim this file. Try a slightly different range or turn fades off.",
     failedJoin: "Could not join these clips. Check each selection, or lower the splice fade.",
+    failedMix: "Could not mix these tracks. Check each selection or lower hot gains.",
     failedWaveform: "Could not draw a waveform for at least one file. You can still set times on decoded clips.",
   },
   toolPages: {
@@ -1196,17 +1208,17 @@ export const en = {
     },
     "audio-cutter": {
       category: "Audio & video tools",
-      title: "Trim audio online — fades, quality, multi-clip",
+      title: "Trim audio online — fades, join, and mix",
       description:
-        "Add one or more clips, reorder them, trim the selected range with fades, and export MP3 or WAV at the Hz and bitrate you choose. Everything stays on your device.",
+        "Add clips, reorder them, trim with fades, join end-to-end or mix as layers, and export MP3 or WAV at the Hz and bitrate you choose. Everything stays on your device.",
       howToTitle: "How do I cut an audio clip?",
       howToNote:
-        "Fades and sample-rate changes re-encode. Join mode unifies Hz/bitrate and can add a short splice fade between clips.",
+        "Fades and sample-rate changes re-encode. Join pastes clips in order; Mix overlays them from each selection start with optional gain.",
       howToSteps: [
         "Drop one or more audio files and wait for the waveforms.",
-        "Select each clip to set start/end and optional fades. Reorder the list if needed.",
-        "Choose Selected clip or Join in order, then set MP3/WAV and export quality.",
-        "Tap Trim audio or Join clips, preview, then download.",
+        "Select each clip to set start/end, fades, and (in Mix) gain. Reorder the list if needed.",
+        "Choose Selected clip, Join in order, or Mix tracks, then set MP3/WAV and export quality.",
+        "Tap Trim audio, Join clips, or Mix tracks, preview, then download.",
       ],
       faqs: [
         {
@@ -1222,8 +1234,12 @@ export const en = {
           a: "Every clip is trimmed with its own fades, resampled to your export settings, then pasted end-to-end. A small splice fade softens the joins.",
         },
         {
+          q: "What is Mix tracks?",
+          a: "Clips are trimmed, faded, and layered from the start of each selection with amix. Per-clip gain adjusts balance; length follows the longest clip.",
+        },
+        {
           q: "Can I still export one clip?",
-          a: "Yes. Keep Selected clip mode. Join mode is only for pasting the list into one file.",
+          a: "Yes. Keep Selected clip mode. Join and Mix are only for combining the list into one file.",
         },
         {
           q: "When do fades apply?",

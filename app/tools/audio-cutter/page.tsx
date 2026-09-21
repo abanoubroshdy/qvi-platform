@@ -3,9 +3,9 @@ import { AudioCutter } from "@/components/tools/AudioCutter";
 import { LiveToolView } from "@/components/views/LiveToolView";
 import { siteConfig } from "@/lib/site";
 
-const pageTitle = "قص ودمج الصوت أونلاين — فيد ولصق";
+const pageTitle = "قص ودمج ومزج الصوت أونلاين — فيد وطبقات";
 const pageDescription =
-  "أضف مقاطع، رتّبها، اقطع مع فيد، أو الصقها بالترتيب مع توحيد الهرتز والبيت ريت. المعالجة محلية عبر FFmpeg.";
+  "أضف مقاطع، رتّبها، اقطع مع فيد، الصقها بالترتيب أو امزجها كطبقات مع كسب لكل مقطع وتوحيد الهرتز والبيت ريت. المعالجة محلية عبر FFmpeg.";
 
 export function generateMetadata(): Metadata {
   return {

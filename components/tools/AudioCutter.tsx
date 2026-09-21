@@ -20,11 +20,17 @@ import {
   type AudioExportSettings,
 } from "@/lib/audio-export";
 import {
+  DEFAULT_GAIN_DB,
   DEFAULT_SPLICE_FADE,
+  MAX_GAIN_DB,
   MAX_SPLICE_FADE,
+  MIN_GAIN_DB,
+  buildAmixExportPlan,
   buildConcatExportPlan,
   buildTrimExportPlan,
+  clampGainDb,
   clampSpliceFade,
+  estimateAmixDuration,
   estimateConcatDuration,
   maxFadeSeconds,
   trimFadeFilter,
@@ -44,7 +50,7 @@ import { formatClock, parseClock, peaksFromBuffer } from "@/lib/time";
 
 const cutterFormats = ["mp3", "wav"] as const satisfies readonly AudioExportFormat[];
 type CutterFormat = (typeof cutterFormats)[number];
-type ExportMode = "clip" | "concat";
+type ExportMode = "clip" | "concat" | "mix";
 
 type AudioClip = {
   id: string;
@@ -60,6 +66,8 @@ type AudioClip = {
   end: number;
   fadeIn: number;
   fadeOut: number;
+  /** Mix-mode gain in dB (0 = unity). */
+  gainDb: number;
   peaks: number[];
   decodeFailed: boolean;
 };
@@ -126,6 +134,7 @@ async function decodeClip(file: File): Promise<AudioClip> {
       end: info.duration,
       fadeIn: 0,
       fadeOut: 0,
+      gainDb: DEFAULT_GAIN_DB,
       peaks: peaksFromBuffer(buffer),
       decodeFailed: false,
     };
@@ -144,6 +153,7 @@ async function decodeClip(file: File): Promise<AudioClip> {
       end: 0,
       fadeIn: 0,
       fadeOut: 0,
+      gainDb: DEFAULT_GAIN_DB,
       peaks: [],
       decodeFailed: true,
     };
@@ -326,6 +336,9 @@ export function AudioCutter() {
   const selectionDurations = exportableClips.map((clip) => trimFadeFilter(clip).duration);
   const effectiveSplice = clampSpliceFade(spliceFade, selectionDurations);
   const joinedDuration = estimateConcatDuration(selectionDurations, effectiveSplice);
+  const mixedDuration = estimateAmixDuration(selectionDurations);
+  const safeGainDb = selected ? clampGainDb(selected.gainDb) : DEFAULT_GAIN_DB;
+  const multiExport = mode === "concat" || mode === "mix";
 
   function progressHandlers() {
     return {
@@ -417,15 +430,51 @@ export function AudioCutter() {
     return { blob, extension: plan.extension as CutterFormat };
   }
 
+  async function convertMixed() {
+    if (exportableClips.length < 1) throw new Error("no-clips");
+    if (exportableClips.length === 1) {
+      return convertSelectedClip(exportableClips[0]!);
+    }
+    const inputs = exportableClips.map((clip, index) => ({
+      name: inputNameFor(clip.file, `input${index}`),
+      file: clip.file,
+    }));
+    const plan = buildAmixExportPlan({
+      clips: exportableClips.map((clip, index) => ({
+        inputName: inputs[index]!.name,
+        start: clip.start,
+        end: clip.end,
+        fadeIn: Math.min(clip.fadeIn, maxFadeSeconds(Math.max(0, clip.end - clip.start))),
+        fadeOut: Math.min(clip.fadeOut, maxFadeSeconds(Math.max(0, clip.end - clip.start))),
+        gainDb: clampGainDb(clip.gainDb),
+      })),
+      format,
+      settings,
+    });
+    const blob = await runFFmpegFiles({
+      files: inputs,
+      outputName: plan.outputName,
+      mimeType: plan.mimeType,
+      args: plan.args,
+      fallbackArgs: plan.fallbackArgs,
+      ...progressHandlers(),
+    });
+    return { blob, extension: plan.extension as CutterFormat };
+  }
+
   async function convert() {
     if (mode === "clip" && (!selected || selected.end <= selected.start)) return;
-    if (mode === "concat" && exportableClips.length < 1) return;
+    if (multiExport && exportableClips.length < 1) return;
     setError(null);
     setPhase("loading");
     setProgress(0);
     try {
       const { blob, extension } =
-        mode === "concat" ? await convertJoined() : await convertSelectedClip(selected!);
+        mode === "mix"
+          ? await convertMixed()
+          : mode === "concat"
+            ? await convertJoined()
+            : await convertSelectedClip(selected!);
       clearResult();
       const url = URL.createObjectURL(blob);
       resultRef.current = url;
@@ -435,7 +484,13 @@ export function AudioCutter() {
       setProgress(1);
     } catch {
       clearResult();
-      setError(mode === "concat" ? copy.audioCutter.failedJoin : copy.audioCutter.failed);
+      setError(
+        mode === "mix"
+          ? copy.audioCutter.failedMix
+          : mode === "concat"
+            ? copy.audioCutter.failedJoin
+            : copy.audioCutter.failed,
+      );
     } finally {
       setPhase("idle");
     }
@@ -444,7 +499,20 @@ export function AudioCutter() {
   const formatLabel = copy.mp4ToMp3.formats[result ? resultFormat : format];
   const busy = phase !== "idle";
   const sourceInfo = selected && !selected.decodeFailed ? clipToSourceInfo(selected) : null;
-  const canRun = mode === "concat" ? exportableClips.length >= 1 : Boolean(selected && selected.end > selected.start);
+  const canRun = multiExport ? exportableClips.length >= 1 : Boolean(selected && selected.end > selected.start);
+  const actionLabel = result
+    ? copy.ffmpeg.newConversion
+    : mode === "mix"
+      ? copy.audioCutter.actionMix
+      : mode === "concat"
+        ? copy.audioCutter.actionJoin
+        : copy.audioCutter.action;
+  const modeHint =
+    mode === "mix"
+      ? copy.audioCutter.modeMixHint
+      : mode === "concat"
+        ? copy.audioCutter.modeConcatHint
+        : copy.audioCutter.modeClipHint;
 
   return (
     <ToolLayout
@@ -454,7 +522,7 @@ export function AudioCutter() {
       dropTitle={copy.audioCutter.dropTitle}
       dropHint={copy.audioCutter.dropHint}
       emptyPreviewText={copy.audioCutter.empty}
-      actionLabel={result ? copy.ffmpeg.newConversion : mode === "concat" ? copy.audioCutter.actionJoin : copy.audioCutter.action}
+      actionLabel={actionLabel}
       onAction={() => (result ? reset() : void convert())}
       actionDisabled={!canRun && !result}
       actionLoading={busy}
@@ -463,6 +531,10 @@ export function AudioCutter() {
         if (!result) return;
         if (mode === "concat" && exportableClips.length > 1) {
           downloadBlob(result, `joined.${resultFormat}`);
+          return;
+        }
+        if (mode === "mix" && exportableClips.length > 1) {
+          downloadBlob(result, `mixed.${resultFormat}`);
           return;
         }
         if (!selected) return;
@@ -480,10 +552,18 @@ export function AudioCutter() {
                 bytes: clip.bytes,
                 duration: clip.duration,
                 qualityLabel: qualityLabelFor(clip),
-                selectionLabel: interpolate(copy.audioCutter.selectionRange, {
-                  start: formatClock(clip.start),
-                  end: formatClock(clip.end),
-                }),
+                selectionLabel:
+                  mode === "mix"
+                    ? `${interpolate(copy.audioCutter.selectionRange, {
+                        start: formatClock(clip.start),
+                        end: formatClock(clip.end),
+                      })} · ${interpolate(copy.audioCutter.gainLabel, {
+                        value: clampGainDb(clip.gainDb).toFixed(0),
+                      })}`
+                    : interpolate(copy.audioCutter.selectionRange, {
+                        start: formatClock(clip.start),
+                        end: formatClock(clip.end),
+                      }),
               }))}
               selectedId={selectedId}
               disabled={busy}
@@ -521,10 +601,18 @@ export function AudioCutter() {
                   >
                     {copy.audioCutter.modeConcat}
                   </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={mode === "mix" ? "default" : "outline"}
+                    onClick={() => onMode("mix")}
+                    disabled={busy || clips.length < 1}
+                    aria-pressed={mode === "mix"}
+                  >
+                    {copy.audioCutter.modeMix}
+                  </Button>
                 </div>
-                <p className="text-start text-xs text-muted-foreground">
-                  {mode === "concat" ? copy.audioCutter.modeConcatHint : copy.audioCutter.modeClipHint}
-                </p>
+                <p className="text-start text-xs text-muted-foreground">{modeHint}</p>
               </div>
 
               {mode === "concat" ? (
@@ -558,6 +646,21 @@ export function AudioCutter() {
                     </div>
                     <p className="text-start text-xs text-muted-foreground">{copy.audioCutter.spliceFadeHint}</p>
                   </div>
+                </div>
+              ) : null}
+
+              {mode === "mix" ? (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    <Stat label={copy.audioCutter.filesCountLabel} value={`${exportableClips.length}`} />
+                    <Stat label={copy.audioCutter.mixedDuration} value={formatClock(mixedDuration)} valueDir="ltr" />
+                    <Stat
+                      label={copy.audioCutter.gain}
+                      value={`${safeGainDb >= 0 ? "+" : ""}${safeGainDb.toFixed(0)} dB`}
+                      valueDir="ltr"
+                    />
+                  </div>
+                  <p className="text-start text-xs text-muted-foreground">{copy.audioCutter.mixAlignHint}</p>
                 </div>
               ) : null}
 
@@ -628,7 +731,9 @@ export function AudioCutter() {
             <p className="truncate text-xs text-muted-foreground" title={selected.file.name}>
               {mode === "concat" && exportableClips.length > 1
                 ? interpolate(copy.audioCutter.editingForJoin, { name: selected.file.name })
-                : selected.file.name}
+                : mode === "mix" && exportableClips.length > 1
+                  ? interpolate(copy.audioCutter.editingForMix, { name: selected.file.name })
+                  : selected.file.name}
             </p>
             <WaveformPlayer
               src={selected.url}
@@ -708,6 +813,30 @@ export function AudioCutter() {
               </div>
             </div>
             <p className="text-start text-xs text-muted-foreground">{copy.audioCutter.fadeHint}</p>
+            {mode === "mix" ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <Label htmlFor="clip-gain">{copy.audioCutter.gain}</Label>
+                  <span className="text-sm font-semibold tabular-nums text-primary" dir="ltr">
+                    {safeGainDb >= 0 ? "+" : ""}
+                    {safeGainDb.toFixed(0)} dB
+                  </span>
+                </div>
+                <div dir="ltr">
+                  <Slider
+                    id="clip-gain"
+                    min={MIN_GAIN_DB}
+                    max={MAX_GAIN_DB}
+                    step={1}
+                    value={[safeGainDb]}
+                    disabled={busy}
+                    onValueChange={(value) => updateSelected({ gainDb: clampGainDb(value[0] ?? DEFAULT_GAIN_DB) })}
+                    aria-label={copy.audioCutter.gain}
+                  />
+                </div>
+                <p className="text-start text-xs text-muted-foreground">{copy.audioCutter.gainHint}</p>
+              </div>
+            ) : null}
           </div>
         ) : undefined
       }

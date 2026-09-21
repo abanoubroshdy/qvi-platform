@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   amixFilter,
+  buildAmixExportPlan,
+  buildAmixGraph,
   buildConcatExportPlan,
   buildConcatGraph,
   buildTrimExportPlan,
+  clampGainDb,
   clampSpliceFade,
   concatFilter,
   estimateAmixDuration,
@@ -218,5 +221,63 @@ describe("buildConcatGraph / buildConcatExportPlan", () => {
   it("clamps splice fade below the shortest clip", () => {
     expect(clampSpliceFade(0.5, [0.2, 5])).toBeCloseTo(0.09, 5);
     expect(clampSpliceFade(0.08, [10, 10])).toBe(0.08);
+  });
+});
+
+describe("buildAmixGraph / buildAmixExportPlan", () => {
+  const baseSettings = {
+    sampleRate: 44100,
+    channels: 2 as const,
+    bitrate: 192,
+    mp3Mode: "cbr" as const,
+    vbrQuality: 5,
+    wavBitDepth: 16 as const,
+    flacLevel: 5,
+  };
+
+  it("preps each clip and mixes with amix normalize=1", () => {
+    const graph = buildAmixGraph(
+      [
+        { start: 0, end: 5, fadeIn: 0, fadeOut: 0, gainDb: 0 },
+        { start: 0, end: 3, fadeIn: 0.2, fadeOut: 0, gainDb: -6 },
+      ],
+      { sampleRate: 44100, channels: 2 },
+    );
+    expect(graph).toContain("[0:a]atrim=start=0:end=5,asetpts=PTS-STARTPTS,aformat=sample_rates=44100:channel_layouts=stereo[a0]");
+    expect(graph).toContain("afade=t=in:st=0:d=0.2");
+    expect(graph).toContain("volume=-6dB");
+    expect(graph).toContain("amix=inputs=2:duration=longest:dropout_transition=0:normalize=1[out]");
+  });
+
+  it("omits unity gain and handles a single clip", () => {
+    const graph = buildAmixGraph([{ start: 1, end: 4, fadeIn: 0, fadeOut: 0, gainDb: 0 }], {
+      sampleRate: 48000,
+      channels: 1,
+    });
+    expect(graph).not.toContain("volume=");
+    expect(graph).toContain("[a0]anull[out]");
+  });
+
+  it("builds multi -i args and estimates mix duration as longest", () => {
+    const plan = buildAmixExportPlan({
+      clips: [
+        { inputName: "input0.mp3", start: 0, end: 10, fadeIn: 0, fadeOut: 0, gainDb: -3 },
+        { inputName: "input1.wav", start: 0, end: 4, fadeIn: 0, fadeOut: 0 },
+      ],
+      format: "mp3",
+      settings: baseSettings,
+    });
+    expect(plan.estimatedDuration).toBe(10);
+    expect(plan.args.slice(0, 4)).toEqual(["-i", "input0.mp3", "-i", "input1.wav"]);
+    expect(plan.filterComplex).toContain("volume=-3dB");
+    expect(plan.args).toContain("-filter_complex");
+    expect(plan.args).toContain("[out]");
+    expect(plan.args).toContain("libmp3lame");
+  });
+
+  it("clamps gain to the mix range", () => {
+    expect(clampGainDb(-100)).toBe(-24);
+    expect(clampGainDb(12)).toBe(6);
+    expect(clampGainDb(0)).toBe(0);
   });
 });

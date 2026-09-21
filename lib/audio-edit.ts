@@ -64,6 +64,11 @@ export type ConcatClipSpec = {
   fadeOut: number;
 };
 
+export type AmixClipSpec = ConcatClipSpec & {
+  /** Per-clip gain in dB applied before amix. 0 = unity. */
+  gainDb?: number;
+};
+
 export type ConcatExportPlan = {
   outputName: string;
   mimeType: string;
@@ -75,8 +80,21 @@ export type ConcatExportPlan = {
   fallbackArgs: string[][];
 };
 
+export type AmixExportPlan = {
+  outputName: string;
+  mimeType: string;
+  extension: AudioExportFormat;
+  filterComplex: string;
+  estimatedDuration: number;
+  args: string[];
+  fallbackArgs: string[][];
+};
+
 export const DEFAULT_SPLICE_FADE = 0.08;
 export const MAX_SPLICE_FADE = 0.5;
+export const MIN_GAIN_DB = -24;
+export const MAX_GAIN_DB = 6;
+export const DEFAULT_GAIN_DB = 0;
 
 function round3(value: number) {
   return Math.round(value * 1000) / 1000;
@@ -246,11 +264,21 @@ export function concatFilter(n: number, options: ConcatFilterOptions): string {
   return steps.join(";");
 }
 
+/** Clamp mix gain to a usable dB range. */
+export function clampGainDb(gainDb: number): number {
+  if (!Number.isFinite(gainDb)) return DEFAULT_GAIN_DB;
+  return round3(Math.min(MAX_GAIN_DB, Math.max(MIN_GAIN_DB, gainDb)));
+}
+
 /**
- * Per-input prep: trim selection, reset timestamps, optional fades, then normalize sample format.
+ * Per-input prep: trim selection, reset timestamps, optional fades/gain, then normalize sample format.
  * Output label is `[a{index}]`.
  */
-export function clipPrepFilter(index: number, clip: Omit<ConcatClipSpec, "inputName">, stream: StreamFormatOptions): string {
+export function clipPrepFilter(
+  index: number,
+  clip: Omit<AmixClipSpec, "inputName">,
+  stream: StreamFormatOptions,
+): string {
   const fade = trimFadeFilter({
     start: clip.start,
     end: clip.end,
@@ -259,8 +287,10 @@ export function clipPrepFilter(index: number, clip: Omit<ConcatClipSpec, "inputN
   });
   const start = round3(Math.max(0, clip.start));
   const end = round3(Math.max(start, clip.end));
+  const gainDb = clampGainDb(clip.gainDb ?? DEFAULT_GAIN_DB);
   const parts = [`atrim=start=${start}:end=${end}`, "asetpts=PTS-STARTPTS"];
   if (fade.filter) parts.push(fade.filter);
+  if (gainDb !== 0) parts.push(`volume=${gainDb}dB`);
   parts.push(aformatFilter(stream));
   return `[${index}:a]${parts.join(",")}[a${index}]`;
 }
@@ -344,10 +374,12 @@ export function buildConcatExportPlan(options: {
 /**
  * Build a filter_complex that normalizes each input and mixes them with amix.
  * Labels: inputs `0:a`..`n-1:a`, final output `[out]`.
+ * `normalize` defaults to false (no per-input attenuation) for the bare helper.
  */
-export function amixFilter(n: number, options: AmixFilterOptions): string {
+export function amixFilter(n: number, options: AmixFilterOptions & { normalize?: boolean }): string {
   const count = Math.max(1, Math.floor(n));
   const format = aformatFilter(options);
+  const normalize = options.normalize ? 1 : 0;
   const labeled: string[] = [];
 
   for (let index = 0; index < count; index += 1) {
@@ -359,7 +391,66 @@ export function amixFilter(n: number, options: AmixFilterOptions): string {
   }
 
   const inputs = Array.from({ length: count }, (_, index) => `[a${index}]`).join("");
-  return `${labeled.join(";")};${inputs}amix=inputs=${count}:duration=longest:dropout_transition=0:normalize=0[out]`;
+  return `${labeled.join(";")};${inputs}amix=inputs=${count}:duration=longest:dropout_transition=0:normalize=${normalize}[out]`;
+}
+
+/**
+ * Full mix graph: prep each trimmed clip (optional gain), then amix into `[out]`.
+ * Uses normalize=1 so stacked full-level clips do not clip by default.
+ */
+export function buildAmixGraph(clips: Array<Omit<AmixClipSpec, "inputName">>, options: AmixFilterOptions): string {
+  if (!clips.length) return "[0:a]anull[out]";
+  const stream = { sampleRate: options.sampleRate, channels: options.channels };
+  const preps = clips.map((clip, index) => clipPrepFilter(index, clip, stream));
+
+  if (clips.length === 1) {
+    return `${preps[0]};[a0]anull[out]`;
+  }
+
+  const inputs = Array.from({ length: clips.length }, (_, index) => `[a${index}]`).join("");
+  return `${preps.join(";")};${inputs}amix=inputs=${clips.length}:duration=longest:dropout_transition=0:normalize=1[out]`;
+}
+
+/** Build multi-input FFmpeg args that overlay trimmed clips (amix). */
+export function buildAmixExportPlan(options: {
+  clips: AmixClipSpec[];
+  format: AudioExportFormat;
+  settings: AudioExportSettings;
+}): AmixExportPlan {
+  if (!options.clips.length) {
+    throw new Error("buildAmixExportPlan requires at least one clip.");
+  }
+
+  const format = options.format;
+  const settings = clampAudioExportSettings(format, options.settings);
+  const stream = { sampleRate: settings.sampleRate, channels: settings.channels };
+  const durations = options.clips.map((clip) => trimFadeFilter(clip).duration);
+  const filterComplex = buildAmixGraph(
+    options.clips.map(({ start, end, fadeIn, fadeOut, gainDb }) => ({
+      start,
+      end,
+      fadeIn,
+      fadeOut,
+      gainDb,
+    })),
+    stream,
+  );
+  const outputName = audioExportOutputName(format);
+  const mimeType = audioExportMimeType(format);
+  const codec = audioCodecArgs(format, settings);
+  const inputArgs = options.clips.flatMap((clip) => ["-i", clip.inputName]);
+  const mapped = [...inputArgs, "-filter_complex", filterComplex, "-map", "[out]", "-vn", ...codec, outputName];
+  const unmapped = [...inputArgs, "-filter_complex", filterComplex, "-vn", ...codec, outputName];
+
+  return {
+    outputName,
+    mimeType,
+    extension: format,
+    filterComplex,
+    estimatedDuration: estimateAmixDuration(durations),
+    args: mapped,
+    fallbackArgs: [unmapped],
+  };
 }
 
 /** Approximate output duration for concat with optional splice crossfade. */
