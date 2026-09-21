@@ -5,9 +5,12 @@ import {
   groupSpansIntoLines,
   isRtlText,
   layoutPage,
+  looksVisuallyOrderedArabic,
+  normalizePdfText,
   parsePdfFont,
   pointsToHalfPoints,
   previewTextFromLayouts,
+  reverseArabicRuns,
   rgbToHex,
   type PdfSpan,
 } from "@/lib/pdf-to-word-layout";
@@ -85,11 +88,26 @@ describe("pdf to word layout", () => {
   });
 
   it("normalizes Arabic presentation forms and strips illegal XML controls", async () => {
-    const { normalizePdfText, sanitizeXmlText, fontForRun } = await import("@/lib/pdf-to-word-layout");
+    const { sanitizeXmlText, fontForRun } = await import("@/lib/pdf-to-word-layout");
     // Arabic presentation form for "ب" (U+FE91) → base ب
     expect(normalizePdfText("\uFE91")).toBe("ب");
     expect(sanitizeXmlText("hi\u0000there\u0008")).toBe("hithere");
     expect(fontForRun("Courier New", "مرحبا", true)).toBe("Tahoma");
+    expect(looksVisuallyOrderedArabic("لماشلا يتوصلا مييقتلا جذومن")).toBe(true);
+    expect(looksVisuallyOrderedArabic("نموذج التقييم الصوتي الشامل")).toBe(false);
+    expect(reverseArabicRuns("لماشلا يتوصلا مييقتلا جذومن")).toBe("نموذج التقييم الصوتي الشامل");
+    // Broken font: reversed Arabic + Canadian Aboriginal garbage + controls
+    const broken =
+      "لماشلا يتوصلا مييقتلا جذومن՚՞ᓤᓚ\u0003ᓘᓪᓪᓎᒎᓕՕ\u0003اشلا يتوصلا مييقتلا جذومن";
+    const repaired = normalizePdfText(broken, "rtl");
+    expect(repaired).toContain("نموذج");
+    expect(repaired).toContain("الشامل");
+    expect(repaired).not.toMatch(/[\u1400-\u167F\u0530-\u058F\u0000-\u0008]/);
+  });
+
+  it("does not reverse already-logical Arabic", () => {
+    const logical = "نموذج التقييم الصوتي الشامل";
+    expect(normalizePdfText(logical, "rtl")).toBe(logical);
   });
 
   it("keeps mixed English islands readable inside an Arabic line", () => {

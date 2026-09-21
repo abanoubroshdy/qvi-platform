@@ -79,6 +79,11 @@ const LATIN_RE = /[A-Za-z]/;
 /** Illegal in XML 1.0 text nodes — Word Mobile often refuses to open the file. */
 const XML_ILLEGAL_RE = /[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g;
 const BIDI_MARKS_RE = /[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g;
+/**
+ * Custom PDF fonts often mis-map Arabic glyphs onto Canadian Aboriginal Syllabics
+ * (U+1400+) and Armenian (U+0530+). Those code points are never real Arabic text.
+ */
+const FONT_GARBAGE_RE = /[\u0530-\u058F\u1400-\u167F\u18B0-\u18FF\uA000-\uA48F]/g;
 const ARABIC_FONT = "Tahoma";
 
 const FAMILY_ALIASES: Array<[RegExp, string]> = [
@@ -147,14 +152,162 @@ export function sanitizeXmlText(text: string) {
   return text.replace(XML_ILLEGAL_RE, "").replace(BIDI_MARKS_RE, "");
 }
 
+function stripFontGarbage(text: string) {
+  // These ranges are almost always broken ToUnicode mappings from custom Arabic fonts.
+  return text.replace(FONT_GARBAGE_RE, "");
+}
+
+/** Reverse contiguous Arabic/Hebrew character runs (visual → logical). */
+export function reverseArabicRuns(text: string) {
+  let output = "";
+  let buffer = "";
+  const flush = () => {
+    if (!buffer) return;
+    output += Array.from(buffer).reverse().join("");
+    buffer = "";
+  };
+  for (const char of text) {
+    if (ARABIC_RE.test(char) || HEBREW_RE.test(char) || /[\u064B-\u065F\u0670]/.test(char)) {
+      buffer += char;
+      continue;
+    }
+    // Keep Arabic punctuation/spaces inside the run so whole phrases reverse together.
+    if (buffer && /[\s\u060C\u061B\u061F\u066A-\u066D،؛؟]/.test(char)) {
+      buffer += char;
+      continue;
+    }
+    flush();
+    output += char;
+  }
+  flush();
+  return output;
+}
+
 /**
- * Normalize PDF text for editable Word output:
- * NFKC maps Arabic presentation forms to base letters so Word can join them,
- * then strip illegal controls.
+ * Detect Arabic stored in visual order (rightmost letter first in the string).
+ * Logical Arabic usually starts words with ال/وال؛ visual order ends those words with لا.
  */
-export function normalizePdfText(text: string) {
+export function looksVisuallyOrderedArabic(text: string) {
+  const words = text
+    .split(/\s+/)
+    .map((word) => word.replace(/[^\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+/g, ""))
+    .filter((word) => word.length >= 3);
+  if (!words.length) return false;
+  let visual = 0;
+  let logical = 0;
+  for (const word of words) {
+    if (/^(ال|وال|بال|كال|فال)/.test(word)) logical += 1;
+    if (/(لا|لاو|لاب|لاك)$/.test(word)) visual += 1;
+    if (word.startsWith("ة") || word.startsWith("ى")) visual += 1;
+    if (word.endsWith("ة") || word.endsWith("ى")) logical += 1;
+  }
+  return visual > logical;
+}
+
+/**
+ * Broken fonts often emit the same Arabic phrase twice (sometimes overlapping after
+ * reverse). Keep the longest distinct Arabic sentence-like span.
+ */
+function dedupeRepeatedArabic(text: string) {
+  if (!ARABIC_RE.test(text)) return text;
+
+  const starters = ["نموذج", "معايير", "القسم", "البيانات", "عنصر", "صفحة"];
+  for (const start of starters) {
+    const indexes: number[] = [];
+    let from = 0;
+    while (from < text.length) {
+      const index = text.indexOf(start, from);
+      if (index < 0) break;
+      indexes.push(index);
+      from = index + start.length;
+    }
+    if (indexes.length < 2) continue;
+    const first = indexes[0]!;
+    const second = indexes[1]!;
+    const firstChunk = text.slice(first, second).replace(/\s+/g, " ").trim();
+    const lastChunk = text.slice(indexes[indexes.length - 1]!).replace(/\s+/g, " ").trim();
+    const keep = lastChunk.length >= firstChunk.length * 0.75 ? lastChunk : firstChunk;
+    const prefix = text
+      .slice(0, first)
+      .replace(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    const suffixLatin = text
+      .slice(second + keep.length)
+      .replace(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    // Prefer content after the first chunk for trailing Latin on the original line.
+    const trailing = text
+      .slice(indexes[indexes.length - 1]! + keep.length)
+      .replace(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    return [prefix, keep, trailing || suffixLatin].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
+  }
+
+  // Collapse near-duplicate full phrases glued without a clear starter.
+  const phraseRe = /[\u0600-\u06FF][\u0600-\u06FF\s]{6,}[\u0600-\u06FF]/g;
+  const phrases = text.match(phraseRe) ?? [];
+  if (phrases.length >= 2) {
+    const cleaned = phrases.map((phrase) => phrase.replace(/\s+/g, " ").trim());
+    const longest = cleaned.reduce((a, b) => (a.length >= b.length ? a : b));
+    const similar = cleaned.filter((phrase) => {
+      const a = phrase.replace(/\s+/g, "");
+      const b = longest.replace(/\s+/g, "");
+      return a === b || a.includes(b) || b.includes(a) || overlapRatio(a, b) >= 0.7;
+    });
+    if (similar.length >= 2) {
+      const latin = text
+        .replace(phraseRe, " ")
+        .replace(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      return latin ? `${longest} ${latin}`.replace(/\s+/g, " ").trim() : longest;
+    }
+  }
+
+  return text.replace(/\s{2,}/g, " ").trim();
+}
+
+function overlapRatio(a: string, b: string) {
+  if (!a || !b) return 0;
+  const [short, long] = a.length <= b.length ? [a, b] : [b, a];
+  if (long.includes(short)) return short.length / long.length;
+  let best = 0;
+  for (let len = short.length; len >= Math.floor(short.length * 0.5); len -= 1) {
+    for (let i = 0; i + len <= short.length; i += 1) {
+      if (long.includes(short.slice(i, i + len))) {
+        best = Math.max(best, len / long.length);
+      }
+    }
+    if (best >= 0.7) break;
+  }
+  return best;
+}
+
+/**
+ * Normalize + repair PDF text for editable Word output.
+ * - NFKC maps Arabic presentation forms to base letters
+ * - Strip XML-illegal controls (Word Desktop/Mobile refuse the file otherwise)
+ * - Drop mis-decoded Canadian Aboriginal / Armenian glyphs from broken fonts
+ * - Reverse visual-order Arabic into logical order when detected
+ */
+export function normalizePdfText(text: string, dir: PdfDir = "ltr") {
+  void dir;
   const normalized = typeof text.normalize === "function" ? text.normalize("NFKC") : text;
-  return sanitizeXmlText(normalized);
+  const hadGarbage = FONT_GARBAGE_RE.test(normalized) || XML_ILLEGAL_RE.test(normalized);
+  let next = sanitizeXmlText(normalized);
+  next = stripFontGarbage(next);
+  next = next.replace(/\u00A0/g, " ");
+
+  if (ARABIC_RE.test(next) && (hadGarbage || looksVisuallyOrderedArabic(next))) {
+    next = reverseArabicRuns(next);
+  }
+  next = dedupeRepeatedArabic(next);
+  // Drop leftover private-use / odd symbols that survive without Arabic neighbors.
+  next = next.replace(/[\uE000-\uF8FF]/g, "");
+  return next.replace(/[ \t]{2,}/g, " ").trim();
 }
 
 export function fontForRun(family: string, text: string, rtl: boolean) {
@@ -378,7 +531,8 @@ function lineRuns(line: Line): RunModel[] {
     }
 
     const span = item.span;
-    const text = normalizePdfText(span.text);
+    // Text was already repaired in spansFromTextContent — only re-sanitize.
+    const text = sanitizeXmlText(span.text);
     if (!text.length) {
       previousSpan = span;
       continue;

@@ -13,6 +13,7 @@ import {
   type PdfImageRef,
   type PdfSpan,
   type RunModel,
+  type PdfDir,
   cmykToHex,
   fontSizeFromTransform,
   grayToHex,
@@ -312,7 +313,8 @@ function spansFromTextContent(
 
   for (const item of items) {
     const raw = item.str ?? "";
-    const text = normalizePdfText(raw);
+    const hintedDir: PdfDir = item.dir === "rtl" || isRtlText(raw) ? "rtl" : "ltr";
+    const text = normalizePdfText(raw, hintedDir);
     if (!text.replace(/\s+/g, "").length) continue;
     const transform = item.transform ?? [1, 0, 0, 1, 0, 0];
     const fontSize = fontSizeFromTransform(transform);
@@ -320,7 +322,7 @@ function spansFromTextContent(
     const parsed = parsePdfFont(fontName);
     const x = (transform[4] ?? 0) - xMin;
     const y = (transform[5] ?? 0) - yMin;
-    const dir = item.dir === "rtl" || isRtlText(text) ? "rtl" : "ltr";
+    const dir: PdfDir = hintedDir === "rtl" || isRtlText(text) ? "rtl" : "ltr";
     spans.push({
       text,
       x,
