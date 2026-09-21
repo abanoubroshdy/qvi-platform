@@ -55,6 +55,29 @@ export type TrimExportPlan = {
   fallbackArgs: string[][];
 };
 
+export type ConcatClipSpec = {
+  /** Virtual FS input name, e.g. input0.mp3 */
+  inputName: string;
+  start: number;
+  end: number;
+  fadeIn: number;
+  fadeOut: number;
+};
+
+export type ConcatExportPlan = {
+  outputName: string;
+  mimeType: string;
+  extension: AudioExportFormat;
+  filterComplex: string;
+  estimatedDuration: number;
+  spliceFade: number;
+  args: string[];
+  fallbackArgs: string[][];
+};
+
+export const DEFAULT_SPLICE_FADE = 0.08;
+export const MAX_SPLICE_FADE = 0.5;
+
 function round3(value: number) {
   return Math.round(value * 1000) / 1000;
 }
@@ -221,6 +244,101 @@ export function concatFilter(n: number, options: ConcatFilterOptions): string {
     previous = nextLabel;
   }
   return steps.join(";");
+}
+
+/**
+ * Per-input prep: trim selection, reset timestamps, optional fades, then normalize sample format.
+ * Output label is `[a{index}]`.
+ */
+export function clipPrepFilter(index: number, clip: Omit<ConcatClipSpec, "inputName">, stream: StreamFormatOptions): string {
+  const fade = trimFadeFilter({
+    start: clip.start,
+    end: clip.end,
+    fadeIn: clip.fadeIn,
+    fadeOut: clip.fadeOut,
+  });
+  const start = round3(Math.max(0, clip.start));
+  const end = round3(Math.max(start, clip.end));
+  const parts = [`atrim=start=${start}:end=${end}`, "asetpts=PTS-STARTPTS"];
+  if (fade.filter) parts.push(fade.filter);
+  parts.push(aformatFilter(stream));
+  return `[${index}:a]${parts.join(",")}[a${index}]`;
+}
+
+/** Clamp splice fade to [0, MAX_SPLICE_FADE] and below the shortest clip duration. */
+export function clampSpliceFade(spliceFade: number, clipDurations: number[]): number {
+  const positive = clipDurations.map(clampNonNeg).filter((duration) => duration > 0);
+  const shortest = positive.length ? Math.min(...positive) : MAX_SPLICE_FADE;
+  const cap = Math.min(MAX_SPLICE_FADE, shortest * 0.45);
+  return round3(Math.min(cap, Math.max(0, clampNonNeg(spliceFade))));
+}
+
+/**
+ * Full concat graph: prep each trimmed clip, then hard-concat or acrossfade into `[out]`.
+ */
+export function buildConcatGraph(clips: Array<Omit<ConcatClipSpec, "inputName">>, options: ConcatFilterOptions): string {
+  if (!clips.length) return "[0:a]anull[out]";
+  const stream = { sampleRate: options.sampleRate, channels: options.channels };
+  const durations = clips.map((clip) => trimFadeFilter(clip).duration);
+  const spliceFade = clampSpliceFade(options.spliceFade, durations);
+  const preps = clips.map((clip, index) => clipPrepFilter(index, clip, stream));
+
+  if (clips.length === 1) {
+    return `${preps[0]};[a0]anull[out]`;
+  }
+
+  if (spliceFade <= 0) {
+    const inputs = Array.from({ length: clips.length }, (_, index) => `[a${index}]`).join("");
+    return `${preps.join(";")};${inputs}concat=n=${clips.length}:v=0:a=1[out]`;
+  }
+
+  const steps = [...preps];
+  let previous = "a0";
+  for (let index = 1; index < clips.length; index += 1) {
+    const nextLabel = index === clips.length - 1 ? "out" : `x${index}`;
+    steps.push(`[${previous}][a${index}]acrossfade=d=${spliceFade}:c1=tri:c2=tri[${nextLabel}]`);
+    previous = nextLabel;
+  }
+  return steps.join(";");
+}
+
+/** Build multi-input FFmpeg args that join trimmed clips in order. */
+export function buildConcatExportPlan(options: {
+  clips: ConcatClipSpec[];
+  format: AudioExportFormat;
+  settings: AudioExportSettings;
+  spliceFade: number;
+}): ConcatExportPlan {
+  if (!options.clips.length) {
+    throw new Error("buildConcatExportPlan requires at least one clip.");
+  }
+
+  const format = options.format;
+  const settings = clampAudioExportSettings(format, options.settings);
+  const stream = { sampleRate: settings.sampleRate, channels: settings.channels };
+  const durations = options.clips.map((clip) => trimFadeFilter(clip).duration);
+  const spliceFade = clampSpliceFade(options.spliceFade, durations);
+  const filterComplex = buildConcatGraph(
+    options.clips.map(({ start, end, fadeIn, fadeOut }) => ({ start, end, fadeIn, fadeOut })),
+    { ...stream, spliceFade },
+  );
+  const outputName = audioExportOutputName(format);
+  const mimeType = audioExportMimeType(format);
+  const codec = audioCodecArgs(format, settings);
+  const inputArgs = options.clips.flatMap((clip) => ["-i", clip.inputName]);
+  const mapped = [...inputArgs, "-filter_complex", filterComplex, "-map", "[out]", "-vn", ...codec, outputName];
+  const unmapped = [...inputArgs, "-filter_complex", filterComplex, "-vn", ...codec, outputName];
+
+  return {
+    outputName,
+    mimeType,
+    extension: format,
+    filterComplex,
+    estimatedDuration: estimateConcatDuration(durations, spliceFade),
+    spliceFade,
+    args: mapped,
+    fallbackArgs: [unmapped],
+  };
 }
 
 /**

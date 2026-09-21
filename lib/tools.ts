@@ -33,7 +33,7 @@ export const tools: Tool[] = [
   {
     slug: "audio-cutter",
     title: "Audio Cutter",
-    description: "Trim clips, add fades, reorder files, and pick export sample rate and bitrate on your device.",
+    description: "Trim clips, add fades, join them in order, and pick export sample rate and bitrate on your device.",
     href: "/tools/audio-cutter",
     available: true,
     category: "audio",
