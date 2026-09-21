@@ -128,7 +128,8 @@ export function PdfToWord() {
             {preview ? (
               <pre
                 className="max-h-80 overflow-auto whitespace-pre-wrap rounded-lg border bg-muted/30 p-3 text-start text-xs leading-6"
-                dir="auto"
+                dir={result?.rtlPreview ? "rtl" : "auto"}
+                lang={result?.rtlPreview ? "ar" : undefined}
               >
                 {preview}
               </pre>

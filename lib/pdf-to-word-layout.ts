@@ -76,6 +76,10 @@ export type PageLayout = {
 const ARABIC_RE = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
 const HEBREW_RE = /[\u0590-\u05FF]/;
 const LATIN_RE = /[A-Za-z]/;
+/** Illegal in XML 1.0 text nodes — Word Mobile often refuses to open the file. */
+const XML_ILLEGAL_RE = /[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g;
+const BIDI_MARKS_RE = /[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g;
+const ARABIC_FONT = "Tahoma";
 
 const FAMILY_ALIASES: Array<[RegExp, string]> = [
   [/times/i, "Times New Roman"],
@@ -94,7 +98,7 @@ const FAMILY_ALIASES: Array<[RegExp, string]> = [
   [/wingdings?/i, "Wingdings"],
   [/comic/i, "Comic Sans MS"],
   [/trebuchet/i, "Trebuchet MS"],
-  [/naskh|traditional.?arabic|simplified.?arabic/i, "Arial"],
+  [/naskh|traditional.?arabic|simplified.?arabic/i, "Tahoma"],
   [/noto\s*sans/i, "Noto Sans"],
   [/noto\s*serif/i, "Noto Serif"],
   [/roboto/i, "Roboto"],
@@ -136,6 +140,31 @@ export function isRtlText(text: string) {
     else if (LATIN_RE.test(char)) ltr += 1;
   }
   return rtl > 0 && rtl >= ltr;
+}
+
+/** Strip XML-illegal controls and bidi isolates that break Word / confuse shaping. */
+export function sanitizeXmlText(text: string) {
+  return text.replace(XML_ILLEGAL_RE, "").replace(BIDI_MARKS_RE, "");
+}
+
+/**
+ * Normalize PDF text for editable Word output:
+ * NFKC maps Arabic presentation forms to base letters so Word can join them,
+ * then strip illegal controls.
+ */
+export function normalizePdfText(text: string) {
+  const normalized = typeof text.normalize === "function" ? text.normalize("NFKC") : text;
+  return sanitizeXmlText(normalized);
+}
+
+export function fontForRun(family: string, text: string, rtl: boolean) {
+  if (rtl || ARABIC_RE.test(text) || HEBREW_RE.test(text)) {
+    if (/arial|tahoma|segoe|noto|times|calibri|traditional|simplified|naskh/i.test(family)) {
+      return family;
+    }
+    return ARABIC_FONT;
+  }
+  return family || "Arial";
 }
 
 export function parsePdfFont(fontName: string): { family: string; bold: boolean; italic: boolean } {
@@ -208,7 +237,17 @@ function sameStyle(a: PdfSpan, b: PdfSpan) {
 }
 
 function insertGapText(prev: PdfSpan, next: PdfSpan) {
-  const gap = next.x - (prev.x + prev.width);
+  // Use geometric distance between boxes — works after RTL (right→left) sorting
+  // where next.x - (prev.x + prev.width) is negative.
+  const prevLeft = prev.x;
+  const prevRight = prev.x + Math.max(0, prev.width);
+  const nextLeft = next.x;
+  const nextRight = next.x + Math.max(0, next.width);
+  let gap = 0;
+  if (nextLeft >= prevRight) gap = nextLeft - prevRight;
+  else if (prevLeft >= nextRight) gap = prevLeft - nextRight;
+  else gap = 0;
+
   if (gap <= Math.max(0.12 * prev.fontSize, 0.4)) return "";
   if (/\s$/.test(prev.text) || /^\s/.test(next.text)) return "";
   if (gap > Math.max(24, prev.fontSize * 1.8)) return "\t";
@@ -248,6 +287,8 @@ function yTopForImage(image: PdfImageRef, pageHeight: number) {
 
 export function groupSpansIntoLines(spans: PdfSpan[]): Line[] {
   const usable = spans.filter((span) => span.text.replace(/\s+/g, "").length > 0);
+  // Sort by vertical position only so we do not scramble RTL paint order before
+  // line membership is known. Horizontal order is decided per-line below.
   const sorted = [...usable].sort((a, b) => b.y - a.y || a.x - b.x);
   const lines: Line[] = [];
 
@@ -273,8 +314,14 @@ export function groupSpansIntoLines(spans: PdfSpan[]): Line[] {
     const text = line.items
       .filter((item): item is { kind: "text"; span: PdfSpan } => item.kind === "text")
       .map((item) => item.span);
-    line.rtl = isRtlText(text.map((span) => span.text).join("")) || text.filter((span) => span.dir === "rtl").length > text.length / 2;
-    text.sort((a, b) => (line.rtl ? b.x - a.x : a.x - b.x));
+    const joined = text.map((span) => span.text).join("");
+    const rtlVotes = text.filter((span) => span.dir === "rtl" || isRtlText(span.text)).length;
+    line.rtl = isRtlText(joined) || rtlVotes > text.length / 2;
+
+    // Prefer geometric reading order: RTL lines read right→left on the page.
+    // When pdf.js already emitted logical chunks with visual x, this restores
+    // word order. Gaps use box distance so sorting direction does not matter.
+    text.sort((a, b) => (line.rtl ? b.x - a.x || b.width - a.width : a.x - b.x));
     line.items = text.map((span) => ({ kind: "text" as const, span }));
     const first = text[0];
     const last = text[text.length - 1];
@@ -331,26 +378,43 @@ function lineRuns(line: Line): RunModel[] {
     }
 
     const span = item.span;
+    const text = normalizePdfText(span.text);
+    if (!text.length) {
+      previousSpan = span;
+      continue;
+    }
+    const rtl = span.dir === "rtl" || isRtlText(text) || line.rtl;
+    const fontFamily = fontForRun(span.fontFamily, text, rtl);
     const gap = previousSpan ? insertGapText(previousSpan, span) : "";
     if (gap && runs.length) {
       const last = runs[runs.length - 1];
       if (last?.kind === "text") last.text += gap;
-      else runs.push({ kind: "text", text: gap, fontSize: span.fontSize, fontFamily: span.fontFamily, bold: false, italic: false, color: span.color, rtl: line.rtl });
+      else
+        runs.push({
+          kind: "text",
+          text: gap,
+          fontSize: span.fontSize,
+          fontFamily,
+          bold: false,
+          italic: false,
+          color: span.color,
+          rtl: line.rtl,
+        });
     }
 
     const last = runs[runs.length - 1];
-    if (last?.kind === "text" && previousSpan && sameStyle(previousSpan, span)) {
-      last.text += span.text;
+    if (last?.kind === "text" && previousSpan && sameStyle(previousSpan, span) && last.rtl === rtl) {
+      last.text += text;
     } else {
       runs.push({
         kind: "text",
-        text: span.text,
+        text,
         fontSize: span.fontSize,
-        fontFamily: span.fontFamily,
+        fontFamily,
         bold: span.bold,
         italic: span.italic,
         color: span.color,
-        rtl: span.dir === "rtl" || isRtlText(span.text) || line.rtl,
+        rtl,
       });
     }
     previousSpan = span;
