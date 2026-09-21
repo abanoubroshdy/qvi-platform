@@ -18,12 +18,14 @@ import {
   grayToHex,
   isRtlText,
   layoutPage,
+  normalizePdfText,
   parsePdfFont,
   pointsToHalfPoints,
   pointsToPx,
   pointsToTwips,
   previewTextFromLayouts,
   rgbToHex,
+  sanitizeXmlText,
 } from "@/lib/pdf-to-word-layout";
 
 export const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -42,6 +44,8 @@ export type PdfToWordResult = {
   images: number;
   visualPages: number;
   preview: string;
+  /** True when preview content is predominantly Arabic/Hebrew — UI should force RTL. */
+  rtlPreview: boolean;
 };
 
 type PdfJsModule = typeof import("pdfjs-dist");
@@ -307,7 +311,8 @@ function spansFromTextContent(
   const spans: PdfSpan[] = [];
 
   for (const item of items) {
-    const text = item.str ?? "";
+    const raw = item.str ?? "";
+    const text = normalizePdfText(raw);
     if (!text.replace(/\s+/g, "").length) continue;
     const transform = item.transform ?? [1, 0, 0, 1, 0, 0];
     const fontSize = fontSizeFromTransform(transform);
@@ -364,9 +369,11 @@ function runsToChildren(runs: RunModel[], images: Array<ConvertedImage | null>) 
       continue;
     }
     const half = pointsToHalfPoints(run.fontSize);
+    const text = sanitizeXmlText(run.text);
+    if (!text.length) continue;
     children.push(
       new TextRun({
-        text: run.text,
+        text,
         bold: run.bold,
         boldComplexScript: run.bold,
         italics: run.italic,
@@ -574,13 +581,15 @@ export async function convertPdfToWord(
   const blob = await buildDocxFromPages(built, file.name.replace(/\.pdf$/i, ""));
   options?.onProgress?.(1);
 
+  const preview = previewTextFromLayouts(built.map((page) => page.layout));
   return {
     blob,
     pages: pdf.numPages,
     words,
     images: imageCount,
     visualPages,
-    preview: previewTextFromLayouts(built.map((page) => page.layout)),
+    preview,
+    rtlPreview: isRtlText(preview),
   };
 }
 

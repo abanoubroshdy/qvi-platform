@@ -67,8 +67,8 @@ describe("pdf to word layout", () => {
       595,
       842,
       [
-        span({ text: "العالم", x: 200, y: 700, dir: "rtl", fontSize: 14 }),
-        span({ text: "مرحبا", x: 280, y: 700, dir: "rtl", fontSize: 14 }),
+        span({ text: "العالم", x: 200, y: 700, dir: "rtl", fontSize: 14, width: 70 }),
+        span({ text: "مرحبا", x: 280, y: 700, dir: "rtl", fontSize: 14, width: 55 }),
       ],
       [],
     );
@@ -80,6 +80,38 @@ describe("pdf to word layout", () => {
     const text = block.runs.map((run) => (run.kind === "text" ? run.text : "")).join("");
     expect(text).toContain("مرحبا");
     expect(text.indexOf("مرحبا")).toBeLessThan(text.indexOf("العالم"));
+    // Geometric gap between boxes must insert a space after RTL sort.
+    expect(text).toMatch(/مرحبا\s+العالم/);
+  });
+
+  it("normalizes Arabic presentation forms and strips illegal XML controls", async () => {
+    const { normalizePdfText, sanitizeXmlText, fontForRun } = await import("@/lib/pdf-to-word-layout");
+    // Arabic presentation form for "ب" (U+FE91) → base ب
+    expect(normalizePdfText("\uFE91")).toBe("ب");
+    expect(sanitizeXmlText("hi\u0000there\u0008")).toBe("hithere");
+    expect(fontForRun("Courier New", "مرحبا", true)).toBe("Tahoma");
+  });
+
+  it("keeps mixed English islands readable inside an Arabic line", () => {
+    const page = layoutPage(
+      595,
+      842,
+      [
+        span({ text: "منصة", x: 320, y: 700, dir: "rtl", fontSize: 14, width: 50 }),
+        span({ text: "(Personalized)", x: 200, y: 700, dir: "ltr", fontSize: 14, width: 100 }),
+        span({ text: "عالم", x: 120, y: 700, dir: "rtl", fontSize: 14, width: 45 }),
+      ],
+      [],
+    );
+    const block = page.blocks[0];
+    expect(block?.type).toBe("text");
+    if (block?.type !== "text") return;
+    const text = block.runs.map((run) => (run.kind === "text" ? run.text : "")).join("");
+    expect(text).toContain("منصة");
+    expect(text).toContain("(Personalized)");
+    expect(text).toContain("عالم");
+    expect(text.indexOf("منصة")).toBeLessThan(text.indexOf("(Personalized)"));
+    expect(text.indexOf("(Personalized)")).toBeLessThan(text.indexOf("عالم"));
   });
 
   it("centers a short heading and keeps a larger font size", () => {
@@ -190,5 +222,57 @@ describe("docx packaging", () => {
     expect(xml).toContain("Hello");
     expect(xml).toMatch(/<w:b\b/);
     expect(Object.keys(zip.files).some((name) => name.startsWith("word/media/"))).toBe(true);
+  });
+
+  it("strips illegal control characters so Word Mobile can open the file", async () => {
+    const blob = await buildDocxFromPages(
+      [
+        {
+          layout: {
+            widthPt: 595,
+            heightPt: 842,
+            margin: { top: 72, right: 72, bottom: 72, left: 72 },
+            useVisualFallback: false,
+            wordCount: 1,
+            imageCount: 0,
+            blocks: [
+              {
+                type: "text",
+                alignment: "right",
+                rtl: true,
+                indentTwips: 0,
+                firstLineTwips: 0,
+                spaceBeforeTwips: 0,
+                spaceAfterTwips: 0,
+                lineTwips: 276,
+                runs: [
+                  {
+                    kind: "text",
+                    text: "مرحبا\u0000\u0008بالعالم",
+                    fontSize: 14,
+                    fontFamily: "Tahoma",
+                    bold: false,
+                    italic: false,
+                    color: "000000",
+                    rtl: true,
+                  },
+                ],
+              },
+            ],
+          },
+          images: [],
+        },
+      ],
+      "Arabic",
+    );
+    const unzipper = await import("jszip");
+    const zip = await unzipper.default.loadAsync(await blob.arrayBuffer());
+    const xml = await zip.file("word/document.xml")?.async("string");
+    expect(xml).toBeTruthy();
+    expect(xml).toContain("مرحبا");
+    expect(xml).toContain("بالعالم");
+    expect(xml).not.toMatch(/\u0000|\u0008/);
+    expect(xml).toMatch(/<w:rtl\s*\/>|<w:rtl\b/);
+    expect(xml).toContain("ar-SA");
   });
 });
