@@ -33,7 +33,7 @@ export const tools: Tool[] = [
   {
     slug: "audio-cutter",
     title: "Audio Cutter",
-    description: "Trim an audio clip by start and end time without uploading the file.",
+    description: "Trim clips, add fades, join or mix tracks, and pick export sample rate and bitrate on your device.",
     href: "/tools/audio-cutter",
     available: true,
     category: "audio",

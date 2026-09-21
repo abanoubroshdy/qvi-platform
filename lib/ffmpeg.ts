@@ -106,26 +106,49 @@ export async function loadFFmpeg(onProgress?: FFmpegProgressHandler): Promise<FF
   }
 }
 
-export async function runFFmpeg(options: {
+export type FFmpegInputFile = {
+  name: string;
   file: File;
-  inputName: string;
+};
+
+export type RunFFmpegFilesOptions = {
+  files: FFmpegInputFile[];
   outputName: string;
   mimeType: string;
   args: string[];
   fallbackArgs?: string[][];
   onLoadProgress?: FFmpegProgressHandler;
   onProgress?: FFmpegProgressHandler;
-}): Promise<Blob> {
+};
+
+async function deleteQuietly(instance: FFmpeg, name: string) {
+  try {
+    await instance.deleteFile(name);
+  } catch {
+    /* ignore missing or locked virtual files */
+  }
+}
+
+/** Run FFmpeg with one or more input files written into the virtual FS. */
+export async function runFFmpegFiles(options: RunFFmpegFilesOptions): Promise<Blob> {
+  if (!options.files.length) {
+    throw new FFmpegRunError("FFmpeg run requires at least one input file.");
+  }
+
   const instance = await loadFFmpeg(options.onLoadProgress);
   const { fetchFile } = await import("@ffmpeg/util");
 
   execProgress = (ratio) => options.onProgress?.(ratio);
   sessionLogs = [];
   const attempts = [options.args, ...(options.fallbackArgs ?? [])];
+  const written = new Set<string>();
   let lastError: unknown;
 
   try {
-    await instance.writeFile(options.inputName, await fetchFile(options.file));
+    for (const entry of options.files) {
+      await instance.writeFile(entry.name, await fetchFile(entry.file));
+      written.add(entry.name);
+    }
 
     for (const args of attempts) {
       sessionLogs = [];
@@ -136,11 +159,7 @@ export async function runFFmpeg(options: {
             exitCode: code,
             logs: sessionLogs.slice(),
           });
-          try {
-            await instance.deleteFile(options.outputName);
-          } catch {
-            /* ignore leftover output from a failed attempt */
-          }
+          await deleteQuietly(instance, options.outputName);
           continue;
         }
         const data = await instance.readFile(options.outputName);
@@ -154,11 +173,7 @@ export async function runFFmpeg(options: {
                 cause: error,
                 logs: sessionLogs.slice(),
               });
-        try {
-          await instance.deleteFile(options.outputName);
-        } catch {
-          /* ignore leftover output from a failed attempt */
-        }
+        await deleteQuietly(instance, options.outputName);
       }
     }
 
@@ -173,17 +188,33 @@ export async function runFFmpeg(options: {
     });
   } finally {
     execProgress = null;
-    try {
-      await instance.deleteFile(options.inputName);
-    } catch {
-      /* ignore */
+    for (const name of Array.from(written)) {
+      await deleteQuietly(instance, name);
     }
-    try {
-      await instance.deleteFile(options.outputName);
-    } catch {
-      /* ignore */
-    }
+    await deleteQuietly(instance, options.outputName);
   }
+}
+
+/** Convenience wrapper for a single input file. */
+export async function runFFmpeg(options: {
+  file: File;
+  inputName: string;
+  outputName: string;
+  mimeType: string;
+  args: string[];
+  fallbackArgs?: string[][];
+  onLoadProgress?: FFmpegProgressHandler;
+  onProgress?: FFmpegProgressHandler;
+}): Promise<Blob> {
+  return runFFmpegFiles({
+    files: [{ name: options.inputName, file: options.file }],
+    outputName: options.outputName,
+    mimeType: options.mimeType,
+    args: options.args,
+    fallbackArgs: options.fallbackArgs,
+    onLoadProgress: options.onLoadProgress,
+    onProgress: options.onProgress,
+  });
 }
 
 function causeChain(error: unknown): string[] {

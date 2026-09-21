@@ -86,6 +86,19 @@ function codecArgs(format: AudioExportFormat, settings: AudioExportSettings): st
   }
 }
 
+/** Codec and sample-format flags for an already-selected input (no `-i`). */
+export function audioCodecArgs(format: AudioExportFormat, settings: AudioExportSettings): string[] {
+  return codecArgs(format, clampAudioExportSettings(format, settings));
+}
+
+export function audioExportMimeType(format: AudioExportFormat): string {
+  return mimeTypes[format];
+}
+
+export function audioExportOutputName(format: AudioExportFormat): string {
+  return `output.${format}`;
+}
+
 export function audioExportSpec(format: AudioExportFormat, inputName: string, settings: AudioExportSettings): AudioExportSpec {
   const outputName = `output.${format}`;
   const codec = codecArgs(format, clampAudioExportSettings(format, settings));
