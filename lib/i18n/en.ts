@@ -380,7 +380,7 @@ export const en = {
     },
     "audio-cutter": {
       title: "Audio Cutter",
-      description: "Trim a clip, add fades, and choose export Hz and bitrate without uploading the file.",
+      description: "Trim, join, or mix clips with fades and export Hz/bitrate — all on your device.",
     },
   },
   upcoming: {
