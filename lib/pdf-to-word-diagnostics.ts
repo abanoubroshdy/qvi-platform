@@ -288,13 +288,13 @@ export function diagnoseFromRawPages(pages: RawPageText[]): DocumentDiagnostics 
             height: 12,
             fontSize: 12,
             fontFamily: "Arial",
-            bold: false,
-            italic: false,
+            bold: false as boolean,
+            italic: false as boolean,
             color: "000000",
             dir: hinted,
           } satisfies PdfSpan;
         })
-        .filter((span): span is PdfSpan => Boolean(span));
+        .filter((span): span is PdfSpan => span !== null);
 
     const images = Array.from({ length: page.imageCount ?? 0 }, (_, i) => ({
       x: 72,
@@ -323,10 +323,9 @@ export async function extractRawPagesFromPdf(data: Uint8Array): Promise<RawPageT
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
   const loadingTask = pdfjs.getDocument({
     data,
-    disableWorker: true,
     useSystemFonts: true,
     isEvalSupported: false,
-  });
+  } as Parameters<typeof pdfjs.getDocument>[0]);
   const pdf = await loadingTask.promise;
   const pages: RawPageText[] = [];
 

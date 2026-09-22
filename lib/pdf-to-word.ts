@@ -20,6 +20,7 @@ import {
   type RunModel,
   type PdfDir,
   type TableBlock,
+  type TextBlock,
   cmykToHex,
   fontSizeFromTransform,
   grayToHex,
@@ -349,7 +350,7 @@ function spansFromTextContent(
   return spans;
 }
 
-function alignmentOf(block: Extract<LayoutBlock, { type: "text" }>) {
+function alignmentOf(block: TextBlock) {
   if (block.alignment === "center") return AlignmentType.CENTER;
   if (block.alignment === "right") return AlignmentType.RIGHT;
   if (block.alignment === "both") return AlignmentType.JUSTIFIED;
