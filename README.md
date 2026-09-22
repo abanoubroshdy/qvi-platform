@@ -42,14 +42,9 @@ Then in Supabase → **Authentication → URL Configuration**, add:
 
 Do not put the Supabase project URL in `NEXT_PUBLIC_SITE_URL`.
 
-## QVI Studio
-
-V1 scope is defined in `lib/studio/definition.ts` (phase 0). The session model is `lib/studio/project.ts` (phase 1). Phase 2 plays that session with Web Audio and renders tempo and pitch offline. Phase 3 is the multitrack interface. The in-memory session lives only on `/studio`. Refresh clears it. The homepage links to that page. Phase 5 bounces the audible mix to MP3 or WAV with ffmpeg.wasm. Phase 6 keeps phones responsive: the playhead moves without redrawing every track, clip drags commit on release, waveforms stay within the screen's pixels, and tempo previews run one track at a time. Phase 7 locks those v1 rules in an acceptance test: a clip drag on a phone does not open the track sheet, notices and overlays dismiss, and removing the last clip removes its track. Stem separation stays on QV1, synthesis stays on Neyora, and the studio is not a `/tools` utility.
-
 ## Routes
 
-- `/` product home, with links to QVI Studio, QV1, Neyora, and free tools
-- `/studio` the QVI Studio session
+- `/` platform homepage (products + free tools)
 - `/products/qv1` QV1 waitlist landing
 - `/products/neyora` Neyora lab (also `/lab`)
 - `/tools/image-compressor` Image Compressor
