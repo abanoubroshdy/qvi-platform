@@ -44,11 +44,12 @@ Do not put the Supabase project URL in `NEXT_PUBLIC_SITE_URL`.
 
 ## QVI Studio
 
-V1 scope is defined in `lib/studio/definition.ts` (phase 0). The session model is `lib/studio/project.ts` (phase 1). Phase 2 plays that session with Web Audio and renders tempo and pitch offline. Export is still an interface. QVI Studio is a miniature on-device DAW. The session belongs on `/` and at `/studio`. Those routes are not implemented yet. Stem separation stays on QV1, synthesis stays on Neyora, and the studio is not a `/tools` utility.
+V1 scope is defined in `lib/studio/definition.ts` (phase 0). The session model is `lib/studio/project.ts` (phase 1). Phase 2 plays that session with Web Audio and renders tempo and pitch offline. The studio interface is at `/studio`. Export is still an interface. The homepage does not host the session yet. Stem separation stays on QV1, synthesis stays on Neyora, and the studio is not a `/tools` utility.
 
 ## Routes
 
 - `/` platform homepage (products + free tools)
+- `/studio` QVI Studio multitrack session
 - `/products/qv1` QV1 waitlist landing
 - `/products/neyora` Neyora lab (also `/lab`)
 - `/tools/image-compressor` Image Compressor

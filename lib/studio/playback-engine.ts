@@ -259,14 +259,13 @@ export function createStudioPlaybackEngine(options?: {
   host?: StudioAudioHost;
   onTransport?: (snapshot: StudioTransportSnapshot) => void;
 }): QviStudioPlaybackEngine {
-  const host = options?.host ?? browserAudioHost();
+  const host = options?.host ?? createStudioAudioHost();
   return new QviStudioPlaybackEngine(host, options?.onTransport);
 }
 
-function browserAudioHost(): StudioAudioHost {
-  const Context = globalThis.AudioContext;
-  if (!Context) throw new Error("AudioContext is not available.");
-  const context = new Context();
+/** Wrap one AudioContext so playback and the tempo preview share a clock. */
+export function createStudioAudioHost(existing?: AudioContext): StudioAudioHost {
+  const context = existing ?? createBrowserContext();
   return {
     get currentTime() {
       return context.currentTime;
@@ -282,6 +281,12 @@ function browserAudioHost(): StudioAudioHost {
     createBuffer: (channels, length, sampleRate) => context.createBuffer(channels, length, sampleRate),
     decodeAudioData: (data) => context.decodeAudioData(data),
   };
+}
+
+function createBrowserContext(): AudioContext {
+  const Context = globalThis.AudioContext;
+  if (!Context) throw new Error("AudioContext is not available.");
+  return new Context();
 }
 
 function wrapBufferSource(source: AudioBufferSourceNode): StudioBufferSource {
