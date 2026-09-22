@@ -1,8 +1,8 @@
 /**
  * QVI Studio engine surface.
  *
- * Playback and tempo/pitch preview are implemented in phase 2.
- * Export stays an interface until the bounce phase.
+ * Playback and tempo/pitch preview render on device.
+ * Export bounces one audible mix through ffmpeg.wasm.
  */
 
 import type { AudioExportSettings } from "@/lib/audio-export";
@@ -10,10 +10,10 @@ import type { StudioExportFormat } from "@/lib/studio/definition";
 import type { StudioProject, StudioTrack } from "@/lib/studio/types";
 
 export const studioEngineContract = {
-  phase: 2,
+  phase: 5,
   implementsPlayback: true,
   implementsPreview: true,
-  implementsExport: false,
+  implementsExport: true,
   playback: ["resumeFromUserGesture", "play", "pause", "stop", "seek", "sync", "dispose"],
   preview: ["renderTrack"],
   export: ["exportMix"],

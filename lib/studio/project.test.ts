@@ -240,10 +240,10 @@ describe("studio project model", () => {
 });
 
 describe("studio engine contract", () => {
-  it("names the playback methods and leaves export unimplemented", () => {
+  it("names playback, preview, and mix export", () => {
     expect(studioEngineContract.implementsPlayback).toBe(true);
     expect(studioEngineContract.implementsPreview).toBe(true);
-    expect(studioEngineContract.implementsExport).toBe(false);
+    expect(studioEngineContract.implementsExport).toBe(true);
     const playback: (keyof StudioPlaybackEngine)[] = [...studioEngineContract.playback];
     const preview: (keyof StudioTempoPitchPreview)[] = [...studioEngineContract.preview];
     const bounce: (keyof StudioExportEngine)[] = [...studioEngineContract.export];
