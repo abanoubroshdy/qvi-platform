@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { JsonLd } from "@/components/JsonLd";
+import { HomeClosingCta } from "@/components/home/HomeClosingCta";
+import { HomeLabSection } from "@/components/home/HomeLabSection";
+import { HomeSiteExplore } from "@/components/home/HomeSiteExplore";
+import { HomeToolsCategories } from "@/components/home/HomeToolsCategories";
 import { ProductSpotlight } from "@/components/ProductSpotlight";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { Button } from "@/components/ui/button";
@@ -91,6 +95,11 @@ export function HomeView() {
           />
         </div>
       </section>
+
+      <HomeLabSection />
+      <HomeToolsCategories />
+      <HomeSiteExplore />
+      <HomeClosingCta />
     </div>
   );
 }

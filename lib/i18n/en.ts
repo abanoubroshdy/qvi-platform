@@ -144,6 +144,20 @@ export const en = {
     audioKicker: "New",
     audioTitle: "Audio & video tools — new",
     audioLead: "Extract audio, convert formats, and trim clips entirely in your browser. Nothing is uploaded.",
+    labSectionKicker: "After the flagship products",
+    toolsSectionKicker: "Browse by category",
+    toolsSectionTitle: "Free tools on your device",
+    toolsSectionLead:
+      "Open a category to see every utility in that family. Processing stays in your browser — nothing is uploaded.",
+    viewAllTools: "Open full tools hub",
+    exploreKicker: "Site map",
+    exploreTitle: "Explore the platform",
+    exploreLead:
+      "Jump to products, the lab, free utilities, your account, or company pages without hunting through menus.",
+    closingKicker: "Next step",
+    closingTitle: "Ready when you are",
+    closingLead: "Save your spot on the QV1 waitlist or write to us about Neyora, the tools, or your account.",
+    closingContact: "Contact us",
   },
   toolGroups: {
     audio: {

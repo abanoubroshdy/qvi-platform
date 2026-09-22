@@ -145,6 +145,20 @@ export const ar: Messages = {
     audioKicker: "جديدة",
     audioTitle: "أدوات الصوت والفيديو - جديدة",
     audioLead: "استخرج الصوت، حوّل الصيغ، واقطع المقاطع بالكامل في المتصفح. لا يُرفع شيء.",
+    labSectionKicker: "بعد المنتجات الرئيسية",
+    toolsSectionKicker: "تصفّح حسب التصنيف",
+    toolsSectionTitle: "أدوات مجانية على جهازك",
+    toolsSectionLead:
+      "افتح تصنيفًا لعرض كل أداة في هذه العائلة. المعالجة تبقى في متصفحك — لا يُرفع أي ملف.",
+    viewAllTools: "افتح مركز الأدوات",
+    exploreKicker: "خريطة الموقع",
+    exploreTitle: "استكشف المنصة",
+    exploreLead:
+      "انتقل إلى المنتجات والمختبر والأدوات المجانية وحسابك أو صفحات الشركة دون البحث في القوائم.",
+    closingKicker: "الخطوة التالية",
+    closingTitle: "نحن جاهزون عندما تكون أنت",
+    closingLead: "سجّل في قائمة انتظار QV1 أو راسلنا عن Neyora أو الأدوات أو حسابك.",
+    closingContact: "اتصل بنا",
   },
   toolGroups: {
     audio: {
