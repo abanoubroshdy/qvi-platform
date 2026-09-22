@@ -37,7 +37,7 @@ import {
 
 export const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
-export type ConvertMode = "auto" | "editable" | "visual";
+export type ConvertMode = "auto" | "editable" | "visual" | "hybrid";
 
 export type ConvertedImage = {
   bytes: Uint8Array;
@@ -50,6 +50,8 @@ export type PdfToWordResult = {
   words: number;
   images: number;
   visualPages: number;
+  /** Pages that kept editable text and also attached a visual reference (Phase 4). */
+  hybridPages: number;
   preview: string;
   /** True when preview content is predominantly Arabic/Hebrew — UI should force RTL. */
   rtlPreview: boolean;
@@ -506,6 +508,38 @@ export async function buildDocxFromPages(
           }),
         );
       }
+
+      // Phase 4 — editable content + scaled page preview for verification.
+      if (layout.includeVisualReference && visual) {
+        const rtlPage = layout.blocks.some((block) => block.type === "text" && block.rtl);
+        children.push(
+          new Paragraph({
+            spacing: { before: 240, after: 80 },
+            bidirectional: rtlPage,
+            children: [
+              new TextRun({
+                text: rtlPage ? "مرجع بصري (الصفحة الأصلية)" : "Visual reference (original page)",
+                italics: true,
+                size: 18,
+                color: "666666",
+                rightToLeft: rtlPage,
+                language: rtlPage ? { value: "ar-SA", bidirectional: "ar-SA" } : { value: "en-US" },
+              }),
+            ],
+          }),
+        );
+        const previewWidthPx = pointsToPx(width - layout.margin.left - layout.margin.right);
+        const previewHeightPx = Math.max(
+          120,
+          Math.round(previewWidthPx * ((height - layout.margin.top - layout.margin.bottom) / Math.max(1, width - layout.margin.left - layout.margin.right))),
+        );
+        children.push(
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [imageRun(visual, previewWidthPx, previewHeightPx)],
+          }),
+        );
+      }
     }
 
     if (!children.length) {
@@ -602,6 +636,7 @@ export async function convertPdfToWord(
   let words = 0;
   let imageCount = 0;
   let visualPages = 0;
+  let hybridPages = 0;
 
   for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
     const page = await pdf.getPage(pageNumber);
@@ -619,13 +654,16 @@ export async function convertPdfToWord(
     const layout = layoutPage(viewport.width, viewport.height, spans, imageRefs, {
       forceVisual: mode === "visual",
       forceEditable: mode === "editable",
+      forceHybrid: mode === "hybrid",
     });
 
     let visual: ConvertedImage | null = null;
-    if (layout.useVisualFallback) {
-      visual = await renderPagePng(page, 2.2);
+    if (layout.useVisualFallback || layout.includeVisualReference) {
+      // Hybrid reference uses a lighter render scale to keep Word files smaller.
+      visual = await renderPagePng(page, layout.includeVisualReference && !layout.useVisualFallback ? 1.35 : 2.2);
       visualPages += 1;
       imageCount += 1;
+      if (layout.includeVisualReference) hybridPages += 1;
     }
 
     const converted = rawImages.map((image) => image.converted ?? null);
@@ -646,6 +684,7 @@ export async function convertPdfToWord(
     words,
     images: imageCount,
     visualPages,
+    hybridPages,
     preview,
     rtlPreview: isRtlText(preview),
   };

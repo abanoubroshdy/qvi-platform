@@ -178,9 +178,12 @@ describe("vocal assessment form fixture", () => {
     expect(diagnosed.pages.every((page) => !page.reasons.includes("tab_heavy_layout"))).toBe(true);
     expect(diagnosed.pages.every((page) => !page.reasons.includes("form_controls_without_tables"))).toBe(true);
     expect(diagnosed.pages.every((page) => page.class !== "needs_visual")).toBe(true);
+    // Phase 4: dense form pages keep editable text and flag a hybrid visual reference.
+    expect(diagnosed.pages.some((page) => page.reasons.includes("hybrid_visual_reference"))).toBe(true);
 
     const report = formatDiagnosticsReport(diagnosed, "vocal_assessment_form.pdf");
     expect(report).toMatch(/Form tables \(checkbox grids\): [1-9]/);
+    expect(report).toContain("hybrid_visual_reference");
   });
 
   it("builds Word-safe DOCX XML from the first vocal page layout", async () => {

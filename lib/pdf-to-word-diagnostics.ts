@@ -127,6 +127,7 @@ export function classifyPage(input: {
   health: TextHealthMetrics;
   useVisualFallback: boolean;
   tableCount: number;
+  includeVisualReference?: boolean;
 }): { class: PageClass; reasons: string[] } {
   const reasons: string[] = [];
   const { health, useVisualFallback, tableCount } = input;
@@ -166,6 +167,13 @@ export function classifyPage(input: {
   }
   if (tableCount === 0 && health.checkboxCount >= 4) {
     reasons.push("likely_lost_table_structure");
+  }
+  if (input.includeVisualReference) {
+    reasons.push("hybrid_visual_reference");
+  }
+
+  if (reasons.length && reasons.every((reason) => reason === "hybrid_visual_reference")) {
+    return { class: "clean", reasons };
   }
 
   if (reasons.length) {
@@ -209,6 +217,7 @@ export function diagnosePage(
     health,
     useVisualFallback: layout.useVisualFallback,
     tableCount,
+    includeVisualReference: layout.includeVisualReference,
   });
 
   return {
@@ -408,6 +417,7 @@ export function formatDiagnosticsReport(doc: DocumentDiagnostics, title = "PDFâ†
     "",
     "- `tableCount` includes Phase 2 column grids and Phase 3 form tables.",
     "- `formTableCount` counts bordered checkbox/option grids (`role: form`).",
+    "- `hybrid_visual_reference` means editable text plus a page preview image (Phase 4).",
     "- `recoveryRatio` = (raw font-garbage chars removed) / (raw font-garbage chars); 1.0 means full strip or no garbage.",
     "",
   );

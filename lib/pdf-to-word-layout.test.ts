@@ -300,7 +300,74 @@ describe("pdf to word layout", () => {
   it("uses a visual fallback when the page is effectively scanned", () => {
     const page = layoutPage(595, 842, [], [{ x: 0, y: 0, width: 595, height: 842 }]);
     expect(page.useVisualFallback).toBe(true);
+    expect(page.includeVisualReference).toBe(false);
     expect(previewTextFromLayouts([page])).toContain("visual copy");
+  });
+
+  it("adds a hybrid visual reference for dense form pages (Phase 4)", async () => {
+    const { pageNeedsHybridVisual } = await import("@/lib/pdf-to-word-layout");
+    expect(
+      pageNeedsHybridVisual({
+        textChars: 120,
+        pageWidth: 595,
+        pageHeight: 842,
+        images: [],
+        formTableCount: 3,
+        tableCount: 3,
+        checkboxCount: 6,
+      }),
+    ).toEqual({ needed: true, reason: "dense_form_tables" });
+
+    expect(
+      pageNeedsHybridVisual({
+        textChars: 80,
+        pageWidth: 595,
+        pageHeight: 842,
+        images: [{ x: 40, y: 200, width: 400, height: 300 }],
+        formTableCount: 0,
+        tableCount: 0,
+        checkboxCount: 0,
+      }).reason,
+    ).toBe("mixed_text_and_art");
+
+    const page = layoutPage(
+      595,
+      842,
+      [
+        span({ text: "Tenor", x: 80, y: 700, fontSize: 12, width: 40 }),
+        span({ text: "☐", x: 130, y: 700, fontSize: 12, width: 12 }),
+        span({ text: "Baritone", x: 180, y: 700, fontSize: 12, width: 55 }),
+        span({ text: "☐", x: 245, y: 700, fontSize: 12, width: 12 }),
+        span({ text: "Bass", x: 290, y: 700, fontSize: 12, width: 35 }),
+        span({ text: "☐", x: 335, y: 700, fontSize: 12, width: 12 }),
+        span({ text: "Soprano", x: 80, y: 670, fontSize: 12, width: 50 }),
+        span({ text: "☐", x: 140, y: 670, fontSize: 12, width: 12 }),
+        span({ text: "Alto", x: 200, y: 670, fontSize: 12, width: 35 }),
+        span({ text: "☐", x: 245, y: 670, fontSize: 12, width: 12 }),
+        span({ text: "Mezzo", x: 300, y: 670, fontSize: 12, width: 40 }),
+        span({ text: "☐", x: 350, y: 670, fontSize: 12, width: 12 }),
+      ],
+      [],
+      { forceHybrid: true },
+    );
+    expect(page.useVisualFallback).toBe(false);
+    expect(page.includeVisualReference).toBe(true);
+    expect(page.hybridReason).toBe("forced_hybrid");
+    expect(previewTextFromLayouts([page])).toContain("visual reference");
+
+    const png = Uint8Array.from([
+      137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0, 31, 21, 196, 137, 0, 0, 0, 13, 73, 68, 65, 84, 120, 156, 99, 248, 207, 192, 4, 0, 1, 1, 1, 0, 24, 221, 141, 24, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130,
+    ]);
+    const blob = await buildDocxFromPages(
+      [{ layout: page, images: [], visual: { bytes: png, type: "png" } }],
+      "hybrid",
+    );
+    const unzipper = await import("jszip");
+    const zip = await unzipper.default.loadAsync(await blob.arrayBuffer());
+    const xml = await zip.file("word/document.xml")?.async("string");
+    expect(xml).toContain("Visual reference");
+    expect(xml).toContain("Tenor");
+    expect(Object.keys(zip.files).some((name) => name.startsWith("word/media/"))).toBe(true);
   });
 
   it("names the Word download from the PDF filename", () => {
@@ -322,6 +389,8 @@ describe("docx packaging", () => {
             heightPt: 842,
             margin: { top: 72, right: 72, bottom: 72, left: 72 },
             useVisualFallback: false,
+            includeVisualReference: false,
+            hybridReason: "",
             wordCount: 2,
             imageCount: 1,
             tableCount: 0,
@@ -385,6 +454,8 @@ describe("docx packaging", () => {
             heightPt: 842,
             margin: { top: 72, right: 72, bottom: 72, left: 72 },
             useVisualFallback: false,
+            includeVisualReference: false,
+            hybridReason: "",
             wordCount: 1,
             imageCount: 0,
             tableCount: 0,

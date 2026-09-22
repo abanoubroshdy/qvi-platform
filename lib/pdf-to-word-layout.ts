@@ -86,6 +86,13 @@ export type PageLayout = {
   margin: { top: number; right: number; bottom: number; left: number };
   blocks: LayoutBlock[];
   useVisualFallback: boolean;
+  /**
+   * Phase 4 — keep editable blocks and also attach a rendered page preview
+   * so complex forms / mixed art can be visually verified in Word.
+   */
+  includeVisualReference: boolean;
+  /** Why hybrid was chosen (empty when not hybrid). */
+  hybridReason: string;
   wordCount: number;
   imageCount: number;
   /** Number of table blocks (column grids + form tables). */
@@ -702,6 +709,49 @@ function isFullPageBackground(image: PdfImageRef, pageWidth: number, pageHeight:
   return area / pageArea > 0.82 && image.width > pageWidth * 0.88 && image.height > pageHeight * 0.88;
 }
 
+/**
+ * Phase 4 — decide whether an editable page should also carry a visual reference
+ * snapshot (mixed art, dense forms, many inline images).
+ */
+export function pageNeedsHybridVisual(input: {
+  textChars: number;
+  pageWidth: number;
+  pageHeight: number;
+  images: PdfImageRef[];
+  formTableCount: number;
+  tableCount: number;
+  checkboxCount: number;
+}): { needed: boolean; reason: string } {
+  if (input.textChars < 8) return { needed: false, reason: "" };
+
+  const pageArea = Math.max(1, input.pageWidth * input.pageHeight);
+  const midImages = input.images.filter((image) => {
+    const area = image.width * image.height;
+    return area > pageArea * 0.12 && area < pageArea * 0.82;
+  });
+  if (midImages.length >= 1 && input.textChars >= 40) {
+    return { needed: true, reason: "mixed_text_and_art" };
+  }
+
+  const smallImages = input.images.filter((image) => {
+    const area = image.width * image.height;
+    return area >= 24 && area <= pageArea * 0.12;
+  });
+  if (smallImages.length >= 4 && input.textChars >= 40) {
+    return { needed: true, reason: "many_inline_images" };
+  }
+
+  if (input.formTableCount >= 2 && input.checkboxCount >= 4) {
+    return { needed: true, reason: "dense_form_tables" };
+  }
+
+  if (input.tableCount >= 6 && input.textChars >= 80) {
+    return { needed: true, reason: "complex_column_grid" };
+  }
+
+  return { needed: false, reason: "" };
+}
+
 function yTopForSpan(span: PdfSpan, pageHeight: number) {
   return pageHeight - span.y - span.fontSize * 0.85;
 }
@@ -875,9 +925,13 @@ export function layoutPage(
   pageHeight: number,
   spans: PdfSpan[],
   images: PdfImageRef[],
-  options?: { forceVisual?: boolean; forceEditable?: boolean },
+  options?: { forceVisual?: boolean; forceEditable?: boolean; forceHybrid?: boolean },
 ): PageLayout {
   const textChars = spans.reduce((sum, span) => sum + span.text.replace(/\s+/g, "").length, 0);
+  const checkboxCount = spans.reduce(
+    (sum, span) => sum + (span.text.match(/[☐☑☒□■]/g) ?? []).length,
+    0,
+  );
   const contentImages = images
     .map((image, index) => ({ ...image, index }))
     .filter((image) => image.width >= 4 && image.height >= 4 && image.width * image.height >= 24);
@@ -895,6 +949,8 @@ export function layoutPage(
       margin: { top: 36, right: 36, bottom: 36, left: 36 },
       blocks: [],
       useVisualFallback: true,
+      includeVisualReference: false,
+      hybridReason: "",
       wordCount: countWords(spans.map((span) => span.text).join(" ")),
       imageCount: 1,
       tableCount: 0,
@@ -1103,12 +1159,28 @@ export function layoutPage(
   const tableCount = tableBlocks.length;
   const formTableCount = tableBlocks.filter((block) => block.role === "form").length;
 
+  const hybrid = options?.forceEditable
+    ? { needed: false, reason: "" }
+    : options?.forceHybrid
+      ? { needed: true, reason: "forced_hybrid" }
+      : pageNeedsHybridVisual({
+          textChars,
+          pageWidth,
+          pageHeight,
+          images: contentImages,
+          formTableCount,
+          tableCount,
+          checkboxCount,
+        });
+
   return {
     widthPt: pageWidth,
     heightPt: pageHeight,
     margin,
     blocks,
     useVisualFallback: false,
+    includeVisualReference: hybrid.needed,
+    hybridReason: hybrid.reason,
     wordCount,
     imageCount: blockImages.length + lines.reduce((sum, line) => sum + line.items.filter((item) => item.kind === "image").length, 0),
     tableCount,
@@ -1120,7 +1192,7 @@ export function previewTextFromLayouts(pages: PageLayout[]) {
   return pages
     .map((page, pageIndex) => {
       if (page.useVisualFallback) return `[Page ${pageIndex + 1} visual copy]`;
-      return page.blocks
+      const body = page.blocks
         .map((block) => {
           if (block.type === "image") return `[image ${block.imageIndex + 1}]`;
           if (block.type === "table") {
@@ -1135,6 +1207,10 @@ export function previewTextFromLayouts(pages: PageLayout[]) {
           return block.runs.map((run) => (run.kind === "text" ? run.text : `[image ${run.imageIndex + 1}]`)).join("");
         })
         .join("\n");
+      if (page.includeVisualReference) {
+        return `${body}\n[Page ${pageIndex + 1} visual reference${page.hybridReason ? `: ${page.hybridReason}` : ""}]`;
+      }
+      return body;
     })
     .join("\n\n")
     .trim();

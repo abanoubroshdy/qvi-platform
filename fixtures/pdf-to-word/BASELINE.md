@@ -1,15 +1,14 @@
-# PDF→Word Phase 0–3 — Diagnostics baseline (post Phase 3 form tables)
+# PDF→Word Phase 0–4 — Diagnostics baseline (post Phase 4 hybrid visual)
 
-Phase 2 column gutters + Phase 3 bordered checkbox/option grids (`Label ☐` cells).
-Phases 4–5 cover hybrid visual pages and polish.
+Editable reconstruction for text/forms; dense or mixed pages also attach a **visual reference** preview.
+Phase 5 covers polish / UX.
 
 ## Goals of this baseline
 
 1. Confirm broken-font Arabic recovery ratio on the real vocal form.
 2. Confirm Word XML stays free of illegal controls after normalize.
-3. Confirm Phase 1 cleared `latin_corruption`.
-4. Confirm Phase 2 cleared `tab_heavy_layout`.
-5. Confirm Phase 3 emits bordered `form` tables for multi-checkbox rows.
+3. Confirm Phases 1–3 cleared latin corruption, tabs, and form checkbox grids.
+4. Confirm Phase 4 marks dense form pages with `hybrid_visual_reference` (still editable).
 
 ---
 # vocal_assessment_form.pdf
@@ -33,15 +32,16 @@ Generated: 2026-09-22
 
 | Page | Class | Recovery | Garbage left | Tabs | ☐ | Tables | Form | Reasons |
 | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| 1 | clean | 1.000 | 0 | 0 | 5 | 2 | 2 | healthy_text |
-| 2 | clean | 1.000 | 0 | 0 | 0 | 10 | 0 | healthy_text |
-| 3 | clean | 1.000 | 0 | 0 | 16 | 9 | 7 | healthy_text |
+| 1 | clean | 1.000 | 0 | 0 | 5 | 2 | 2 | hybrid_visual_reference |
+| 2 | clean | 1.000 | 0 | 0 | 0 | 10 | 0 | hybrid_visual_reference |
+| 3 | clean | 1.000 | 0 | 0 | 16 | 9 | 7 | hybrid_visual_reference |
 | 4 | clean | 1.000 | 0 | 0 | 0 | 0 | 0 | healthy_text |
 
 ## Notes
 
 - `tableCount` includes Phase 2 column grids and Phase 3 form tables.
 - `formTableCount` counts bordered checkbox/option grids (`role: form`).
+- `hybrid_visual_reference` means editable text plus a page preview image (Phase 4).
 - `recoveryRatio` = (raw font-garbage chars removed) / (raw font-garbage chars); 1.0 means full strip or no garbage.
 
 ---
@@ -73,6 +73,7 @@ Generated: 2026-09-22
 
 - `tableCount` includes Phase 2 column grids and Phase 3 form tables.
 - `formTableCount` counts bordered checkbox/option grids (`role: form`).
+- `hybrid_visual_reference` means editable text plus a page preview image (Phase 4).
 - `recoveryRatio` = (raw font-garbage chars removed) / (raw font-garbage chars); 1.0 means full strip or no garbage.
 
 ---
@@ -108,6 +109,7 @@ Generated: 2026-09-22
 
 - `tableCount` includes Phase 2 column grids and Phase 3 form tables.
 - `formTableCount` counts bordered checkbox/option grids (`role: form`).
+- `hybrid_visual_reference` means editable text plus a page preview image (Phase 4).
 - `recoveryRatio` = (raw font-garbage chars removed) / (raw font-garbage chars); 1.0 means full strip or no garbage.
 
 ---
@@ -143,6 +145,7 @@ Generated: 2026-09-22
 
 - `tableCount` includes Phase 2 column grids and Phase 3 form tables.
 - `formTableCount` counts bordered checkbox/option grids (`role: form`).
+- `hybrid_visual_reference` means editable text plus a page preview image (Phase 4).
 - `recoveryRatio` = (raw font-garbage chars removed) / (raw font-garbage chars); 1.0 means full strip or no garbage.
 
 ---
@@ -178,6 +181,7 @@ Generated: 2026-09-22
 
 - `tableCount` includes Phase 2 column grids and Phase 3 form tables.
 - `formTableCount` counts bordered checkbox/option grids (`role: form`).
+- `hybrid_visual_reference` means editable text plus a page preview image (Phase 4).
 - `recoveryRatio` = (raw font-garbage chars removed) / (raw font-garbage chars); 1.0 means full strip or no garbage.
 
 ---
@@ -188,8 +192,8 @@ Generated: 2026-09-22
 | --- | --- | --- |
 | `latin_corruption` | Phase 1 — text cleanup | **done** |
 | `tab_heavy_layout` | Phase 2 — columns | **done** |
-| checkbox / option grids | Phase 3 — form tables | **done** (bordered `role: form`) |
-| `needs_visual` pages | Phase 4 — hybrid visual | pending |
+| checkbox / option grids | Phase 3 — form tables | **done** |
+| `hybrid_visual_reference` / mixed art | Phase 4 — hybrid visual | **done** |
 | polish / UX | Phase 5 | pending |
 
 Regenerate: `node scripts/pdf-to-word-baseline.mjs`

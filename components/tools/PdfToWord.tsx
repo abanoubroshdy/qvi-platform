@@ -103,6 +103,7 @@ export function PdfToWord() {
           >
             <option value="auto">{copy.pdfToWord.modeAuto}</option>
             <option value="editable">{copy.pdfToWord.modeEditable}</option>
+            <option value="hybrid">{copy.pdfToWord.modeHybrid}</option>
             <option value="visual">{copy.pdfToWord.modeVisual}</option>
           </NativeSelect>
           <p className="mt-2 text-xs text-muted-foreground">{copy.pdfToWord.modeHint}</p>
@@ -120,9 +121,10 @@ export function PdfToWord() {
                 value={result ? formatBytes(result.blob.size) : isWorking ? `${Math.round(progress * 100)}%` : "—"}
               />
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <Stat label={copy.pdfToWord.images} value={result ? `${result.images}` : "—"} />
               <Stat label={copy.pdfToWord.visualPages} value={result ? `${result.visualPages}` : "—"} />
+              <Stat label={copy.pdfToWord.hybridPages} value={result ? `${result.hybridPages}` : "—"} />
               <Stat label={copy.pdfToWord.status} value={isWorking ? copy.pdfToWord.working : result ? copy.pdfToWord.ready : copy.pdfToWord.waiting} />
             </div>
             {preview ? (
