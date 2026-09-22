@@ -42,9 +42,14 @@ Then in Supabase → **Authentication → URL Configuration**, add:
 
 Do not put the Supabase project URL in `NEXT_PUBLIC_SITE_URL`.
 
+## QVI Studio
+
+V1 scope is defined in `lib/studio/definition.ts`. The same in-memory session is hosted on `/` and `/studio`. Refresh clears it. Files stay on the device. Stem separation stays on QV1, synthesis stays on Neyora, and the studio is not a `/tools` utility.
+
 ## Routes
 
-- `/` platform homepage (products + free tools)
+- `/` QVI Studio session, with links to QV1, Neyora, and free tools
+- `/studio` the same QVI Studio session at its dedicated URL
 - `/products/qv1` QV1 waitlist landing
 - `/products/neyora` Neyora lab (also `/lab`)
 - `/tools/image-compressor` Image Compressor

@@ -27,6 +27,21 @@ export const products = {
       "Designed for composers who want studio-ready phrases, not generic loops",
     ],
   },
+  studio: {
+    slug: "qvi-studio",
+    name: "QVI Studio",
+    href: "/",
+    workspaceHref: "/studio",
+    status: "On this device",
+    title: "Miniature multitrack studio",
+    description: "Import tracks, set volume, tempo, and pitch, and play the mix on this device.",
+    features: [
+      "Arrange clips on a shared timeline",
+      "Mix volume, mute, and solo per track",
+      "Change tempo and pitch without leaving the session",
+    ],
+  },
 } as const;
 
-export type ProductKey = keyof typeof products;
+/** Waitlist products. QVI Studio is live on the site and does not take a waitlist. */
+export type ProductKey = Exclude<keyof typeof products, "studio">;
