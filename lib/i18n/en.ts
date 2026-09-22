@@ -144,6 +144,7 @@ export const en = {
     toolsCta: "Open tools",
     studioTitle: "QVI Studio",
     studioLead: "Import tracks, set the mix, and play it here. Files stay on this device.",
+    studioCta: "Open Studio",
     audioKicker: "New",
     audioTitle: "Audio & video tools — new",
     audioLead: "Extract audio, convert formats, and trim clips entirely in your browser. Nothing is uploaded.",

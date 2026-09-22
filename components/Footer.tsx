@@ -11,7 +11,7 @@ export function Footer() {
   const year = new Date().getFullYear();
 
   const productLinks = [
-    { href: products.studio.workspaceHref, label: copy.products.studio.name },
+    { href: products.studio.href, label: copy.products.studio.name },
     { href: products.qv1.href, label: copy.products.qv1.name },
     { href: products.neyora.href, label: copy.products.neyora.name },
   ];

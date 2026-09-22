@@ -4,13 +4,14 @@ import { qviStudioProduct, qviStudioSurfaces } from "@/lib/studio/definition";
 import { tools } from "@/lib/tools";
 
 describe("QVI Studio product listing", () => {
-  it("points the homepage and the dedicated route at the same product", () => {
+  it("points the studio product at its own page", () => {
     expect(products.studio).toMatchObject({
       name: qviStudioProduct.name,
-      href: qviStudioSurfaces.homepageRoute,
+      href: qviStudioSurfaces.workspaceRoute,
       workspaceHref: qviStudioSurfaces.workspaceRoute,
     });
-    expect(qviStudioSurfaces.sameSessionOnHomeAndWorkspace).toBe(true);
+    expect(products.studio.href).not.toBe(qviStudioSurfaces.homepageRoute);
+    expect(qviStudioSurfaces.sameSessionOnHomeAndWorkspace).toBe(false);
     expect(qviStudioSurfaces.listedInToolsHub).toBe(false);
   });
 

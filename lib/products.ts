@@ -30,7 +30,7 @@ export const products = {
   studio: {
     slug: "qvi-studio",
     name: "QVI Studio",
-    href: "/",
+    href: "/studio",
     workspaceHref: "/studio",
     status: "On this device",
     title: "Miniature multitrack studio",

@@ -44,12 +44,12 @@ Do not put the Supabase project URL in `NEXT_PUBLIC_SITE_URL`.
 
 ## QVI Studio
 
-V1 scope is defined in `lib/studio/definition.ts`. The same in-memory session is hosted on `/` and `/studio`. Refresh clears it. Files stay on the device. Stem separation stays on QV1, synthesis stays on Neyora, and the studio is not a `/tools` utility.
+V1 scope is defined in `lib/studio/definition.ts`. The in-memory session lives only on `/studio`. Refresh clears it. The homepage and header link to that page. Files stay on the device. Stem separation stays on QV1, synthesis stays on Neyora, and the studio is not a `/tools` utility.
 
 ## Routes
 
-- `/` QVI Studio session, with links to QV1, Neyora, and free tools
-- `/studio` the same QVI Studio session at its dedicated URL
+- `/` product home, with links to QVI Studio, QV1, Neyora, and free tools
+- `/studio` the QVI Studio session
 - `/products/qv1` QV1 waitlist landing
 - `/products/neyora` Neyora lab (also `/lab`)
 - `/tools/image-compressor` Image Compressor

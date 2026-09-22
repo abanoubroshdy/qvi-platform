@@ -53,9 +53,9 @@ describe("QVI Studio phase 0 contract", () => {
       privacy: "on-device-only",
     });
     expect(qviStudioSurfaces.homepageRoute).toBe("/");
-    expect(qviStudioSurfaces.homepageRole).toBe("primary-workspace");
+    expect(qviStudioSurfaces.homepageRole).toBe("product-home");
     expect(qviStudioSurfaces.workspaceRoute).toBe("/studio");
-    expect(qviStudioSurfaces.sameSessionOnHomeAndWorkspace).toBe(true);
+    expect(qviStudioSurfaces.sameSessionOnHomeAndWorkspace).toBe(false);
     expect(qviStudioSurfaces.listedInToolsHub).toBe(false);
     expect(qviStudioSurfaces.siblingLinks).toEqual(["qv1", "neyora", "tools"]);
   });

@@ -36,15 +36,15 @@ export const qviStudioProduct = {
 } as const;
 
 /**
- * `/` hosts the studio session so a visitor can import and play without leaving home.
- * `/studio` is the same session at a dedicated URL.
+ * `/` is the product home and links to the studio.
+ * The in-memory session lives only at `/studio`. Refresh clears it.
  * QV1, Neyora, and the free tools stay linked from home. Studio is not a `/tools` utility.
  */
 export const qviStudioSurfaces = {
   homepageRoute: "/",
-  homepageRole: "primary-workspace",
+  homepageRole: "product-home",
   workspaceRoute: "/studio",
-  sameSessionOnHomeAndWorkspace: true,
+  sameSessionOnHomeAndWorkspace: false,
   headerNav: true,
   listedInToolsHub: false,
   siblingLinks: ["qv1", "neyora", "tools"],
