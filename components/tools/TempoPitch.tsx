@@ -30,23 +30,23 @@ import { FFMPEG_LARGE_FILE_BYTES, inputNameFor, runFFmpeg } from "@/lib/ffmpeg";
 import { interpolate } from "@/lib/i18n";
 import { peaksFromBuffer } from "@/lib/time";
 import {
-  MAX_BPM,
   MAX_CENTS,
   MAX_SEMITONES,
   MAX_TEMPO_PERCENT,
-  MIN_BPM,
   MIN_CENTS,
   MIN_SEMITONES,
   MIN_TEMPO_PERCENT,
   appendTap,
   bpmDelta,
   buildTempoPitchExportPlan,
-  clampBpm,
   clampCents,
   clampSemitones,
   clampTempoPercent,
+  formatBpmDraft,
+  parseBpmDraft,
   pitchRatio,
   resolveTempoRate,
+  sanitizeBpmDraftInput,
   tapBpmFromTimestamps,
   totalCents,
   type TempoMode,
@@ -158,6 +158,8 @@ export function TempoPitch() {
   const [mode, setMode] = useState<TempoMode>("bpm");
   const [originalBpm, setOriginalBpm] = useState(120);
   const [targetBpm, setTargetBpm] = useState(120);
+  const [originalBpmText, setOriginalBpmText] = useState(() => formatBpmDraft(120));
+  const [targetBpmText, setTargetBpmText] = useState(() => formatBpmDraft(120));
   const [percent, setPercent] = useState(0);
   const [semitones, setSemitones] = useState(0);
   const [cents, setCents] = useState(0);
@@ -224,6 +226,22 @@ export function TempoPitch() {
     setSettings(settingsFromSource(loaded.source, format));
   }
 
+  function commitOriginalBpm(text: string = originalBpmText) {
+    const parsed = parseBpmDraft(text);
+    const next = parsed ?? originalBpm;
+    setOriginalBpm(next);
+    setOriginalBpmText(formatBpmDraft(next));
+    return next;
+  }
+
+  function commitTargetBpm(text: string = targetBpmText) {
+    const parsed = parseBpmDraft(text);
+    const next = parsed ?? targetBpm;
+    setTargetBpm(next);
+    setTargetBpmText(formatBpmDraft(next));
+    return next;
+  }
+
   function onTap() {
     const now = performance.now();
     const next = appendTap(tapTimes, now);
@@ -231,8 +249,13 @@ export function TempoPitch() {
     setTapCount(next.length);
     const bpm = tapBpmFromTimestamps(next);
     if (bpm != null) {
-      setTargetBpm((target) => (mode === "bpm" && Math.abs(target - originalBpm) < 0.05 ? bpm : target));
+      const syncTarget = mode === "bpm" && Math.abs(targetBpm - originalBpm) < 0.05;
       setOriginalBpm(bpm);
+      setOriginalBpmText(formatBpmDraft(bpm));
+      if (syncTarget) {
+        setTargetBpm(bpm);
+        setTargetBpmText(formatBpmDraft(bpm));
+      }
     }
   }
 
@@ -243,6 +266,8 @@ export function TempoPitch() {
 
   async function convert() {
     if (!audio || audio.decodeFailed) return;
+    const committedOriginal = commitOriginalBpm();
+    const committedTarget = commitTargetBpm();
     setError(null);
     clearResult();
     setPhase("loading");
@@ -255,8 +280,8 @@ export function TempoPitch() {
         sourceDuration: audio.duration,
         sampleRate: audio.sampleRate || settings.sampleRate,
         mode,
-        originalBpm,
-        targetBpm,
+        originalBpm: committedOriginal,
+        targetBpm: committedTarget,
         percent,
         semitones,
         cents,
@@ -384,30 +409,42 @@ export function TempoPitch() {
                     <Label htmlFor="original-bpm">{t.originalBpm}</Label>
                     <Input
                       id="original-bpm"
-                      type="number"
+                      type="text"
                       inputMode="decimal"
-                      min={MIN_BPM}
-                      max={MAX_BPM}
-                      step={0.1}
+                      autoComplete="off"
                       dir="ltr"
-                      value={originalBpm}
+                      value={originalBpmText}
                       disabled={busy}
-                      onChange={(event) => setOriginalBpm(clampBpm(Number(event.target.value)))}
+                      onChange={(event) => setOriginalBpmText(sanitizeBpmDraftInput(event.target.value))}
+                      onBlur={() => commitOriginalBpm()}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          commitOriginalBpm();
+                          (event.target as HTMLInputElement).blur();
+                        }
+                      }}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="target-bpm">{t.targetBpm}</Label>
                     <Input
                       id="target-bpm"
-                      type="number"
+                      type="text"
                       inputMode="decimal"
-                      min={MIN_BPM}
-                      max={MAX_BPM}
-                      step={0.1}
+                      autoComplete="off"
                       dir="ltr"
-                      value={targetBpm}
+                      value={targetBpmText}
                       disabled={busy}
-                      onChange={(event) => setTargetBpm(clampBpm(Number(event.target.value)))}
+                      onChange={(event) => setTargetBpmText(sanitizeBpmDraftInput(event.target.value))}
+                      onBlur={() => commitTargetBpm()}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          commitTargetBpm();
+                          (event.target as HTMLInputElement).blur();
+                        }
+                      }}
                     />
                   </div>
                 </div>

@@ -76,6 +76,48 @@ export function clampBpm(value: number): number {
   return Math.min(MAX_BPM, Math.max(MIN_BPM, value));
 }
 
+/** Display string for a known BPM value (no clamping of mid-typing drafts). */
+export function formatBpmDraft(bpm: number): string {
+  if (!Number.isFinite(bpm)) return String(DEFAULT_BPM);
+  const rounded = round1(bpm);
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
+
+/**
+ * Parse a BPM text field on blur/Enter. Returns null when empty or non-numeric
+ * so the caller can restore the previous committed value.
+ */
+export function parseBpmDraft(text: string): number | null {
+  const trimmed = text.trim().replace(",", ".");
+  if (!trimmed || trimmed === "+" || trimmed === "-" || trimmed === ".") return null;
+  const value = Number(trimmed);
+  if (!Number.isFinite(value)) return null;
+  return clampBpm(value);
+}
+
+/** Allow intermediate typing like "1", "10", "106", "120.5" without clamping. */
+export function sanitizeBpmDraftInput(text: string): string {
+  const normalized = text.replace(/,/g, ".");
+  let cleaned = "";
+  let seenDot = false;
+  for (const char of normalized) {
+    if (char >= "0" && char <= "9") {
+      const dotIndex = cleaned.indexOf(".");
+      if (dotIndex === -1) {
+        if (cleaned.length < 3) cleaned += char;
+      } else if (cleaned.length - dotIndex - 1 < 1) {
+        cleaned += char;
+      }
+      continue;
+    }
+    if (char === "." && !seenDot) {
+      seenDot = true;
+      cleaned += char;
+    }
+  }
+  return cleaned;
+}
+
 export function clampSemitones(value: number): number {
   if (!Number.isFinite(value)) return 0;
   return Math.min(MAX_SEMITONES, Math.max(MIN_SEMITONES, Math.round(value)));

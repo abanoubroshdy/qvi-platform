@@ -7,14 +7,31 @@ import {
   buildTempoPitchFilter,
   chainAtempoFactors,
   estimateOutputDuration,
+  formatBpmDraft,
+  parseBpmDraft,
   pitchRatio,
   resolveTempoRate,
+  sanitizeBpmDraftInput,
   tapBpmFromTimestamps,
   tempoRateFromBpm,
   tempoRateFromPercent,
   totalCents,
 } from "@/lib/audio-tempo";
 import { defaultAudioExportSettings } from "@/lib/audio-export";
+
+describe("BPM draft typing", () => {
+  it("keeps intermediate digits like 1 and 10 without clamping to 40", () => {
+    expect(sanitizeBpmDraftInput("1")).toBe("1");
+    expect(sanitizeBpmDraftInput("10")).toBe("10");
+    expect(sanitizeBpmDraftInput("106")).toBe("106");
+    expect(parseBpmDraft("1")).toBe(40);
+    expect(parseBpmDraft("106")).toBe(106);
+    expect(parseBpmDraft("300")).toBe(240);
+    expect(parseBpmDraft("")).toBeNull();
+    expect(formatBpmDraft(120)).toBe("120");
+    expect(formatBpmDraft(120.5)).toBe("120.5");
+  });
+});
 
 describe("tempoRateFromBpm", () => {
   it("maps 100 → 120 to a 1.2× speed-up", () => {
