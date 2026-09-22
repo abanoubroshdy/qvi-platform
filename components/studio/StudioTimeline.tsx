@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { formatClock } from "@/lib/time";
-import { timelineWidthPx } from "@/lib/studio/timeline-geometry";
+import { rulerMarks, timelineWidthPx } from "@/lib/studio/timeline-geometry";
 import type { Messages } from "@/lib/i18n";
 import { StudioTrackHeader } from "@/components/studio/StudioTrackHeader";
 import { StudioTrackLane } from "@/components/studio/StudioTrackLane";
@@ -11,7 +11,7 @@ import { useStudio } from "@/components/studio/studio-context";
 export function StudioTimeline({ copy }: { copy: Messages["studio"] }) {
   const studio = useStudio();
   const width = timelineWidthPx(studio.duration, studio.pixelsPerSecond);
-  const marks = Math.ceil(width / studio.pixelsPerSecond);
+  const marks = rulerMarks(studio.duration, studio.pixelsPerSecond);
 
   return (
     <section aria-label={copy.timeline} className="min-w-0" dir="ltr">
@@ -34,7 +34,7 @@ export function StudioTimeline({ copy }: { copy: Messages["studio"] }) {
                 track={track}
                 selected={studio.selectedTrack?.id === track.id}
                 copy={copy}
-                onSelect={() => studio.selectTrack(track.id)}
+                onSelect={() => studio.selectTrack(track.id, undefined, true)}
                 onMute={() => studio.setMuted(track.id, !track.muted)}
                 onSolo={() => studio.setSolo(track.id, !track.solo)}
               />
@@ -43,9 +43,9 @@ export function StudioTimeline({ copy }: { copy: Messages["studio"] }) {
           <div className="min-w-0 flex-1 overflow-x-auto">
             <div className="relative" style={{ width }}>
               <div className="flex h-7 border-b border-border text-[10px] text-muted-foreground">
-                {Array.from({ length: marks + 1 }, (_, second) => (
+                {marks.map((second) => (
                   <span key={second} className="absolute top-1" style={{ left: second * studio.pixelsPerSecond }}>
-                    {second % 5 === 0 ? formatClock(second) : ""}
+                    {formatClock(second)}
                   </span>
                 ))}
               </div>
@@ -56,6 +56,9 @@ export function StudioTimeline({ copy }: { copy: Messages["studio"] }) {
                   pixelsPerSecond={studio.pixelsPerSecond}
                   selectedClipId={studio.selectedTrack?.id === track.id ? (studio.selectedClip?.id ?? null) : null}
                   onSelectClip={(clipId) => studio.selectTrack(track.id, clipId)}
+                  onTapClip={() => {
+                    if (studio.viewport === "mobile") studio.setInspectorOpen(true);
+                  }}
                   onSeek={studio.seek}
                   onOffset={(clipId, offsetSec) => studio.setOffset(track.id, clipId, offsetSec)}
                   onTrim={(clipId, patch) => studio.setTrim(track.id, clipId, patch)}

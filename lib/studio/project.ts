@@ -295,9 +295,9 @@ export function removeClip(project: StudioProject, trackId: string, clipId: stri
   const track = project.tracks.find((item) => item.id === trackId);
   if (!track) return fail(project, studioEditReasons.trackNotFound);
   if (!track.clips.some((clip) => clip.id === clipId)) return fail(project, studioEditReasons.clipNotFound);
-  return succeed(
-    replaceTrack(project, trackId, { ...track, clips: track.clips.filter((clip) => clip.id !== clipId) }),
-  );
+  const clips = track.clips.filter((clip) => clip.id !== clipId);
+  if (clips.length === 0) return removeTrack(project, trackId);
+  return succeed(replaceTrack(project, trackId, { ...track, clips }));
 }
 
 function editTrack(

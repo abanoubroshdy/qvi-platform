@@ -266,11 +266,11 @@ export function useStudioSession() {
     setTransport({ status: "idle", playheadSec: 0 });
   }, [commit]);
 
-  const selectTrack = useCallback((trackId: string, clipId?: string | null) => {
+  const selectTrack = useCallback((trackId: string, clipId?: string | null, sheet = false) => {
     setSelectedTrackId(trackId);
     const track = projectRef.current.tracks.find((item) => item.id === trackId);
     setSelectedClipId(clipId === undefined ? (track?.clips[0]?.id ?? null) : clipId);
-    if (viewportRef.current === "mobile") setInspectorOpen(true);
+    if (sheet && viewportRef.current === "mobile") setInspectorOpen(true);
   }, []);
 
   const importFiles = useCallback(
@@ -312,7 +312,7 @@ export function useStudioSession() {
         }
       }
       commit(current);
-      if (addedTrack) selectTrack(addedTrack.id, addedTrack.clips.at(-1)?.id ?? null);
+      if (addedTrack) selectTrack(addedTrack.id, addedTrack.clips.at(-1)?.id ?? null, true);
       setImporting(false);
     },
     [commit, selectTrack, whenEngineReady],
@@ -425,10 +425,16 @@ export function useStudioSession() {
       const result = removeClip(projectRef.current, trackId, clipId);
       if (!result.ok) return;
       commit(result.project);
-      if (selectedClipId === clipId) {
-        const track = result.project.tracks.find((item) => item.id === trackId);
-        setSelectedClipId(track?.clips[0]?.id ?? null);
+      const track = result.project.tracks.find((item) => item.id === trackId);
+      if (!track) {
+        if (selectedTrackId === trackId) {
+          const next = result.project.tracks[0];
+          setSelectedTrackId(next?.id ?? null);
+          setSelectedClipId(next?.clips[0]?.id ?? null);
+        }
+        return;
       }
+      if (selectedClipId === clipId) setSelectedClipId(track.clips[0]?.id ?? null);
     },
   };
 }

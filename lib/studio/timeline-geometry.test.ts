@@ -5,6 +5,7 @@ import {
   moveClipOffset,
   nextPixelsPerSecond,
   timeAtPixel,
+  rulerMarks,
   timelineWidthPx,
   trimClipEnd,
   trimClipStart,
@@ -53,5 +54,6 @@ describe("studio timeline geometry", () => {
     expect(waveformDrawBudget(40, 180, 3)).toEqual({ bars: 40, pixelRatio: 2 });
     expect(waveformDrawBudget(400, 48, 1)).toEqual({ bars: 48, pixelRatio: 1 });
     expect(downsamplePeaks([0.1, 0.9, 0.2, 0.4], 2)).toEqual([0.9, 0.4]);
+    expect(rulerMarks(0, 48)).toEqual([0, 5, 10, 15, 20, 25, 30]);
   });
 });

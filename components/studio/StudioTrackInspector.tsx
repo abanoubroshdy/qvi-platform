@@ -162,6 +162,9 @@ function NumberField({
         value={draft}
         aria-label={label}
         onChange={(event) => setDraft(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") event.currentTarget.blur();
+        }}
         onBlur={() => {
           const next = Number(draft.replace(",", "."));
           if (!Number.isFinite(next)) {

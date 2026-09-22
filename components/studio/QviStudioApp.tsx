@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { interpolate } from "@/lib/i18n";
 import { qviStudioLimits, studioImportExtensions } from "@/lib/studio/definition";
@@ -17,6 +17,22 @@ export function QviStudioApp() {
   const { copy } = useI18n();
   const studioCopy = copy.studio;
   const accept = [...studioImportExtensions.map((ext) => `.${ext}`), "audio/*"].join(",");
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (session.exportOpen) {
+        session.setExportOpen(false);
+        return;
+      }
+      if (session.inspectorOpen || session.mixerOpen) {
+        session.setInspectorOpen(false);
+        session.setMixerOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [session]);
 
   const notice =
     session.notice === "track-cap-reached" || session.notice === "track-limit"
@@ -48,9 +64,14 @@ export function QviStudioApp() {
         <div className="sticky top-16 z-50 border-b border-border bg-background/95 backdrop-blur">
           <StudioTransport copy={studioCopy} />
           {notice && (
-            <p className="px-4 pb-3 text-sm text-muted-foreground" role="status">
-              {notice}
-              {session.importing ? ` ${studioCopy.reading}` : ""}
+            <p className="flex items-start justify-between gap-3 px-4 pb-3 text-sm text-muted-foreground" role="status">
+              <span>
+                {notice}
+                {session.importing ? ` ${studioCopy.reading}` : ""}
+              </span>
+              <button type="button" className="shrink-0 font-medium text-foreground" onClick={session.clearNotice}>
+                {studioCopy.close}
+              </button>
             </p>
           )}
           {session.importing && !notice && (
@@ -118,6 +139,8 @@ function Sheet({
     <div className={`fixed inset-0 z-40 flex ${side === "bottom" ? "items-end" : "justify-end"}`}>
       <button type="button" className="absolute inset-0 bg-black/40" aria-label={label} onClick={onClose} />
       <div
+        role="dialog"
+        aria-modal="true"
         className={
           side === "bottom"
             ? "relative max-h-[75dvh] w-full overflow-y-auto rounded-t-2xl border bg-background shadow-xl"

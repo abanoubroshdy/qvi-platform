@@ -29,6 +29,15 @@ export function timelineWidthPx(durationSec: number, pixelsPerSecond: number): n
   return span * pixelsPerSecond;
 }
 
+/** Label the ruler every five seconds. Empty per-second ticks are not drawn. */
+export function rulerMarks(durationSec: number, pixelsPerSecond: number): number[] {
+  const rate = pixelsPerSecond > 0 ? pixelsPerSecond : 1;
+  const seconds = Math.ceil(timelineWidthPx(durationSec, rate) / rate);
+  const marks: number[] = [];
+  for (let second = 0; second <= seconds; second += 5) marks.push(second);
+  return marks;
+}
+
 export function clipRect(offsetSec: number, heardSec: number, pixelsPerSecond: number): { leftPx: number; widthPx: number } {
   return {
     leftPx: Math.max(0, offsetSec) * pixelsPerSecond,

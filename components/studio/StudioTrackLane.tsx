@@ -9,6 +9,7 @@ export function StudioTrackLane({
   pixelsPerSecond,
   selectedClipId,
   onSelectClip,
+  onTapClip,
   onSeek,
   onOffset,
   onTrim,
@@ -17,6 +18,7 @@ export function StudioTrackLane({
   pixelsPerSecond: number;
   selectedClipId: string | null;
   onSelectClip: (clipId: string) => void;
+  onTapClip: (clipId: string) => void;
   onSeek: (seconds: number) => void;
   onOffset: (clipId: string, offsetSec: number) => void;
   onTrim: (clipId: string, patch: { offsetSec?: number; trimStartSec?: number; trimEndSec?: number }) => void;
@@ -38,6 +40,7 @@ export function StudioTrackLane({
           pixelsPerSecond={pixelsPerSecond}
           selected={clip.id === selectedClipId}
           onSelect={() => onSelectClip(clip.id)}
+          onTap={() => onTapClip(clip.id)}
           onOffset={(offsetSec) => onOffset(clip.id, offsetSec)}
           onTrim={(patch) => onTrim(clip.id, patch)}
         />
@@ -52,6 +55,7 @@ function ClipBlock({
   pixelsPerSecond,
   selected,
   onSelect,
+  onTap,
   onOffset,
   onTrim,
 }: {
@@ -60,6 +64,7 @@ function ClipBlock({
   pixelsPerSecond: number;
   selected: boolean;
   onSelect: () => void;
+  onTap: () => void;
   onOffset: (offsetSec: number) => void;
   onTrim: (patch: { offsetSec?: number; trimStartSec?: number; trimEndSec?: number }) => void;
 }) {
@@ -122,16 +127,24 @@ function ClipBlock({
         const move = (ev: PointerEvent) => {
           place(ev.clientX);
         };
-        const up = (ev: PointerEvent) => {
+        const finish = (ev: PointerEvent, tap: boolean) => {
           target.removeEventListener("pointermove", move);
           target.removeEventListener("pointerup", up);
-          target.removeEventListener("pointercancel", up);
+          target.removeEventListener("pointercancel", cancel);
+          const moved = Math.abs(ev.clientX - startX);
+          if (moved <= 3) {
+            target.style.left = `${origin * pixelsPerSecond}px`;
+            if (tap) onTap();
+            return;
+          }
           const next = place(ev.clientX);
           if (next !== origin) onOffset(next);
         };
+        const up = (ev: PointerEvent) => finish(ev, true);
+        const cancel = (ev: PointerEvent) => finish(ev, false);
         target.addEventListener("pointermove", move);
         target.addEventListener("pointerup", up);
-        target.addEventListener("pointercancel", up);
+        target.addEventListener("pointercancel", cancel);
       }}
     >
       <canvas ref={canvasRef} className="h-full w-full" />

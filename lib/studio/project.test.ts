@@ -226,6 +226,16 @@ describe("studio project model", () => {
     expect(largeFileWarning(FFMPEG_LARGE_FILE_BYTES - 1)).toBeNull();
   });
 
+  it("removes a track when its last clip is removed", () => {
+    const project = withTrack("only.wav", 3);
+    const track = project.tracks[0]!;
+    const removed = removeClip(project, track.id, track.clips[0]!.id);
+    expect(removed.ok).toBe(true);
+    if (!removed.ok) return;
+    expect(removed.project.tracks).toEqual([]);
+    expect(projectDuration(removed.project)).toBe(0);
+  });
+
   it("leaves the project unchanged when the clip is missing", () => {
     const project = withTrack();
     const removed = removeClip(project, project.tracks[0]!.id, "missing");

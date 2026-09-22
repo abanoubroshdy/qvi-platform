@@ -30,7 +30,7 @@ export function StudioMixer({ copy }: { copy: Messages["studio"] }) {
       {studio.project.tracks.map((track) => (
         <div key={track.id}>
           <div className="mb-2 flex items-center justify-between gap-2 text-sm">
-            <button type="button" className="flex min-w-0 items-center gap-2" onClick={() => studio.selectTrack(track.id)}>
+            <button type="button" className="flex min-w-0 items-center gap-2" onClick={() => studio.selectTrack(track.id, undefined, true)}>
               <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: track.color }} />
               <span className="truncate">{track.name}</span>
             </button>
