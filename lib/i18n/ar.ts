@@ -790,7 +790,7 @@ export const ar: Messages = {
     resetTap: "إعادة الضربات",
     tapCount: "{count} ضربات",
     tempoSection: "تغيير التيمبو",
-    tempoHint: "سرّع أو أبطئ مع الحفاظ على الطبقة، بأهداف BPM أو بنسبة مئوية.",
+    tempoHint: "سرّع أو أبطئ مع الحفاظ على الطبقة (atempo في FFmpeg — بدون asetrate). اترك الطبقة على 0.",
     tempoMode: "وضع التيمبو",
     modeBpm: "بالـ BPM",
     modePercent: "بالنسبة المئوية",
@@ -1330,7 +1330,7 @@ export const ar: Messages = {
         "اضغط Tap لتقريب الـ BPM، غيّر التيمبو بالـ BPM أو النسبة، وحرّك الطبقة بأنصاف التون والسنت بلا رفع. المعالجة تبقى على جهازك.",
       howToTitle: "كيف أغيّر التيمبو أو الطبقة؟",
       howToNote:
-        "التيمبو يستخدم atempo في FFmpeg مع الحفاظ على الطبقة. الطبقة تستخدم asetrate + aresample + atempo حتى تبقى المدة ثابتة إن لم تغيّر التيمبو.",
+        "التيمبو يستخدم atempo فقط في FFmpeg (الطبقة محفوظة — بلا asetrate). الطبقة مرحلة منفصلة: asetrate + aresample + atempo لإعادة المدة، ثم atempo للتيمبو إن لزم.",
       howToSteps: [
         "أسقط ملفًا صوتيًا وانتظر الموجة.",
         "اضغط مع الإيقاع، أو اكتب الـ BPM الأصلي والمطلوب (أو استخدم وضع النسبة).",

@@ -1,13 +1,13 @@
 /**
  * Tempo / pitch helpers for the browser FFmpeg wasm build.
  *
- * Pitch without changing duration uses the classic chain (no rubberband in @ffmpeg/core):
- *   asetrate=sr*ratio,aresample=sr,atempo=tempoRate/ratio
- * so pitch is applied via sample-rate reinterpretation and duration is restored (or
- * combined with a tempo change) through atempo factors.
+ * Filter stages are applied in a fixed order (never mixed into one atempo product):
+ *   1) Pitch keep-duration: asetrate=sr*ratio,aresample=sr,atempo=1/ratio
+ *   2) Tempo only:          atempo=… (daisy-chained in [0.5, 2])
  *
- * Tempo-only uses atempo. Each atempo factor stays in [0.5, 2] for quality; larger
- * ratios are daisy-chained (see FFmpeg atempo docs).
+ * Tempo-only (semitones=0, cents=0) MUST be an atempo chain with no asetrate —
+ * that is what keeps musical pitch unchanged while speeding/slowing.
+ * @ffmpeg/core typically has no rubberband; do not rely on it.
  */
 
 import {
@@ -243,8 +243,30 @@ export function atempoFilter(rate: number): string {
 }
 
 /**
- * Pitch shift while restoring (or adjusting) duration via a combined atempo product.
- * `tempoRate` is the desired speed relative to the original (1 = same tempo).
+ * Pitch shift that restores original duration (atempo = 1/ratio).
+ * Empty when pitch is unchanged. Never includes the user tempo change.
+ */
+export function buildPitchKeepDurationFilter(sampleRate: number, semitones: number, cents: number): string {
+  const sr = Math.max(1, Math.round(sampleRate) || 44100);
+  const ratio = pitchRatio(semitones, cents);
+  if (Math.abs(ratio - 1) < RATIO_EPS) return "";
+
+  const setRate = sr * ratio;
+  const restore = atempoFilter(1 / ratio);
+  const parts = [`asetrate=${formatFilterNumber(setRate)}`, `aresample=${sr}`];
+  if (restore) parts.push(restore);
+  return parts.join(",");
+}
+
+/** True when the filter is empty or only daisy-chained atempo (pitch-preserving tempo). */
+export function isAtempoOnlyFilter(filter: string): boolean {
+  if (!filter) return true;
+  return /^(atempo=[0-9.eE+-]+)(,atempo=[0-9.eE+-]+)*$/.test(filter);
+}
+
+/**
+ * Build the full -af chain: pitch-keep-duration first, then tempo atempo.
+ * Tempo-only requests never emit asetrate/aresample.
  */
 export function buildTempoPitchFilter(options: {
   sampleRate: number;
@@ -254,21 +276,9 @@ export function buildTempoPitchFilter(options: {
 }): string {
   const sampleRate = Math.max(1, Math.round(options.sampleRate) || 44100);
   const tempoRate = Number.isFinite(options.tempoRate) && options.tempoRate > 0 ? options.tempoRate : 1;
-  const ratio = pitchRatio(options.semitones, options.cents);
-  const parts: string[] = [];
-
-  if (Math.abs(ratio - 1) >= RATIO_EPS) {
-    const setRate = sampleRate * ratio;
-    parts.push(`asetrate=${formatFilterNumber(setRate)}`, `aresample=${sampleRate}`);
-    const combined = tempoRate / ratio;
-    const tempo = atempoFilter(combined);
-    if (tempo) parts.push(tempo);
-  } else {
-    const tempo = atempoFilter(tempoRate);
-    if (tempo) parts.push(tempo);
-  }
-
-  return parts.join(",");
+  const pitch = buildPitchKeepDurationFilter(sampleRate, options.semitones, options.cents);
+  const tempo = atempoFilter(tempoRate);
+  return [pitch, tempo].filter(Boolean).join(",");
 }
 
 /** Output duration after a tempo change (pitch-keep-duration does not alter length). */

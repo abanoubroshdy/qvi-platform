@@ -9,6 +9,7 @@ import {
   estimateOutputDuration,
   formatBpmDraft,
   formatSignedDraft,
+  isAtempoOnlyFilter,
   parseBpmDraft,
   parseCentsDraft,
   parseSemitonesDraft,
@@ -113,29 +114,46 @@ describe("pitchRatio", () => {
 });
 
 describe("buildTempoPitchFilter", () => {
-  it("uses atempo only when pitch is unchanged", () => {
-    expect(buildTempoPitchFilter({ sampleRate: 44100, tempoRate: 1.2, semitones: 0, cents: 0 })).toBe(
-      "atempo=1.2",
-    );
+  it("uses atempo only when pitch is unchanged (no asetrate)", () => {
+    const filter = buildTempoPitchFilter({ sampleRate: 44100, tempoRate: 1.2, semitones: 0, cents: 0 });
+    expect(filter).toBe("atempo=1.2");
+    expect(filter).not.toContain("asetrate");
+    expect(filter).not.toContain("aresample");
+    expect(isAtempoOnlyFilter(filter)).toBe(true);
+  });
+
+  it("keeps slowdowns pitch-preserving with atempo only", () => {
+    const filter = buildTempoPitchFilter({ sampleRate: 44100, tempoRate: 0.5, semitones: 0, cents: 0 });
+    expect(filter).toBe("atempo=0.5");
+    expect(isAtempoOnlyFilter(filter)).toBe(true);
+  });
+
+  it("daisy-chains extreme tempo without asetrate when pitch is 0", () => {
+    const filter = buildTempoPitchFilter({ sampleRate: 44100, tempoRate: 0.25, semitones: 0, cents: 0 });
+    expect(isAtempoOnlyFilter(filter)).toBe(true);
+    expect(filter.startsWith("atempo=")).toBe(true);
+    const product = filter
+      .split(",")
+      .map((part) => Number(part.replace("atempo=", "")))
+      .reduce((acc, value) => acc * value, 1);
+    expect(product).toBeCloseTo(0.25, 6);
   });
 
   it("pitches up an octave and restores duration when tempo is 1", () => {
     const filter = buildTempoPitchFilter({ sampleRate: 44100, tempoRate: 1, semitones: 12, cents: 0 });
-    expect(filter).toContain("asetrate=");
-    expect(filter).toContain("aresample=44100");
-    expect(filter).toContain("atempo=0.5");
+    expect(filter).toBe("asetrate=88200,aresample=44100,atempo=0.5");
   });
 
-  it("combines pitch and tempo into one atempo product", () => {
-    // pitch ×2 then want tempo ×1.2 → combined atempo = 1.2/2 = 0.6
+  it("applies pitch-keep-duration then tempo as separate stages", () => {
+    // +12 st → pitch restore atempo=0.5, then user tempo ×1.2
     const filter = buildTempoPitchFilter({ sampleRate: 48000, tempoRate: 1.2, semitones: 12, cents: 0 });
-    expect(filter.startsWith("asetrate=")).toBe(true);
-    expect(filter).toContain("aresample=48000");
-    expect(filter).toContain("atempo=0.6");
+    expect(filter).toBe("asetrate=96000,aresample=48000,atempo=0.5,atempo=1.2");
+    expect(isAtempoOnlyFilter(filter)).toBe(false);
   });
 
   it("returns an empty filter when nothing changes", () => {
     expect(buildTempoPitchFilter({ sampleRate: 44100, tempoRate: 1, semitones: 0, cents: 0 })).toBe("");
+    expect(isAtempoOnlyFilter("")).toBe(true);
   });
 });
 

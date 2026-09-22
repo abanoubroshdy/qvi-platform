@@ -794,7 +794,7 @@ export const en = {
     resetTap: "Reset taps",
     tapCount: "{count} taps",
     tempoSection: "Change tempo",
-    tempoHint: "Speed up or slow down while keeping pitch, using BPM targets or a percentage.",
+    tempoHint: "Speed up or slow down while keeping pitch (FFmpeg atempo — no asetrate). Pitch controls stay at 0.",
     tempoMode: "Tempo mode",
     modeBpm: "By BPM",
     modePercent: "By percent",
@@ -1339,7 +1339,7 @@ export const en = {
         "Tap an approximate BPM, retarget tempo by BPM or percent, and shift pitch in semitones and cents without uploading. Processing stays on your device.",
       howToTitle: "How do I change tempo or pitch?",
       howToNote:
-        "Tempo uses FFmpeg atempo (pitch preserved). Pitch uses asetrate + aresample + atempo so duration stays stable when tempo is unchanged.",
+        "Tempo uses FFmpeg atempo only (pitch preserved — no asetrate). Pitch is a separate stage: asetrate + aresample + atempo to restore duration, then tempo atempo if needed.",
       howToSteps: [
         "Drop an audio file and wait for the waveform.",
         "Tap along with the beat, or type the original and target BPM (or use percent mode).",
