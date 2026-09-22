@@ -18,6 +18,10 @@ export const toolVisuals: Record<ToolSlug, ToolVisual> = {
     background: "linear-gradient(145deg, #1a1630 0%, #2a2150 52%, #6d5bff 100%)",
     caption: "Trim",
   },
+  "tempo-pitch": {
+    background: "linear-gradient(145deg, #142028 0%, #1c3d4a 50%, #2a9d8f 100%)",
+    caption: "BPM · Pitch",
+  },
   "image-compressor": {
     background: "linear-gradient(180deg, #e8f4ff 0%, #cde6fb 100%)",
     caption: "Compress",

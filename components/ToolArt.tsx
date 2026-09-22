@@ -229,6 +229,27 @@ function AudioCutterScene() {
   );
 }
 
+function TempoPitchScene() {
+  return (
+    <g transform="translate(28 36)">
+      <rect width="224" height="88" rx="18" fill="#0f1c22" opacity="0.7" />
+      <WaveBars x={16} y={44} color="#7ee0d2" heights={[14, 28, 18, 36, 12, 30, 20, 38, 16, 26, 22, 34, 14, 28]} />
+      <g transform="translate(150 10)">
+        <circle cx="28" cy="28" r="26" fill="#2a9d8f" />
+        <text x="28" y="24" textAnchor="middle" fontSize="9" fontWeight="700" fill="#d9fff6" fontFamily="Outfit, ui-sans-serif">
+          TAP
+        </text>
+        <text x="28" y="40" textAnchor="middle" fontSize="14" fontWeight="800" fill="#fff" fontFamily="Outfit, ui-sans-serif">
+          BPM
+        </text>
+      </g>
+      <text x="20" y="78" fontSize="11" fontWeight="700" fill="#9ad7ce" fontFamily="Outfit, ui-sans-serif">
+        ±12 st · ±50¢
+      </text>
+    </g>
+  );
+}
+
 function ImageCompressorScene() {
   return (
     <>
@@ -556,6 +577,7 @@ const scenes: Record<ToolSlug, (props: SceneProps) => ReactElement> = {
   "mp4-to-mp3": Mp4ToMp3Scene,
   "mp3-to-wav": Mp3ToWavScene,
   "audio-cutter": AudioCutterScene,
+  "tempo-pitch": TempoPitchScene,
   "image-compressor": ImageCompressorScene,
   "webp-to-jpg": WebpToJpgScene,
   "image-resizer": ImageResizerScene,

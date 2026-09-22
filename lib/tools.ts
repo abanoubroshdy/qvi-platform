@@ -39,6 +39,14 @@ export const tools: Tool[] = [
     category: "audio",
   },
   {
+    slug: "tempo-pitch",
+    title: "Tempo & Pitch",
+    description: "Tap approximate BPM, change tempo by BPM or percent, and shift pitch in semitones and cents — without uploading.",
+    href: "/tools/tempo-pitch",
+    available: true,
+    category: "audio",
+  },
+  {
     slug: "image-compressor",
     title: "Image Compressor",
     description: "Shrink JPG, PNG, and WEBP files in your browser with a live size comparison.",
