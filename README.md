@@ -42,6 +42,10 @@ Then in Supabase → **Authentication → URL Configuration**, add:
 
 Do not put the Supabase project URL in `NEXT_PUBLIC_SITE_URL`.
 
+## QVI Studio
+
+V1 scope is defined in `lib/studio/definition.ts` (phase 0). QVI Studio is a miniature on-device DAW: multi-track timeline, mixer, and per-track tempo and pitch. The session belongs on `/` and at `/studio`. Those routes are not implemented yet. Stem separation stays on QV1, synthesis stays on Neyora, and the studio is not a `/tools` utility.
+
 ## Routes
 
 - `/` platform homepage (products + free tools)
