@@ -287,11 +287,105 @@ function overlapRatio(a: string, b: string) {
 }
 
 /**
+ * Broken ToUnicode maps often replace the first Latin letter with a digit/symbol
+ * (%asic→Basic, 7echnical→Technical, 0etronome→Metronome). Tail → correct word.
+ */
+const CORRUPT_LATIN_TAILS: Record<string, string> = {
+  asic: "Basic",
+  echnical: "Technical",
+  reath: "Breath",
+  hythm: "Rhythm",
+  etronome: "Metronome",
+  iming: "Timing",
+  iano: "Piano",
+  orte: "Forte",
+  imbre: "Timbre",
+  asp: "Rasp",
+  essitura: "Tessitura",
+  ange: "Range",
+  reakpoints: "Breakpoints",
+  ixed: "Mixed",
+  ype: "Type",
+  ass: "Bass",
+  aritone: "Baritone",
+  enor: "Tenor",
+  lto: "Alto",
+  ezzo: "Mezzo",
+  iagnosis: "Diagnosis",
+  lending: "Blending",
+  raining: "Training",
+  itch: "Pitch",
+  owest: "Lowest",
+  ighest: "Highest",
+  one: "Tone",
+  ntonation: "Intonation",
+};
+
+/**
+ * Phase 1 — repair Latin first-letter corruption and glued English label echoes
+ * left after broken-font Arabic recovery (e.g. Basic Information)%asic Information()).
+ */
+export function repairLatinCorruption(text: string) {
+  if (!text) return text;
+
+  // %asic / ).)orte / .,)ntonation — junk prefix + lowercase tail from the dictionary.
+  let next = text.replace(
+    /(^|[^A-Za-z])([^A-Za-z]*?)([a-z]{2,})((?:-[A-Za-z]+)*)/g,
+    (full, boundary: string, junk: string, tail: string, suffix: string) => {
+      if (!junk) return full;
+      const fixed = CORRUPT_LATIN_TAILS[tail.toLowerCase()];
+      if (!fixed) return full;
+      return `${boundary}${fixed}${suffix ?? ""}`;
+    },
+  );
+
+  // Echo glued with junk: Intonation).Intonation / Basic Basic
+  next = next.replace(/\b([A-Za-z][A-Za-z'-]{1,24})[^A-Za-z\n]{1,6}\1\b/gi, "$1");
+  next = next.replace(/\b([A-Za-z][A-Za-z'-]{1,24})\s+\1\b/gi, "$1");
+
+  // Basic Information)Basic Information( → Basic Information
+  next = next.replace(/\b([A-Za-z][A-Za-z0-9 /&'-]{0,40}?)\)\s*\1\s*\(/gi, "$1");
+
+  // Basic Information)Technical Assessment( / Basic Information)1-5(
+  next = next.replace(
+    /\b([A-Za-z][A-Za-z0-9 /&'-]{0,40}?)\)\s*([A-Za-z0-9][A-Za-z0-9 /&'.-]{0,40}?)\s*\(/g,
+    "$1 ($2)",
+  );
+
+  // Score index glued onto the next English heading: .1)Basic Information
+  next = next.replace(/(\d)\)\s*([A-Za-z])/g, "$1 $2");
+  // Arabic/label)EnglishHeading leftovers after paren-strip
+  next = next.replace(/\)\s*([A-Za-z])/g, " $1");
+  // Leading .) or ). junk before Latin labels
+  next = next.replace(/(^|\s)[.)]{1,3}(?=[A-Za-z])/g, "$1");
+  next = next.replace(/(^|\n)\.\s+(?=[A-Za-z])/g, "$1");
+
+  // Dangling open-parens used as PDF label separators: Pitch( الأذن → Pitch الأذن
+  next = next.replace(/\(\s*\)/g, "");
+  next = next.replace(/\b([A-Za-z][A-Za-z'-]*)\(/g, "$1");
+  // Unclosed "(Intonation" after echo collapse
+  next = next.replace(/\(([A-Za-z][A-Za-z' -]*)$/g, "$1");
+  next = next.replace(/([\u0600-\u06FF])\(/g, "$1 (");
+  next = next.replace(/([\u0600-\u06FF])([A-Za-z])/g, "$1 $2");
+  next = next.replace(/([A-Za-z])([\u0600-\u06FF])/g, "$1 $2");
+  next = next.replace(/(^|\s)\)+[.,]*/g, "$1");
+  next = next.replace(/[.,]{2,}/g, ".");
+
+  // Arabic: space after colon between letters; digit spacing in "من1"
+  next = next.replace(/([\u0600-\u06FF]):([\u0600-\u06FF])/g, "$1: $2");
+  next = next.replace(/([\u0600-\u06FF])(\d)/g, "$1 $2");
+  next = next.replace(/(\d)([\u0600-\u06FF])/g, "$1 $2");
+
+  return next.replace(/[ \t]{2,}/g, " ").trim();
+}
+
+/**
  * Normalize + repair PDF text for editable Word output.
  * - NFKC maps Arabic presentation forms to base letters
  * - Strip XML-illegal controls (Word Desktop/Mobile refuse the file otherwise)
  * - Drop mis-decoded Canadian Aboriginal / Armenian glyphs from broken fonts
  * - Reverse visual-order Arabic into logical order when detected
+ * - Repair Latin first-letter corruption and English label echoes (Phase 1)
  */
 export function normalizePdfText(text: string, dir: PdfDir = "ltr") {
   void dir;
@@ -305,6 +399,7 @@ export function normalizePdfText(text: string, dir: PdfDir = "ltr") {
     next = reverseArabicRuns(next);
   }
   next = dedupeRepeatedArabic(next);
+  next = repairLatinCorruption(next);
   // Drop leftover private-use / odd symbols that survive without Arabic neighbors.
   next = next.replace(/[\uE000-\uF8FF]/g, "");
   return next.replace(/[ \t]{2,}/g, " ").trim();

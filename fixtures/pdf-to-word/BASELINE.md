@@ -1,13 +1,15 @@
-# PDF→Word Phase 0 — Baseline diagnostics
+# PDF→Word Phase 0/1 — Diagnostics baseline (post Phase 1 cleanup)
 
-Measurement only. No layout/converter behavior changes in this phase.
+Phase 0 measures pages; Phase 1 repairs Latin first-letter corruption (`%asic`→Basic, `7echnical`→Technical, …).
+Layout debt (tabs / checkboxes / 0 tables) remains for Phases 2–3.
 
 ## Goals of this baseline
 
 1. Confirm broken-font Arabic recovery ratio on the real vocal form.
 2. Confirm Word XML stays free of illegal controls after normalize.
-3. Record layout debt: **0 tables**, tab/checkbox-heavy pages → `partial_broken`.
-4. Freeze page classes: `clean` | `partial_broken` | `needs_visual` for later phases.
+3. Confirm Phase 1 cleared `latin_corruption` on the vocal form.
+4. Record layout debt: **0 tables**, tab/checkbox-heavy pages → `partial_broken`.
+5. Freeze page classes: `clean` | `partial_broken` | `needs_visual` for later phases.
 
 ---
 # vocal_assessment_form.pdf
@@ -31,8 +33,8 @@ Generated: 2026-09-22
 | Page | Class | Recovery | Garbage left | Tabs | ☐ | Blocks | Reasons |
 | ---: | --- | ---: | ---: | ---: | ---: | ---: | --- |
 | 1 | partial_broken | 1.000 | 0 | 4 | 5 | 10t/0i | tab_heavy_layout, form_controls_without_tables, likely_lost_table_structure |
-| 2 | partial_broken | 1.000 | 0 | 23 | 0 | 23t/0i | latin_corruption, tab_heavy_layout |
-| 3 | partial_broken | 1.000 | 0 | 24 | 16 | 23t/0i | latin_corruption, tab_heavy_layout, form_controls_without_tables, likely_lost_table_structure |
+| 2 | partial_broken | 1.000 | 0 | 23 | 0 | 23t/0i | tab_heavy_layout |
+| 3 | partial_broken | 1.000 | 0 | 24 | 16 | 23t/0i | tab_heavy_layout, form_controls_without_tables, likely_lost_table_structure |
 | 4 | clean | 1.000 | 0 | 0 | 0 | 2t/0i | healthy_text |
 
 ## Notes
@@ -177,12 +179,12 @@ Generated: 2026-09-22
 
 ## Implications for later phases
 
-| Signal | Phase |
-| --- | --- |
-| `latin_corruption`, leftover `%asic` / `7echnical` | Phase 1 — text cleanup |
-| `tab_heavy_layout` | Phase 2 — columns |
-| `form_controls_without_tables` / `likely_lost_table_structure` | Phase 3 — tables |
-| `needs_visual` pages | Phase 4 — hybrid visual |
-| polish / UX | Phase 5 |
+| Signal | Phase | Status |
+| --- | --- | --- |
+| `latin_corruption`, leftover `%asic` / `7echnical` | Phase 1 — text cleanup | **done** (cleared on vocal form) |
+| `tab_heavy_layout` | Phase 2 — columns | pending |
+| `form_controls_without_tables` / `likely_lost_table_structure` | Phase 3 — tables | pending |
+| `needs_visual` pages | Phase 4 — hybrid visual | pending |
+| polish / UX | Phase 5 | pending |
 
 Regenerate: `node scripts/pdf-to-word-baseline.mjs`

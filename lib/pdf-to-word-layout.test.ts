@@ -110,6 +110,36 @@ describe("pdf to word layout", () => {
     expect(normalizePdfText(logical, "rtl")).toBe(logical);
   });
 
+  it("repairs Latin first-letter corruption and English label echoes (Phase 1)", async () => {
+    const { repairLatinCorruption } = await import("@/lib/pdf-to-word-layout");
+    expect(repairLatinCorruption("%asic")).toBe("Basic");
+    expect(repairLatinCorruption("7echnical")).toBe("Technical");
+    expect(repairLatinCorruption(").0etronome")).toBe("Metronome");
+    expect(repairLatinCorruption(").0ezzo-Soprano")).toBe("Mezzo-Soprano");
+    expect(repairLatinCorruption(").)orte")).toBe("Forte");
+    expect(normalizePdfText("Basic Information)%asic Information(")).toBe("Basic Information");
+    expect(normalizePdfText("Basic Information)7echnical Assessment(")).toBe(
+      "Basic Information (Technical Assessment)",
+    );
+    expect(normalizePdfText("Rhythm 5hythm(")).toBe("Rhythm");
+    expect(normalizePdfText("Vocal 5ange(")).toBe("Vocal Range");
+    expect(normalizePdfText("Passaggio %reakpoints(")).toBe("Passaggio Breakpoints");
+    expect(normalizePdfText("Basic Information)/owest Note(")).toBe("Basic Information (Lowest Note)");
+    expect(normalizePdfText("Basic Information)1-5(")).toBe("Basic Information (1-5)");
+    const intonation = normalizePdfText("ةعومسملا (Intonation).,ntonation");
+    expect(intonation).toContain("المسموعة");
+    expect(intonation).toContain("Intonation");
+    expect(intonation).not.toMatch(/%|[0-9][a-z]{3,}|\bntonation\b/);
+    const mixed = normalizePdfText(
+      "Rhythm 7essitura( نمزلاو عاقيإلا .5 Vocal 5ange( مييقتلا رصنع)Basic Information( ةيساسألا تانايبلا :لوألا مسقلا",
+    );
+    expect(mixed).toContain("Tessitura");
+    expect(mixed).toContain("Range");
+    expect(mixed).toContain("Basic Information");
+    expect(mixed).toContain("البيانات الأساسية");
+    expect(mixed).not.toMatch(/\)[A-Za-z]|%[a-z]|[0-9][a-z]{3,}/);
+  });
+
   it("keeps mixed English islands readable inside an Arabic line", () => {
     const page = layoutPage(
       595,

@@ -83,8 +83,10 @@ describe("pdf-to-word diagnostics metrics", () => {
     expect(broken.summary.xmlValid).toBe(true);
     expect(broken.pages[0]!.garbageRawCount).toBeGreaterThan(0);
     expect(broken.pages[0]!.recoveryRatio).toBeGreaterThan(0.9);
-    // Latin corruption (%asic) and/or checkboxes → partial_broken even after text recovery
+    expect(broken.pages[0]!.latinCorruptionCount).toBe(0);
+    // Checkboxes without tables → partial_broken even after Latin cleanup
     expect(broken.summary.overallClass).toBe("partial_broken");
+    expect(broken.pages[0]!.reasons).not.toContain("latin_corruption");
 
     const form = diagnoseFromRawPages(loadSample("form-checkboxes-tabs.json").pages);
     expect(form.summary.overallClass).toBe("partial_broken");
@@ -169,6 +171,9 @@ describe("vocal assessment form fixture", () => {
     expect(diagnosed.summary.totalTables).toBe(0);
     expect(diagnosed.summary.overallClass).toBe("partial_broken");
     expect(diagnosed.pages.every((page) => page.class !== "needs_visual")).toBe(true);
+    // Phase 1: Latin first-letter corruption should be gone from all pages.
+    expect(diagnosed.pages.every((page) => page.latinCorruptionCount === 0)).toBe(true);
+    expect(diagnosed.pages.every((page) => !page.reasons.includes("latin_corruption"))).toBe(true);
 
     const report = formatDiagnosticsReport(diagnosed, "vocal_assessment_form.pdf");
     expect(report).toContain("partial_broken");
