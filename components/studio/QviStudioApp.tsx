@@ -9,11 +9,11 @@ import { StudioMixer } from "@/components/studio/StudioMixer";
 import { StudioTimeline } from "@/components/studio/StudioTimeline";
 import { StudioTrackInspector } from "@/components/studio/StudioTrackInspector";
 import { StudioTransport } from "@/components/studio/StudioTransport";
-import { StudioContext } from "@/components/studio/studio-context";
-import { useStudioSession, type StudioSession } from "@/components/studio/useStudioSession";
+import { useStudio } from "@/components/studio/studio-context";
+import type { StudioSession } from "@/components/studio/useStudioSession";
 
 export function QviStudioApp() {
-  const session = useStudioSession();
+  const session = useStudio();
   const { copy } = useI18n();
   const studioCopy = copy.studio;
   const accept = [...studioImportExtensions.map((ext) => `.${ext}`), "audio/*"].join(",");
@@ -26,15 +26,14 @@ export function QviStudioApp() {
         : null;
 
   return (
-    <StudioContext.Provider value={session}>
-      <div
-        className="bg-background"
-        onDragOver={(event) => event.preventDefault()}
-        onDrop={(event) => {
-          event.preventDefault();
-          void session.importFiles(Array.from(event.dataTransfer.files));
-        }}
-      >
+    <div
+      className="bg-background"
+      onDragOver={(event) => event.preventDefault()}
+      onDrop={(event) => {
+        event.preventDefault();
+        void session.importFiles(Array.from(event.dataTransfer.files));
+      }}
+    >
         <input
           ref={session.fileInputRef}
           className="sr-only"
@@ -98,8 +97,7 @@ export function QviStudioApp() {
           </Sheet>
         )}
         {session.exportOpen && <StudioExportDialog copy={studioCopy} onClose={() => session.setExportOpen(false)} />}
-      </div>
-    </StudioContext.Provider>
+    </div>
   );
 }
 

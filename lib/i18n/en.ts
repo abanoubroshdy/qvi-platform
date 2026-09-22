@@ -142,6 +142,8 @@ export const en = {
     toolsCardDescription:
       "Open a dedicated tools page, pick a group — audio, PDF, images, text, or quick utilities — then use the tool you need. Files stay on your device.",
     toolsCta: "Open tools",
+    studioTitle: "QVI Studio",
+    studioLead: "Import tracks, set the mix, and play it here. Files stay on this device.",
     audioKicker: "New",
     audioTitle: "Audio & video tools — new",
     audioLead: "Extract audio, convert formats, and trim clips entirely in your browser. Nothing is uploaded.",
@@ -294,6 +296,17 @@ export const en = {
           q: "Is this a cloud generator?",
           a: "Neyora is being designed as part of the QVI on-device ecosystem. Prompts you type here are not sent to a training cluster.",
         },
+      ],
+    },
+    studio: {
+      name: "QVI Studio",
+      status: "On this device",
+      title: "Miniature multitrack studio",
+      description: "Import tracks, set volume, tempo, and pitch, and play the mix on this device.",
+      features: [
+        "Arrange clips on a shared timeline",
+        "Mix volume, mute, and solo per track",
+        "Change tempo and pitch without leaving the session",
       ],
     },
   },
