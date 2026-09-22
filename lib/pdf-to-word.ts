@@ -1,19 +1,25 @@
 import {
   AlignmentType,
+  BorderStyle,
   Document,
   ImageRun,
   LineRuleType,
   Packer,
   Paragraph,
+  Table,
+  TableCell,
+  TableLayoutType,
+  TableRow,
   TextRun,
+  WidthType,
 } from "docx";
 import {
-  type LayoutBlock,
   type PageLayout,
   type PdfImageRef,
   type PdfSpan,
   type RunModel,
   type PdfDir,
+  type TableBlock,
   cmykToHex,
   fontSizeFromTransform,
   grayToHex,
@@ -397,6 +403,43 @@ function runsToChildren(runs: RunModel[], images: Array<ConvertedImage | null>) 
   return children;
 }
 
+const NO_BORDER = { style: BorderStyle.NONE, size: 0, color: "FFFFFF" };
+const NO_BORDERS = { top: NO_BORDER, bottom: NO_BORDER, left: NO_BORDER, right: NO_BORDER };
+
+function tableBlockToDocx(block: TableBlock, images: Array<ConvertedImage | null>, contentWidthTwips: number) {
+  const colCount = Math.max(1, ...block.rows.map((row) => row.length));
+  const colWidth = Math.max(200, Math.floor(contentWidthTwips / colCount));
+  return new Table({
+    width: { size: contentWidthTwips, type: WidthType.DXA },
+    layout: TableLayoutType.FIXED,
+    columnWidths: Array.from({ length: colCount }, () => colWidth),
+    rows: block.rows.map(
+      (row) =>
+        new TableRow({
+          children: Array.from({ length: colCount }, (_, index) => {
+            const cell = row[index];
+            return new TableCell({
+              borders: block.borders ? undefined : NO_BORDERS,
+              width: { size: colWidth, type: WidthType.DXA },
+              children: [
+                new Paragraph({
+                  alignment:
+                    cell?.alignment === "center"
+                      ? AlignmentType.CENTER
+                      : cell?.alignment === "right" || cell?.rtl
+                        ? AlignmentType.RIGHT
+                        : AlignmentType.LEFT,
+                  bidirectional: cell?.rtl,
+                  children: cell ? runsToChildren(cell.runs, images) : [],
+                }),
+              ],
+            });
+          }),
+        }),
+    ),
+  });
+}
+
 export async function buildDocxFromPages(
   pages: Array<{ layout: PageLayout; images: Array<ConvertedImage | null>; visual?: ConvertedImage | null }>,
   title: string,
@@ -404,7 +447,8 @@ export async function buildDocxFromPages(
   const sections = pages.map(({ layout, images, visual }) => {
     const width = Math.min(MAX_PAGE_PT, Math.max(300, layout.widthPt));
     const height = Math.min(MAX_PAGE_PT, Math.max(300, layout.heightPt));
-    const children: Paragraph[] = [];
+    const children: Array<Paragraph | Table> = [];
+    const contentWidthTwips = pointsToTwips(width - layout.margin.left - layout.margin.right);
 
     if (layout.useVisualFallback && visual) {
       children.push(
@@ -430,6 +474,18 @@ export async function buildDocxFromPages(
               children: [imageRun(image, block.widthPx, block.heightPx)],
             }),
           );
+          continue;
+        }
+        if (block.type === "table") {
+          if (block.spaceBeforeTwips > 0) {
+            children.push(
+              new Paragraph({
+                spacing: { before: block.spaceBeforeTwips, after: 0 },
+                children: [],
+              }),
+            );
+          }
+          children.push(tableBlockToDocx(block, images, contentWidthTwips));
           continue;
         }
         children.push(

@@ -177,6 +177,13 @@ function layoutText(blocks: LayoutBlock[]) {
   return blocks
     .map((block) => {
       if (block.type === "image") return "";
+      if (block.type === "table") {
+        return block.rows
+          .map((row) =>
+            row.map((cell) => cell.runs.map((run) => (run.kind === "text" ? run.text : "")).join("")).join(" "),
+          )
+          .join("\n");
+      }
       return block.runs.map((run) => (run.kind === "text" ? run.text : "")).join("");
     })
     .join("\n");
@@ -194,7 +201,7 @@ export function diagnosePage(
   // Prefer layout text (what Word gets); fall back to per-item normalize for visual pages.
   const normalized = layout.useVisualFallback ? normalizedFromRaw : fromLayout || normalizedFromRaw;
   const health = measureTextHealth(raw, normalized);
-  const tableCount = options?.tableCount ?? 0;
+  const tableCount = options?.tableCount ?? layout.tableCount ?? 0;
   const { class: pageClass, reasons } = classifyPage({
     health,
     useVisualFallback: layout.useVisualFallback,
@@ -393,8 +400,8 @@ export function formatDiagnosticsReport(doc: DocumentDiagnostics, title = "PDFâ†
     "",
     "## Notes",
     "",
-    "- `tableCount` is always 0 in the current converter (Y-line â†’ paragraph path; no table reconstruction yet).",
-    "- `partial_broken` with `tab_heavy_layout` / `form_controls_without_tables` flags layout debt for later phases (columns / tables).",
+    "- `tableCount` counts borderless column grids (Phase 2) and future form tables (Phase 3).",
+    "- `partial_broken` with `form_controls_without_tables` flags remaining form-structure debt.",
     "- `recoveryRatio` = (raw font-garbage chars removed) / (raw font-garbage chars); 1.0 means full strip or no garbage.",
     "",
   );

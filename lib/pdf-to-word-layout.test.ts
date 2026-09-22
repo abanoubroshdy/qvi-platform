@@ -195,6 +195,52 @@ describe("pdf to word layout", () => {
     expect(countWords("one two three")).toBe(3);
   });
 
+  it("splits large horizontal gutters into borderless column table rows (Phase 2)", async () => {
+    const { splitSpansIntoColumnClusters } = await import("@/lib/pdf-to-word-layout");
+    const clusters = splitSpansIntoColumnClusters([
+      span({ text: "Left label", x: 72, y: 700, fontSize: 12, width: 80 }),
+      span({ text: "Right value", x: 320, y: 700, fontSize: 12, width: 90 }),
+    ]);
+    expect(clusters).toHaveLength(2);
+    expect(clusters[0]![0]!.text).toBe("Left label");
+    expect(clusters[1]![0]!.text).toBe("Right value");
+
+    const page = layoutPage(
+      595,
+      842,
+      [
+        span({ text: "Name", x: 72, y: 720, fontSize: 12, width: 40 }),
+        span({ text: "Ali", x: 300, y: 720, fontSize: 12, width: 30 }),
+        span({ text: "City", x: 72, y: 690, fontSize: 12, width: 40 }),
+        span({ text: "Cairo", x: 300, y: 690, fontSize: 12, width: 50 }),
+        span({ text: "Single column note without a wide gutter here.", x: 72, y: 640, fontSize: 12, width: 400 }),
+      ],
+      [],
+    );
+    expect(page.tableCount).toBeGreaterThanOrEqual(1);
+    const table = page.blocks.find((block) => block.type === "table");
+    expect(table?.type).toBe("table");
+    if (table?.type !== "table") return;
+    expect(table.borders).toBe(false);
+    expect(table.rows.length).toBeGreaterThanOrEqual(2);
+    expect(table.rows[0]).toHaveLength(2);
+    const preview = previewTextFromLayouts([page]);
+    expect(preview).toContain("Name");
+    expect(preview).toContain("Ali");
+    expect(preview).toContain("|");
+    expect(preview).not.toContain("\t");
+
+    const blob = await buildDocxFromPages([{ layout: page, images: [] }], "columns");
+    const unzipper = await import("jszip");
+    const zip = await unzipper.default.loadAsync(await blob.arrayBuffer());
+    const xml = await zip.file("word/document.xml")?.async("string");
+    expect(xml).toContain("Name");
+    expect(xml).toContain("Ali");
+    expect(xml).toMatch(/<w:tbl[\s>]/);
+    // Borderless column grid
+    expect(xml).toMatch(/w:val="nil"|w:val="none"/i);
+  });
+
   it("uses a visual fallback when the page is effectively scanned", () => {
     const page = layoutPage(595, 842, [], [{ x: 0, y: 0, width: 595, height: 842 }]);
     expect(page.useVisualFallback).toBe(true);
@@ -222,6 +268,7 @@ describe("docx packaging", () => {
             useVisualFallback: false,
             wordCount: 2,
             imageCount: 1,
+            tableCount: 0,
             blocks: [
               {
                 type: "text",
@@ -283,6 +330,7 @@ describe("docx packaging", () => {
             useVisualFallback: false,
             wordCount: 1,
             imageCount: 0,
+            tableCount: 0,
             blocks: [
               {
                 type: "text",

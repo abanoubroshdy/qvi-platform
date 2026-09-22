@@ -157,7 +157,7 @@ describe("pdf-to-word diagnostics metrics", () => {
 });
 
 describe("vocal assessment form fixture", () => {
-  it("extracts 4 pages and classifies as partial_broken (text recovered, layout debt)", async () => {
+  it("extracts 4 pages and classifies layout debt after Phase 1–2 cleanup", async () => {
     const data = new Uint8Array(readFileSync(join(fixtures, "vocal_assessment_form.pdf")));
     const rawPages = await extractRawPagesFromPdf(data);
     expect(rawPages).toHaveLength(4);
@@ -168,16 +168,15 @@ describe("vocal assessment form fixture", () => {
     expect(diagnosed.summary.xmlValid).toBe(true);
     expect(diagnosed.summary.meanRecoveryRatio).toBeGreaterThan(0.9);
     expect(diagnosed.summary.totalGarbageLeftover).toBe(0);
-    expect(diagnosed.summary.totalTables).toBe(0);
-    expect(diagnosed.summary.overallClass).toBe("partial_broken");
-    expect(diagnosed.pages.every((page) => page.class !== "needs_visual")).toBe(true);
-    // Phase 1: Latin first-letter corruption should be gone from all pages.
-    expect(diagnosed.pages.every((page) => page.latinCorruptionCount === 0)).toBe(true);
+    // Phase 2: borderless column tables replace most tab gutters.
+    expect(diagnosed.summary.totalTables).toBeGreaterThan(0);
+    expect(diagnosed.summary.totalTabs).toBeLessThan(10);
     expect(diagnosed.pages.every((page) => !page.reasons.includes("latin_corruption"))).toBe(true);
+    expect(diagnosed.pages.every((page) => !page.reasons.includes("tab_heavy_layout"))).toBe(true);
+    expect(diagnosed.pages.every((page) => page.class !== "needs_visual")).toBe(true);
 
     const report = formatDiagnosticsReport(diagnosed, "vocal_assessment_form.pdf");
-    expect(report).toContain("partial_broken");
-    expect(report).toContain("Tables detected: 0");
+    expect(report).toMatch(/Tables detected: [1-9]/);
   });
 
   it("builds Word-safe DOCX XML from the first vocal page layout", async () => {

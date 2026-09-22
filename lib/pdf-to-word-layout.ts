@@ -61,7 +61,22 @@ export type ImageBlock = {
   heightPx: number;
 };
 
-export type LayoutBlock = TextBlock | ImageBlock;
+export type TableCellModel = {
+  runs: RunModel[];
+  rtl: boolean;
+  alignment: TextBlock["alignment"];
+};
+
+/** Borderless multi-cell row used for Phase 2 column layout (replaces tab gaps). */
+export type TableBlock = {
+  type: "table";
+  rows: TableCellModel[][];
+  spaceBeforeTwips: number;
+  /** When false, Word cells render without visible borders (column grid). */
+  borders: boolean;
+};
+
+export type LayoutBlock = TextBlock | ImageBlock | TableBlock;
 
 export type PageLayout = {
   widthPt: number;
@@ -71,6 +86,8 @@ export type PageLayout = {
   useVisualFallback: boolean;
   wordCount: number;
   imageCount: number;
+  /** Number of table blocks (column grids + future form tables). */
+  tableCount: number;
 };
 
 const ARABIC_RE = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
@@ -487,20 +504,71 @@ function sameStyle(a: PdfSpan, b: PdfSpan) {
 function insertGapText(prev: PdfSpan, next: PdfSpan) {
   // Use geometric distance between boxes — works after RTL (right→left) sorting
   // where next.x - (prev.x + prev.width) is negative.
-  const prevLeft = prev.x;
-  const prevRight = prev.x + Math.max(0, prev.width);
-  const nextLeft = next.x;
-  const nextRight = next.x + Math.max(0, next.width);
-  let gap = 0;
-  if (nextLeft >= prevRight) gap = nextLeft - prevRight;
-  else if (prevLeft >= nextRight) gap = prevLeft - nextRight;
-  else gap = 0;
+  const gap = horizontalGap(prev, next);
 
   if (gap <= Math.max(0.12 * prev.fontSize, 0.4)) return "";
   if (/\s$/.test(prev.text) || /^\s/.test(next.text)) return "";
-  if (gap > Math.max(24, prev.fontSize * 1.8)) return "\t";
+  // Phase 2: large gaps become column cells instead of tabs. Within a cluster the
+  // gap should stay modest; if one slips through, prefer spaces over \t.
+  if (gap > Math.max(24, prev.fontSize * 1.8)) return "   ";
   const spaces = Math.max(1, Math.min(6, Math.round(gap / Math.max(prev.fontSize * 0.38, 2))));
   return " ".repeat(spaces);
+}
+
+export function columnGapThreshold(fontSize: number) {
+  // Stricter than the old tab threshold so in-sentence gaps (mixed AR/EN) stay
+  // on one line, while real column gutters (~50pt+) become table cells.
+  return Math.max(40, fontSize * 2.6);
+}
+
+export function horizontalGap(a: PdfSpan, b: PdfSpan) {
+  const aLeft = a.x;
+  const aRight = a.x + Math.max(0, a.width);
+  const bLeft = b.x;
+  const bRight = b.x + Math.max(0, b.width);
+  if (bLeft >= aRight) return bLeft - aRight;
+  if (aLeft >= bRight) return aLeft - bRight;
+  return 0;
+}
+
+/**
+ * Phase 2 — split a line's spans into left→right column clusters when large
+ * horizontal gutters separate them (the same gaps that used to become tabs).
+ */
+export function splitSpansIntoColumnClusters(spans: PdfSpan[]): PdfSpan[][] {
+  const usable = spans.filter((span) => span.text.replace(/\s+/g, "").length > 0);
+  if (usable.length < 2) return usable.length ? [usable] : [];
+
+  const ordered = [...usable].sort((a, b) => a.x - b.x || b.width - a.width);
+  const clusters: PdfSpan[][] = [[ordered[0]!]];
+  for (let index = 1; index < ordered.length; index += 1) {
+    const prev = ordered[index - 1]!;
+    const next = ordered[index]!;
+    const gap = next.x - (prev.x + Math.max(0, prev.width));
+    if (gap > columnGapThreshold(Math.max(prev.fontSize, next.fontSize))) {
+      clusters.push([next]);
+    } else {
+      clusters[clusters.length - 1]!.push(next);
+    }
+  }
+  return clusters;
+}
+
+function lineFromCluster(cluster: PdfSpan[], baseline: number, fontSize: number): Line {
+  const joined = cluster.map((span) => span.text).join("");
+  const rtlVotes = cluster.filter((span) => span.dir === "rtl" || isRtlText(span.text)).length;
+  const rtl = isRtlText(joined) || rtlVotes > cluster.length / 2;
+  const sorted = [...cluster].sort((a, b) => (rtl ? b.x - a.x || b.width - a.width : a.x - b.x));
+  const x = Math.min(...sorted.map((span) => span.x));
+  const right = Math.max(...sorted.map((span) => span.x + span.width));
+  return {
+    baseline,
+    x,
+    width: right - x,
+    fontSize: Math.max(fontSize, ...sorted.map((span) => span.fontSize)),
+    rtl,
+    items: sorted.map((span) => ({ kind: "text" as const, span })),
+  };
 }
 
 function lineAlignment(line: Line, pageWidth: number, marginLeft: number, marginRight: number): TextBlock["alignment"] {
@@ -720,6 +788,7 @@ export function layoutPage(
       useVisualFallback: true,
       wordCount: countWords(spans.map((span) => span.text).join(" ")),
       imageCount: 1,
+      tableCount: 0,
     };
   }
 
@@ -776,6 +845,13 @@ export function layoutPage(
   const blocks: LayoutBlock[] = [];
   let previousBottom = margin.top;
   let paragraphLines: Line[] = [];
+  let pendingTable: TableBlock | null = null;
+
+  const flushTable = () => {
+    if (!pendingTable) return;
+    blocks.push(pendingTable);
+    pendingTable = null;
+  };
 
   const flushParagraph = () => {
     if (!paragraphLines.length) return;
@@ -823,9 +899,34 @@ export function layoutPage(
     paragraphLines = [];
   };
 
+  const appendColumnRow = (line: Line, clusters: PdfSpan[][], yTop: number) => {
+    const cells: TableCellModel[] = clusters.map((cluster) => {
+      const cellLine = lineFromCluster(cluster, line.baseline, line.fontSize);
+      return {
+        runs: lineRuns(cellLine),
+        rtl: cellLine.rtl,
+        alignment: (cellLine.rtl ? "right" : "left") as TextBlock["alignment"],
+      };
+    });
+    const spaceBefore = Math.max(0, yTop - previousBottom);
+    if (pendingTable && pendingTable.rows[0]?.length === cells.length) {
+      pendingTable.rows.push(cells);
+    } else {
+      flushTable();
+      pendingTable = {
+        type: "table",
+        rows: [cells],
+        spaceBeforeTwips: Math.min(1440, pointsToTwips(spaceBefore)),
+        borders: false,
+      };
+    }
+    previousBottom = yTop + line.fontSize * 1.15;
+  };
+
   for (const item of flow) {
     if (item.kind === "image") {
       flushParagraph();
+      flushTable();
       const spaceBefore = Math.max(0, item.yTop - previousBottom);
       blocks.push({
         type: "image",
@@ -838,11 +939,23 @@ export function layoutPage(
       continue;
     }
 
+    const textSpans = item.line.items
+      .filter((entry): entry is { kind: "text"; span: PdfSpan } => entry.kind === "text")
+      .map((entry) => entry.span);
+    const clusters = splitSpansIntoColumnClusters(textSpans);
+    if (clusters.length >= 2) {
+      flushParagraph();
+      appendColumnRow(item.line, clusters, item.yTop);
+      continue;
+    }
+
+    flushTable();
     const last = paragraphLines[paragraphLines.length - 1];
     if (last && !linesBelongTogether(last, item.line)) flushParagraph();
     paragraphLines.push(item.line);
   }
   flushParagraph();
+  flushTable();
 
   const wordCount = countWords(
     spans
@@ -850,6 +963,8 @@ export function layoutPage(
       .join(" ")
       .replace(/\t/g, " "),
   );
+
+  const tableCount = blocks.filter((block) => block.type === "table").length;
 
   return {
     widthPt: pageWidth,
@@ -859,6 +974,7 @@ export function layoutPage(
     useVisualFallback: false,
     wordCount,
     imageCount: blockImages.length + lines.reduce((sum, line) => sum + line.items.filter((item) => item.kind === "image").length, 0),
+    tableCount,
   };
 }
 
@@ -869,6 +985,15 @@ export function previewTextFromLayouts(pages: PageLayout[]) {
       return page.blocks
         .map((block) => {
           if (block.type === "image") return `[image ${block.imageIndex + 1}]`;
+          if (block.type === "table") {
+            return block.rows
+              .map((row) =>
+                row
+                  .map((cell) => cell.runs.map((run) => (run.kind === "text" ? run.text : `[image ${run.imageIndex + 1}]`)).join(""))
+                  .join(" | "),
+              )
+              .join("\n");
+          }
           return block.runs.map((run) => (run.kind === "text" ? run.text : `[image ${run.imageIndex + 1}]`)).join("");
         })
         .join("\n");
