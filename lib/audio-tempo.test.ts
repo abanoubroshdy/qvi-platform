@@ -8,10 +8,14 @@ import {
   chainAtempoFactors,
   estimateOutputDuration,
   formatBpmDraft,
+  formatSignedDraft,
   parseBpmDraft,
+  parseCentsDraft,
+  parseSemitonesDraft,
   pitchRatio,
   resolveTempoRate,
   sanitizeBpmDraftInput,
+  sanitizeSignedDraftInput,
   tapBpmFromTimestamps,
   tempoRateFromBpm,
   tempoRateFromPercent,
@@ -30,6 +34,22 @@ describe("BPM draft typing", () => {
     expect(parseBpmDraft("")).toBeNull();
     expect(formatBpmDraft(120)).toBe("120");
     expect(formatBpmDraft(120.5)).toBe("120.5");
+  });
+});
+
+describe("signed pitch draft typing", () => {
+  it("accepts +/- drafts and clamps only on parse", () => {
+    expect(sanitizeSignedDraftInput("-")).toBe("-");
+    expect(sanitizeSignedDraftInput("-4")).toBe("-4");
+    expect(sanitizeSignedDraftInput("+25")).toBe("+25");
+    expect(parseSemitonesDraft("-4")).toBe(-4);
+    expect(parseSemitonesDraft("20")).toBe(12);
+    expect(parseCentsDraft("+25")).toBe(25);
+    expect(parseCentsDraft("-80")).toBe(-50);
+    expect(parseCentsDraft("+")).toBeNull();
+    expect(formatSignedDraft(2)).toBe("+2");
+    expect(formatSignedDraft(-5)).toBe("-5");
+    expect(formatSignedDraft(0)).toBe("0");
   });
 });
 

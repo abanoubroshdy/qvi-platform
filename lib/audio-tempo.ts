@@ -128,6 +128,55 @@ export function clampCents(value: number): number {
   return Math.min(MAX_CENTS, Math.max(MIN_CENTS, Math.round(value)));
 }
 
+/** Signed display for committed pitch offsets, e.g. "+2", "-5", "0". */
+export function formatSignedDraft(value: number): string {
+  if (!Number.isFinite(value)) return "0";
+  const rounded = Math.round(value);
+  return rounded > 0 ? `+${rounded}` : String(rounded);
+}
+
+/**
+ * Parse a signed integer draft on blur/Enter. Returns null when empty/incomplete
+ * so the caller can restore the previous committed value.
+ */
+export function parseSignedDraft(text: string, clamp: (value: number) => number): number | null {
+  const trimmed = text
+    .trim()
+    .replace(/[＋﹢]/g, "+")
+    .replace(/[−–—]/g, "-");
+  if (!trimmed || trimmed === "+" || trimmed === "-") return null;
+  const value = Number(trimmed);
+  if (!Number.isFinite(value)) return null;
+  return clamp(value);
+}
+
+/** Allow intermediate typing like "-", "+1", "12" without clamping. */
+export function sanitizeSignedDraftInput(text: string, maxDigits = 3): string {
+  const normalized = text
+    .replace(/[＋﹢]/g, "+")
+    .replace(/[−–—]/g, "-");
+  let cleaned = "";
+  for (const char of normalized) {
+    if ((char === "+" || char === "-") && cleaned.length === 0) {
+      cleaned += char;
+      continue;
+    }
+    if (char >= "0" && char <= "9") {
+      const digits = cleaned.startsWith("+") || cleaned.startsWith("-") ? cleaned.slice(1) : cleaned;
+      if (digits.length < maxDigits) cleaned += char;
+    }
+  }
+  return cleaned;
+}
+
+export function parseSemitonesDraft(text: string): number | null {
+  return parseSignedDraft(text, clampSemitones);
+}
+
+export function parseCentsDraft(text: string): number | null {
+  return parseSignedDraft(text, clampCents);
+}
+
 export function clampTempoPercent(value: number): number {
   if (!Number.isFinite(value)) return 0;
   return Math.min(MAX_TEMPO_PERCENT, Math.max(MIN_TEMPO_PERCENT, value));

@@ -43,10 +43,14 @@ import {
   clampSemitones,
   clampTempoPercent,
   formatBpmDraft,
+  formatSignedDraft,
   parseBpmDraft,
+  parseCentsDraft,
+  parseSemitonesDraft,
   pitchRatio,
   resolveTempoRate,
   sanitizeBpmDraftInput,
+  sanitizeSignedDraftInput,
   tapBpmFromTimestamps,
   totalCents,
   type TempoMode,
@@ -163,6 +167,8 @@ export function TempoPitch() {
   const [percent, setPercent] = useState(0);
   const [semitones, setSemitones] = useState(0);
   const [cents, setCents] = useState(0);
+  const [semitonesText, setSemitonesText] = useState(() => formatSignedDraft(0));
+  const [centsText, setCentsText] = useState(() => formatSignedDraft(0));
   const [tapTimes, setTapTimes] = useState<number[]>([]);
   const [tapCount, setTapCount] = useState(0);
 
@@ -242,6 +248,34 @@ export function TempoPitch() {
     return next;
   }
 
+  function commitSemitones(text: string = semitonesText) {
+    const parsed = parseSemitonesDraft(text);
+    const next = parsed ?? semitones;
+    setSemitones(next);
+    setSemitonesText(formatSignedDraft(next));
+    return next;
+  }
+
+  function commitCents(text: string = centsText) {
+    const parsed = parseCentsDraft(text);
+    const next = parsed ?? cents;
+    setCents(next);
+    setCentsText(formatSignedDraft(next));
+    return next;
+  }
+
+  function setSemitonesFromSlider(value: number) {
+    const next = clampSemitones(value);
+    setSemitones(next);
+    setSemitonesText(formatSignedDraft(next));
+  }
+
+  function setCentsFromSlider(value: number) {
+    const next = clampCents(value);
+    setCents(next);
+    setCentsText(formatSignedDraft(next));
+  }
+
   function onTap() {
     const now = performance.now();
     const next = appendTap(tapTimes, now);
@@ -268,6 +302,8 @@ export function TempoPitch() {
     if (!audio || audio.decodeFailed) return;
     const committedOriginal = commitOriginalBpm();
     const committedTarget = commitTargetBpm();
+    const committedSemitones = commitSemitones();
+    const committedCents = commitCents();
     setError(null);
     clearResult();
     setPhase("loading");
@@ -283,8 +319,8 @@ export function TempoPitch() {
         originalBpm: committedOriginal,
         targetBpm: committedTarget,
         percent,
-        semitones,
-        cents,
+        semitones: committedSemitones,
+        cents: committedCents,
         format,
         settings,
       });
@@ -571,45 +607,79 @@ export function TempoPitch() {
                 <div className="space-y-3 rounded-xl border border-border p-4">
                   <div className="flex items-center justify-between gap-3">
                     <Label htmlFor="semitones">{t.semitones}</Label>
-                    <span className="tabular-nums text-sm font-semibold" dir="ltr">
-                      {formatSigned(semitones, "")}
-                    </span>
+                    <Input
+                      id="semitones"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      dir="ltr"
+                      className="h-9 w-24 text-end tabular-nums"
+                      value={semitonesText}
+                      disabled={busy}
+                      aria-label={t.semitones}
+                      onChange={(event) => setSemitonesText(sanitizeSignedDraftInput(event.target.value, 2))}
+                      onBlur={() => commitSemitones()}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          commitSemitones();
+                          (event.target as HTMLInputElement).blur();
+                        }
+                      }}
+                    />
                   </div>
                   <Slider
-                    id="semitones"
+                    id="semitones-slider"
                     min={MIN_SEMITONES}
                     max={MAX_SEMITONES}
                     step={1}
                     value={[semitones]}
                     disabled={busy}
-                    onValueChange={(value) => setSemitones(clampSemitones(value[0] ?? 0))}
+                    onValueChange={(value) => setSemitonesFromSlider(value[0] ?? 0)}
                   />
                   <p className="text-xs text-muted-foreground">{t.semitonesHint}</p>
                 </div>
                 <div className="space-y-3 rounded-xl border border-border p-4">
                   <div className="flex items-center justify-between gap-3">
                     <Label htmlFor="cents">{t.cents}</Label>
-                    <span className="tabular-nums text-sm font-semibold" dir="ltr">
-                      {formatSigned(cents, "¢")}
-                    </span>
+                    <Input
+                      id="cents"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      dir="ltr"
+                      className="h-9 w-24 text-end tabular-nums"
+                      value={centsText}
+                      disabled={busy}
+                      aria-label={t.cents}
+                      onChange={(event) => setCentsText(sanitizeSignedDraftInput(event.target.value, 2))}
+                      onBlur={() => commitCents()}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          commitCents();
+                          (event.target as HTMLInputElement).blur();
+                        }
+                      }}
+                    />
                   </div>
                   <Slider
-                    id="cents"
+                    id="cents-slider"
                     min={MIN_CENTS}
                     max={MAX_CENTS}
                     step={1}
                     value={[cents]}
                     disabled={busy}
-                    onValueChange={(value) => setCents(clampCents(value[0] ?? 0))}
+                    onValueChange={(value) => setCentsFromSlider(value[0] ?? 0)}
                   />
                   <p className="text-xs text-muted-foreground">{t.centsHint}</p>
                 </div>
               </div>
               <p className="text-sm tabular-nums text-muted-foreground" dir="ltr">
                 {interpolate(t.pitchSummary, {
-                  semitones: formatSigned(semitones, ""),
-                  cents: formatSigned(cents, "¢"),
-                  total: formatSigned(centsTotal, "¢"),
+                  semitones: formatSignedDraft(semitones),
+                  cents: `${formatSignedDraft(cents)}¢`,
+                  total: `${formatSignedDraft(centsTotal)}¢`,
                   ratio: ratio.toFixed(4),
                 })}
               </p>
