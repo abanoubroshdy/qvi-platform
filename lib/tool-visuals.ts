@@ -12,7 +12,7 @@ export const toolVisuals: Record<ToolSlug, ToolVisual> = {
   },
   "mp3-to-wav": {
     background: "linear-gradient(145deg, #162433 0%, #1c4a48 50%, #1a9b88 100%)",
-    caption: "MP3 → WAV",
+    caption: "Any → Audio",
   },
   "audio-cutter": {
     background: "linear-gradient(145deg, #1a1630 0%, #2a2150 52%, #6d5bff 100%)",

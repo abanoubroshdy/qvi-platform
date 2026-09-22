@@ -24,8 +24,8 @@ export const tools: Tool[] = [
   },
   {
     slug: "mp3-to-wav",
-    title: "MP3 to WAV",
-    description: "Convert MP3, M4A, or OGG to WAV entirely in your browser.",
+    title: "Audio format converter",
+    description: "Convert many audio files at once to MP3, WAV, M4A, OGG, or FLAC with shared export settings in your browser.",
     href: "/tools/mp3-to-wav",
     available: true,
     category: "audio",
