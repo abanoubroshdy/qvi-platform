@@ -1,8 +1,8 @@
 /**
- * QVI Studio engine surface (phase 1).
+ * QVI Studio engine surface.
  *
- * These are the contracts later phases must implement.
- * This module does not start an AudioContext or call FFmpeg.
+ * Playback and tempo/pitch preview are implemented in phase 2.
+ * Export stays an interface until the bounce phase.
  */
 
 import type { AudioExportSettings } from "@/lib/audio-export";
@@ -10,9 +10,9 @@ import type { StudioExportFormat } from "@/lib/studio/definition";
 import type { StudioProject, StudioTrack } from "@/lib/studio/types";
 
 export const studioEngineContract = {
-  phase: 1,
-  implementsPlayback: false,
-  implementsPreview: false,
+  phase: 2,
+  implementsPlayback: true,
+  implementsPreview: true,
   implementsExport: false,
   playback: ["resumeFromUserGesture", "play", "pause", "stop", "seek", "sync", "dispose"],
   preview: ["renderTrack"],

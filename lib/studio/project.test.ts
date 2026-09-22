@@ -240,9 +240,9 @@ describe("studio project model", () => {
 });
 
 describe("studio engine contract", () => {
-  it("names the methods a later phase must implement and does not implement them", () => {
-    expect(studioEngineContract.implementsPlayback).toBe(false);
-    expect(studioEngineContract.implementsPreview).toBe(false);
+  it("names the playback methods and leaves export unimplemented", () => {
+    expect(studioEngineContract.implementsPlayback).toBe(true);
+    expect(studioEngineContract.implementsPreview).toBe(true);
     expect(studioEngineContract.implementsExport).toBe(false);
     const playback: (keyof StudioPlaybackEngine)[] = [...studioEngineContract.playback];
     const preview: (keyof StudioTempoPitchPreview)[] = [...studioEngineContract.preview];
