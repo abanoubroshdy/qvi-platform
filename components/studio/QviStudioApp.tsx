@@ -44,7 +44,7 @@ export function QviStudioApp() {
           aria-label={studioCopy.addFiles}
           onChange={(event) => session.onFileInput(event.target.files)}
         />
-        <div className="sticky top-16 z-30 border-b border-border bg-background/95 backdrop-blur">
+        <div className="sticky top-16 z-50 border-b border-border bg-background/95 backdrop-blur">
           <StudioTransport copy={studioCopy} />
           {notice && (
             <p className="px-4 pb-3 text-sm text-muted-foreground" role="status">
@@ -63,11 +63,9 @@ export function QviStudioApp() {
           <div className="min-w-0 flex-1">
             <StudioTimeline copy={studioCopy} />
           </div>
-          {session.viewport === "desktop" && (
-            <aside className="w-80 shrink-0 border-s border-border">
-              <StudioMixer copy={studioCopy} />
-            </aside>
-          )}
+          <aside className="hidden w-80 shrink-0 border-s border-border lg:block">
+            <StudioMixer copy={studioCopy} />
+          </aside>
         </div>
 
         {session.viewport === "desktop" && session.inspectorOpen && (

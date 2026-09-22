@@ -53,11 +53,9 @@ export function StudioTransport({ copy }: { copy: Messages["studio"] }) {
           <Upload />
           {copy.addFiles}
         </Button>
-        {studio.viewport !== "desktop" && (
-          <Button type="button" variant="secondary" onClick={() => studio.setMixerOpen(true)}>
-            {copy.mixer}
-          </Button>
-        )}
+        <Button type="button" variant="secondary" className="lg:hidden" onClick={() => studio.setMixerOpen(true)}>
+          {copy.mixer}
+        </Button>
         <Button type="button" variant="secondary" onClick={() => studio.setInspectorOpen((open) => !open)} disabled={!studio.selectedTrack}>
           {copy.inspector}
         </Button>

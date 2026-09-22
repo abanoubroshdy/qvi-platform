@@ -82,6 +82,7 @@ export function useStudioSession() {
   const contextRef = useRef<AudioContext | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const addTargetRef = useRef<string | null>(null);
+  const engineWaitersRef = useRef<Array<() => void>>([]);
 
   const commit = useCallback((next: StudioProject, sync = true) => {
     projectRef.current = next;
@@ -112,7 +113,14 @@ export function useStudioSession() {
       },
     });
     schedulerRef.current = scheduler;
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled || !contextRef.current || !engineRef.current) return;
+      const waiters = engineWaitersRef.current.splice(0);
+      for (const resolve of waiters) resolve();
+    });
     return () => {
+      cancelled = true;
       scheduler.dispose();
       schedulerRef.current = null;
       engine.dispose();
@@ -120,6 +128,18 @@ export function useStudioSession() {
       contextRef.current = null;
     };
   }, []);
+
+  const whenEngineReady = useCallback(
+    () =>
+      new Promise<void>((resolve) => {
+        if (contextRef.current && engineRef.current) {
+          resolve();
+          return;
+        }
+        engineWaitersRef.current.push(resolve);
+      }),
+    [],
+  );
 
   const contentKey = previewKey(project);
   useEffect(() => {
@@ -230,9 +250,11 @@ export function useStudioSession() {
 
   const importFiles = useCallback(
     async (files: File[], trackId?: string) => {
+      if (files.length === 0) return;
+      await whenEngineReady();
       const context = contextRef.current;
       const engine = engineRef.current;
-      if (!context || !engine || files.length === 0) return;
+      if (!context || !engine) return;
       setImporting(true);
       setNotice(null);
       await engine.resumeFromUserGesture();
@@ -259,7 +281,7 @@ export function useStudioSession() {
       if (addedTrack) selectTrack(addedTrack.id, addedTrack.clips.at(-1)?.id ?? null);
       setImporting(false);
     },
-    [commit, selectTrack],
+    [commit, selectTrack, whenEngineReady],
   );
 
   const browse = useCallback((trackId?: string) => {
