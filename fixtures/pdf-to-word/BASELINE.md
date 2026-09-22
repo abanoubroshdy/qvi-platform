@@ -1,15 +1,15 @@
-# PDF→Word Phase 0–2 — Diagnostics baseline (post Phase 2 columns)
+# PDF→Word Phase 0–3 — Diagnostics baseline (post Phase 3 form tables)
 
-Phase 1 repaired Latin corruption; Phase 2 turns large horizontal gutters into **borderless column tables** (no more tab soup).
-Phase 3 will refine form grids (checkbox rows / multi-column forms).
+Phase 2 column gutters + Phase 3 bordered checkbox/option grids (`Label ☐` cells).
+Phases 4–5 cover hybrid visual pages and polish.
 
 ## Goals of this baseline
 
 1. Confirm broken-font Arabic recovery ratio on the real vocal form.
 2. Confirm Word XML stays free of illegal controls after normalize.
 3. Confirm Phase 1 cleared `latin_corruption`.
-4. Confirm Phase 2 cleared `tab_heavy_layout` and raised `tableCount` via column grids.
-5. Freeze page classes: `clean` | `partial_broken` | `needs_visual` for later phases.
+4. Confirm Phase 2 cleared `tab_heavy_layout`.
+5. Confirm Phase 3 emits bordered `form` tables for multi-checkbox rows.
 
 ---
 # vocal_assessment_form.pdf
@@ -25,22 +25,23 @@ Generated: 2026-09-22
 - Mean recovery ratio: 1.000
 - Garbage leftovers (font garbage + PUA): 0
 - Tables detected: 21
+- Form tables (checkbox grids): 9
 - Tabs in output: 0
 - Checkbox glyphs: 21
 
 ## Per-page
 
-| Page | Class | Recovery | Garbage left | Tabs | ☐ | Blocks | Reasons |
-| ---: | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| 1 | clean | 1.000 | 0 | 0 | 5 | 8t/0i | healthy_text |
-| 2 | clean | 1.000 | 0 | 0 | 0 | 5t/0i | healthy_text |
-| 3 | clean | 1.000 | 0 | 0 | 16 | 10t/0i | healthy_text |
-| 4 | clean | 1.000 | 0 | 0 | 0 | 2t/0i | healthy_text |
+| Page | Class | Recovery | Garbage left | Tabs | ☐ | Tables | Form | Reasons |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 1 | clean | 1.000 | 0 | 0 | 5 | 2 | 2 | healthy_text |
+| 2 | clean | 1.000 | 0 | 0 | 0 | 10 | 0 | healthy_text |
+| 3 | clean | 1.000 | 0 | 0 | 16 | 9 | 7 | healthy_text |
+| 4 | clean | 1.000 | 0 | 0 | 0 | 0 | 0 | healthy_text |
 
 ## Notes
 
-- `tableCount` counts borderless column grids (Phase 2) and future form tables (Phase 3).
-- `partial_broken` with `form_controls_without_tables` flags remaining form-structure debt.
+- `tableCount` includes Phase 2 column grids and Phase 3 form tables.
+- `formTableCount` counts bordered checkbox/option grids (`role: form`).
 - `recoveryRatio` = (raw font-garbage chars removed) / (raw font-garbage chars); 1.0 means full strip or no garbage.
 
 ---
@@ -58,19 +59,20 @@ Generated: 2026-09-22
 - Mean recovery ratio: 1.000
 - Garbage leftovers (font garbage + PUA): 0
 - Tables detected: 0
+- Form tables (checkbox grids): 0
 - Tabs in output: 2
 - Checkbox glyphs: 2
 
 ## Per-page
 
-| Page | Class | Recovery | Garbage left | Tabs | ☐ | Blocks | Reasons |
-| ---: | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| 1 | partial_broken | 1.000 | 0 | 2 | 2 | 2t/0i | form_controls_without_tables |
+| Page | Class | Recovery | Garbage left | Tabs | ☐ | Tables | Form | Reasons |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 1 | partial_broken | 1.000 | 0 | 2 | 2 | 0 | 0 | form_controls_without_tables |
 
 ## Notes
 
-- `tableCount` counts borderless column grids (Phase 2) and future form tables (Phase 3).
-- `partial_broken` with `form_controls_without_tables` flags remaining form-structure debt.
+- `tableCount` includes Phase 2 column grids and Phase 3 form tables.
+- `formTableCount` counts bordered checkbox/option grids (`role: form`).
 - `recoveryRatio` = (raw font-garbage chars removed) / (raw font-garbage chars); 1.0 means full strip or no garbage.
 
 ---
@@ -92,19 +94,20 @@ Generated: 2026-09-22
 - Mean recovery ratio: 1.000
 - Garbage leftovers (font garbage + PUA): 0
 - Tables detected: 0
+- Form tables (checkbox grids): 0
 - Tabs in output: 0
 - Checkbox glyphs: 0
 
 ## Per-page
 
-| Page | Class | Recovery | Garbage left | Tabs | ☐ | Blocks | Reasons |
-| ---: | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| 1 | clean | 1.000 | 0 | 0 | 0 | 3t/0i | healthy_text |
+| Page | Class | Recovery | Garbage left | Tabs | ☐ | Tables | Form | Reasons |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 1 | clean | 1.000 | 0 | 0 | 0 | 0 | 0 | healthy_text |
 
 ## Notes
 
-- `tableCount` counts borderless column grids (Phase 2) and future form tables (Phase 3).
-- `partial_broken` with `form_controls_without_tables` flags remaining form-structure debt.
+- `tableCount` includes Phase 2 column grids and Phase 3 form tables.
+- `formTableCount` counts bordered checkbox/option grids (`role: form`).
 - `recoveryRatio` = (raw font-garbage chars removed) / (raw font-garbage chars); 1.0 means full strip or no garbage.
 
 ---
@@ -126,19 +129,20 @@ Generated: 2026-09-22
 - Mean recovery ratio: 1.000
 - Garbage leftovers (font garbage + PUA): 0
 - Tables detected: 0
+- Form tables (checkbox grids): 0
 - Tabs in output: 7
 - Checkbox glyphs: 4
 
 ## Per-page
 
-| Page | Class | Recovery | Garbage left | Tabs | ☐ | Blocks | Reasons |
-| ---: | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| 1 | partial_broken | 1.000 | 0 | 7 | 4 | 1t/0i | tab_heavy_layout, form_controls_without_tables, likely_lost_table_structure |
+| Page | Class | Recovery | Garbage left | Tabs | ☐ | Tables | Form | Reasons |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 1 | partial_broken | 1.000 | 0 | 7 | 4 | 0 | 0 | tab_heavy_layout, form_controls_without_tables, likely_lost_table_structure |
 
 ## Notes
 
-- `tableCount` counts borderless column grids (Phase 2) and future form tables (Phase 3).
-- `partial_broken` with `form_controls_without_tables` flags remaining form-structure debt.
+- `tableCount` includes Phase 2 column grids and Phase 3 form tables.
+- `formTableCount` counts bordered checkbox/option grids (`role: form`).
 - `recoveryRatio` = (raw font-garbage chars removed) / (raw font-garbage chars); 1.0 means full strip or no garbage.
 
 ---
@@ -160,19 +164,20 @@ Generated: 2026-09-22
 - Mean recovery ratio: 1.000
 - Garbage leftovers (font garbage + PUA): 0
 - Tables detected: 0
+- Form tables (checkbox grids): 0
 - Tabs in output: 0
 - Checkbox glyphs: 0
 
 ## Per-page
 
-| Page | Class | Recovery | Garbage left | Tabs | ☐ | Blocks | Reasons |
-| ---: | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| 1 | clean | 1.000 | 0 | 0 | 0 | 3t/0i | healthy_text |
+| Page | Class | Recovery | Garbage left | Tabs | ☐ | Tables | Form | Reasons |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| 1 | clean | 1.000 | 0 | 0 | 0 | 0 | 0 | healthy_text |
 
 ## Notes
 
-- `tableCount` counts borderless column grids (Phase 2) and future form tables (Phase 3).
-- `partial_broken` with `form_controls_without_tables` flags remaining form-structure debt.
+- `tableCount` includes Phase 2 column grids and Phase 3 form tables.
+- `formTableCount` counts bordered checkbox/option grids (`role: form`).
 - `recoveryRatio` = (raw font-garbage chars removed) / (raw font-garbage chars); 1.0 means full strip or no garbage.
 
 ---
@@ -181,9 +186,9 @@ Generated: 2026-09-22
 
 | Signal | Phase | Status |
 | --- | --- | --- |
-| `latin_corruption`, leftover `%asic` / `7echnical` | Phase 1 — text cleanup | **done** |
-| `tab_heavy_layout` | Phase 2 — columns | **done** (borderless column tables) |
-| `form_controls_without_tables` / richer checkbox grids | Phase 3 — tables | pending |
+| `latin_corruption` | Phase 1 — text cleanup | **done** |
+| `tab_heavy_layout` | Phase 2 — columns | **done** |
+| checkbox / option grids | Phase 3 — form tables | **done** (bordered `role: form`) |
 | `needs_visual` pages | Phase 4 — hybrid visual | pending |
 | polish / UX | Phase 5 | pending |
 

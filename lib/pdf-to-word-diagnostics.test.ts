@@ -101,6 +101,7 @@ describe("pdf-to-word diagnostics metrics", () => {
         pageIndex: 0,
         class: "clean",
         tableCount: 0,
+        formTableCount: 0,
         textBlockCount: 1,
         imageBlockCount: 0,
         wordCount: 3,
@@ -124,6 +125,7 @@ describe("pdf-to-word diagnostics metrics", () => {
         pageIndex: 1,
         class: "partial_broken",
         tableCount: 0,
+        formTableCount: 0,
         textBlockCount: 2,
         imageBlockCount: 0,
         wordCount: 5,
@@ -168,15 +170,17 @@ describe("vocal assessment form fixture", () => {
     expect(diagnosed.summary.xmlValid).toBe(true);
     expect(diagnosed.summary.meanRecoveryRatio).toBeGreaterThan(0.9);
     expect(diagnosed.summary.totalGarbageLeftover).toBe(0);
-    // Phase 2: borderless column tables replace most tab gutters.
+    // Phase 2–3: column + form tables replace tab gutters and checkbox option rows.
     expect(diagnosed.summary.totalTables).toBeGreaterThan(0);
+    expect(diagnosed.summary.totalFormTables).toBeGreaterThan(0);
     expect(diagnosed.summary.totalTabs).toBeLessThan(10);
     expect(diagnosed.pages.every((page) => !page.reasons.includes("latin_corruption"))).toBe(true);
     expect(diagnosed.pages.every((page) => !page.reasons.includes("tab_heavy_layout"))).toBe(true);
+    expect(diagnosed.pages.every((page) => !page.reasons.includes("form_controls_without_tables"))).toBe(true);
     expect(diagnosed.pages.every((page) => page.class !== "needs_visual")).toBe(true);
 
     const report = formatDiagnosticsReport(diagnosed, "vocal_assessment_form.pdf");
-    expect(report).toMatch(/Tables detected: [1-9]/);
+    expect(report).toMatch(/Form tables \(checkbox grids\): [1-9]/);
   });
 
   it("builds Word-safe DOCX XML from the first vocal page layout", async () => {

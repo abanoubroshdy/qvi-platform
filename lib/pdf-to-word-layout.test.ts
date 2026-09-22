@@ -222,6 +222,7 @@ describe("pdf to word layout", () => {
     expect(table?.type).toBe("table");
     if (table?.type !== "table") return;
     expect(table.borders).toBe(false);
+    expect(table.role).toBe("columns");
     expect(table.rows.length).toBeGreaterThanOrEqual(2);
     expect(table.rows[0]).toHaveLength(2);
     const preview = previewTextFromLayouts([page]);
@@ -239,6 +240,61 @@ describe("pdf to word layout", () => {
     expect(xml).toMatch(/<w:tbl[\s>]/);
     // Borderless column grid
     expect(xml).toMatch(/w:val="nil"|w:val="none"/i);
+  });
+
+  it("pairs checkbox options into bordered form table cells (Phase 3)", async () => {
+    const { splitSpansIntoFormCells, isCheckboxSpan } = await import("@/lib/pdf-to-word-layout");
+    expect(isCheckboxSpan(span({ text: "☐", x: 0, y: 0 }))).toBe(true);
+
+    const cells = splitSpansIntoFormCells([
+      span({ text: "Tenor", x: 80, y: 700, fontSize: 12, width: 40 }),
+      span({ text: "☐", x: 130, y: 700, fontSize: 12, width: 12 }),
+      span({ text: "Baritone", x: 180, y: 700, fontSize: 12, width: 55 }),
+      span({ text: "☐", x: 245, y: 700, fontSize: 12, width: 12 }),
+      span({ text: "Bass", x: 290, y: 700, fontSize: 12, width: 35 }),
+      span({ text: "☐", x: 335, y: 700, fontSize: 12, width: 12 }),
+    ]);
+    expect(cells).not.toBeNull();
+    expect(cells).toHaveLength(3);
+    expect(cells![0]!.map((item) => item.text).join("")).toContain("Tenor");
+    expect(cells![0]!.some((item) => item.text.includes("☐"))).toBe(true);
+    expect(cells![1]!.map((item) => item.text).join("")).toContain("Baritone");
+    expect(cells![2]!.map((item) => item.text).join("")).toContain("Bass");
+
+    const page = layoutPage(
+      595,
+      842,
+      [
+        span({ text: "Tenor", x: 80, y: 700, fontSize: 12, width: 40 }),
+        span({ text: "☐", x: 130, y: 700, fontSize: 12, width: 12 }),
+        span({ text: "Baritone", x: 180, y: 700, fontSize: 12, width: 55 }),
+        span({ text: "☐", x: 245, y: 700, fontSize: 12, width: 12 }),
+        span({ text: "Bass", x: 290, y: 700, fontSize: 12, width: 35 }),
+        span({ text: "☐", x: 335, y: 700, fontSize: 12, width: 12 }),
+        span({ text: "Soprano", x: 80, y: 670, fontSize: 12, width: 50 }),
+        span({ text: "☐", x: 140, y: 670, fontSize: 12, width: 12 }),
+        span({ text: "Alto", x: 200, y: 670, fontSize: 12, width: 35 }),
+        span({ text: "☐", x: 245, y: 670, fontSize: 12, width: 12 }),
+        span({ text: "Notes", x: 80, y: 620, fontSize: 12, width: 40 }),
+        span({ text: "Body", x: 300, y: 620, fontSize: 12, width: 40 }),
+      ],
+      [],
+    );
+    expect(page.formTableCount).toBeGreaterThanOrEqual(1);
+    const form = page.blocks.find((block) => block.type === "table" && block.role === "form");
+    expect(form?.type).toBe("table");
+    if (form?.type !== "table") return;
+    expect(form.borders).toBe(true);
+    expect(form.rows[0]).toHaveLength(3);
+
+    const blob = await buildDocxFromPages([{ layout: page, images: [] }], "form-table");
+    const unzipper = await import("jszip");
+    const zip = await unzipper.default.loadAsync(await blob.arrayBuffer());
+    const xml = await zip.file("word/document.xml")?.async("string");
+    expect(xml).toContain("Tenor");
+    expect(xml).toMatch(/<w:tbl[\s>]/);
+    // Bordered form grid should not force all borders to none.
+    expect(xml).toMatch(/Tenor[\s\S]*☐|☐[\s\S]*Tenor/);
   });
 
   it("uses a visual fallback when the page is effectively scanned", () => {
@@ -269,6 +325,7 @@ describe("docx packaging", () => {
             wordCount: 2,
             imageCount: 1,
             tableCount: 0,
+            formTableCount: 0,
             blocks: [
               {
                 type: "text",
@@ -331,6 +388,7 @@ describe("docx packaging", () => {
             wordCount: 1,
             imageCount: 0,
             tableCount: 0,
+            formTableCount: 0,
             blocks: [
               {
                 type: "text",

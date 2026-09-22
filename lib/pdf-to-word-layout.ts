@@ -67,13 +67,15 @@ export type TableCellModel = {
   alignment: TextBlock["alignment"];
 };
 
-/** Borderless multi-cell row used for Phase 2 column layout (replaces tab gaps). */
+/** Multi-cell row: Phase 2 column gutters (borderless) or Phase 3 form grids (bordered). */
 export type TableBlock = {
   type: "table";
   rows: TableCellModel[][];
   spaceBeforeTwips: number;
   /** When false, Word cells render without visible borders (column grid). */
   borders: boolean;
+  /** `form` = checkbox/option grids; `columns` = wide-gutter layout only. */
+  role: "columns" | "form";
 };
 
 export type LayoutBlock = TextBlock | ImageBlock | TableBlock;
@@ -86,8 +88,10 @@ export type PageLayout = {
   useVisualFallback: boolean;
   wordCount: number;
   imageCount: number;
-  /** Number of table blocks (column grids + future form tables). */
+  /** Number of table blocks (column grids + form tables). */
   tableCount: number;
+  /** Subset of tableCount with role === "form" (checkbox / option grids). */
+  formTableCount: number;
 };
 
 const ARABIC_RE = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
@@ -554,6 +558,111 @@ export function splitSpansIntoColumnClusters(spans: PdfSpan[]): PdfSpan[][] {
   return clusters;
 }
 
+const CHECKBOX_RE = /[☐☑☒□■]/;
+const FORM_PUNCT_RE = /^[\s:.\-–—|/\\[\]()]+$/;
+
+export function isCheckboxSpan(span: PdfSpan) {
+  const compact = span.text.replace(/\s+/g, "");
+  return compact.length > 0 && compact.length <= 2 && CHECKBOX_RE.test(compact);
+}
+
+function formPairGap(fontSize: number) {
+  // Voice-type rows place labels ~45–75pt left of ☐.
+  return Math.max(80, fontSize * 5);
+}
+
+/**
+ * Phase 3 — pair each checkbox with its nearest short label and emit one cell
+ * per option (e.g. Tenor☐ | Baritone☐ | Bass☐). Returns null when the line is
+ * not a multi-checkbox form row.
+ */
+export function splitSpansIntoFormCells(spans: PdfSpan[]): PdfSpan[][] | null {
+  const usable = spans.filter((span) => span.text.replace(/\s+/g, "").length > 0);
+  if (usable.length < 2) return null;
+
+  const ordered = [...usable].sort((a, b) => a.x - b.x || b.width - a.width);
+  const checkboxIndexes = ordered
+    .map((span, index) => (isCheckboxSpan(span) ? index : -1))
+    .filter((index) => index >= 0);
+  if (checkboxIndexes.length < 2) return null;
+
+  const used = new Set<number>();
+  const cells: PdfSpan[][] = [];
+
+  for (const checkboxIndex of checkboxIndexes) {
+    const checkbox = ordered[checkboxIndex]!;
+    const maxGap = formPairGap(checkbox.fontSize);
+    let labelIndex = -1;
+
+    // Prefer Label ☐ — walk left, skipping bare punctuation.
+    for (let index = checkboxIndex - 1; index >= 0; index -= 1) {
+      if (used.has(index)) break;
+      if (isCheckboxSpan(ordered[index]!)) break;
+      const label = ordered[index]!;
+      const gap = checkbox.x - (label.x + Math.max(0, label.width));
+      if (gap < 0) continue;
+      if (FORM_PUNCT_RE.test(label.text)) continue;
+      if (gap > maxGap) break;
+      if (label.text.replace(/\s+/g, "").length > 48) break;
+      labelIndex = index;
+      break;
+    }
+
+    // ☐ Label only when no left label and the right span is a short option name
+    // that is not itself the label for a following checkbox.
+    if (labelIndex < 0 && checkboxIndex + 1 < ordered.length && !used.has(checkboxIndex + 1)) {
+      const right = ordered[checkboxIndex + 1]!;
+      const nextCheckbox = checkboxIndexes.find((index) => index > checkboxIndex);
+      if (
+        !isCheckboxSpan(right) &&
+        !FORM_PUNCT_RE.test(right.text) &&
+        right.text.replace(/\s+/g, "").length <= 48 &&
+        (nextCheckbox === undefined || nextCheckbox > checkboxIndex + 1)
+      ) {
+        const gap = right.x - (checkbox.x + Math.max(0, checkbox.width));
+        if (gap >= 0 && gap <= Math.max(36, checkbox.fontSize * 3)) {
+          labelIndex = checkboxIndex + 1;
+        }
+      }
+    }
+
+    const cell: PdfSpan[] = [];
+    if (labelIndex >= 0) {
+      if (ordered[labelIndex]!.x <= checkbox.x) cell.push(ordered[labelIndex]!, checkbox);
+      else cell.push(checkbox, ordered[labelIndex]!);
+      used.add(labelIndex);
+    } else {
+      cell.push(checkbox);
+    }
+    used.add(checkboxIndex);
+    cells.push(cell);
+  }
+
+  const leftover = ordered.filter((_, index) => !used.has(index));
+  if (leftover.length) {
+    const punct = leftover.filter((span) => FORM_PUNCT_RE.test(span.text));
+    const rest = leftover.filter((span) => !FORM_PUNCT_RE.test(span.text));
+    if (rest.length) {
+      cells.unshift(...splitSpansIntoColumnClusters(rest));
+    }
+    for (const span of punct) {
+      let bestCell = 0;
+      let bestDist = Number.POSITIVE_INFINITY;
+      cells.forEach((cell, index) => {
+        const host = cell[cell.length - 1] ?? cell[0]!;
+        const dist = Math.abs(host.x - span.x);
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestCell = index;
+        }
+      });
+      cells[bestCell]!.push(span);
+    }
+  }
+
+  return cells.length >= 2 ? cells : null;
+}
+
 function lineFromCluster(cluster: PdfSpan[], baseline: number, fontSize: number): Line {
   const joined = cluster.map((span) => span.text).join("");
   const rtlVotes = cluster.filter((span) => span.dir === "rtl" || isRtlText(span.text)).length;
@@ -789,6 +898,7 @@ export function layoutPage(
       wordCount: countWords(spans.map((span) => span.text).join(" ")),
       imageCount: 1,
       tableCount: 0,
+      formTableCount: 0,
     };
   }
 
@@ -899,7 +1009,12 @@ export function layoutPage(
     paragraphLines = [];
   };
 
-  const appendColumnRow = (line: Line, clusters: PdfSpan[][], yTop: number) => {
+  const appendTableRow = (
+    line: Line,
+    clusters: PdfSpan[][],
+    yTop: number,
+    options: { borders: boolean; role: "columns" | "form" },
+  ) => {
     const cells: TableCellModel[] = clusters.map((cluster) => {
       const cellLine = lineFromCluster(cluster, line.baseline, line.fontSize);
       return {
@@ -909,7 +1024,12 @@ export function layoutPage(
       };
     });
     const spaceBefore = Math.max(0, yTop - previousBottom);
-    if (pendingTable && pendingTable.rows[0]?.length === cells.length) {
+    if (
+      pendingTable &&
+      pendingTable.rows[0]?.length === cells.length &&
+      pendingTable.borders === options.borders &&
+      pendingTable.role === options.role
+    ) {
       pendingTable.rows.push(cells);
     } else {
       flushTable();
@@ -917,7 +1037,8 @@ export function layoutPage(
         type: "table",
         rows: [cells],
         spaceBeforeTwips: Math.min(1440, pointsToTwips(spaceBefore)),
-        borders: false,
+        borders: options.borders,
+        role: options.role,
       };
     }
     previousBottom = yTop + line.fontSize * 1.15;
@@ -942,10 +1063,24 @@ export function layoutPage(
     const textSpans = item.line.items
       .filter((entry): entry is { kind: "text"; span: PdfSpan } => entry.kind === "text")
       .map((entry) => entry.span);
+
+    // Phase 3: multi-checkbox option rows → bordered form table.
+    const formCells = splitSpansIntoFormCells(textSpans);
+    if (formCells && formCells.length >= 2) {
+      flushParagraph();
+      appendTableRow(item.line, formCells, item.yTop, { borders: true, role: "form" });
+      continue;
+    }
+
+    // Phase 2: wide gutters → column table (bordered when a lone checkbox is present).
     const clusters = splitSpansIntoColumnClusters(textSpans);
     if (clusters.length >= 2) {
       flushParagraph();
-      appendColumnRow(item.line, clusters, item.yTop);
+      const hasCheckbox = textSpans.some(isCheckboxSpan);
+      appendTableRow(item.line, clusters, item.yTop, {
+        borders: hasCheckbox,
+        role: hasCheckbox ? "form" : "columns",
+      });
       continue;
     }
 
@@ -964,7 +1099,9 @@ export function layoutPage(
       .replace(/\t/g, " "),
   );
 
-  const tableCount = blocks.filter((block) => block.type === "table").length;
+  const tableBlocks = blocks.filter((block): block is TableBlock => block.type === "table");
+  const tableCount = tableBlocks.length;
+  const formTableCount = tableBlocks.filter((block) => block.role === "form").length;
 
   return {
     widthPt: pageWidth,
@@ -975,6 +1112,7 @@ export function layoutPage(
     wordCount,
     imageCount: blockImages.length + lines.reduce((sum, line) => sum + line.items.filter((item) => item.kind === "image").length, 0),
     tableCount,
+    formTableCount,
   };
 }
 

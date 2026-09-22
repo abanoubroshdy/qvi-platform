@@ -47,6 +47,7 @@ export type PageDiagnostics = TextHealthMetrics & {
   pageIndex: number;
   class: PageClass;
   tableCount: number;
+  formTableCount: number;
   textBlockCount: number;
   imageBlockCount: number;
   wordCount: number;
@@ -66,6 +67,7 @@ export type DocumentDiagnostics = {
     meanRecoveryRatio: number;
     totalGarbageLeftover: number;
     totalTables: number;
+    totalFormTables: number;
     totalTabs: number;
     totalCheckboxes: number;
   };
@@ -202,6 +204,7 @@ export function diagnosePage(
   const normalized = layout.useVisualFallback ? normalizedFromRaw : fromLayout || normalizedFromRaw;
   const health = measureTextHealth(raw, normalized);
   const tableCount = options?.tableCount ?? layout.tableCount ?? 0;
+  const formTableCount = layout.formTableCount ?? 0;
   const { class: pageClass, reasons } = classifyPage({
     health,
     useVisualFallback: layout.useVisualFallback,
@@ -212,6 +215,7 @@ export function diagnosePage(
     pageIndex,
     class: pageClass,
     tableCount,
+    formTableCount,
     textBlockCount: layout.blocks.filter((block) => block.type === "text").length,
     imageBlockCount: layout.blocks.filter((block) => block.type === "image").length,
     wordCount: layout.wordCount,
@@ -248,6 +252,7 @@ export function diagnoseDocument(pages: PageDiagnostics[]): DocumentDiagnostics 
       meanRecoveryRatio,
       totalGarbageLeftover,
       totalTables: pages.reduce((sum, page) => sum + page.tableCount, 0),
+      totalFormTables: pages.reduce((sum, page) => sum + page.formTableCount, 0),
       totalTabs: pages.reduce((sum, page) => sum + page.tabCount, 0),
       totalCheckboxes: pages.reduce((sum, page) => sum + page.checkboxCount, 0),
     },
@@ -381,18 +386,19 @@ export function formatDiagnosticsReport(doc: DocumentDiagnostics, title = "PDF‚Ü
     `- Mean recovery ratio: ${doc.summary.meanRecoveryRatio.toFixed(3)}`,
     `- Garbage leftovers (font garbage + PUA): ${doc.summary.totalGarbageLeftover}`,
     `- Tables detected: ${doc.summary.totalTables}`,
+    `- Form tables (checkbox grids): ${doc.summary.totalFormTables}`,
     `- Tabs in output: ${doc.summary.totalTabs}`,
     `- Checkbox glyphs: ${doc.summary.totalCheckboxes}`,
     "",
     "## Per-page",
     "",
-    "| Page | Class | Recovery | Garbage left | Tabs | ‚òê | Blocks | Reasons |",
-    "| ---: | --- | ---: | ---: | ---: | ---: | ---: | --- |",
+    "| Page | Class | Recovery | Garbage left | Tabs | ‚òê | Tables | Form | Reasons |",
+    "| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
   ];
 
   for (const page of doc.pages) {
     lines.push(
-      `| ${page.pageIndex + 1} | ${page.class} | ${page.recoveryRatio.toFixed(3)} | ${page.garbageLeftoverCount + page.puaLeftoverCount} | ${page.tabCount} | ${page.checkboxCount} | ${page.textBlockCount}t/${page.imageBlockCount}i | ${page.reasons.join(", ")} |`,
+      `| ${page.pageIndex + 1} | ${page.class} | ${page.recoveryRatio.toFixed(3)} | ${page.garbageLeftoverCount + page.puaLeftoverCount} | ${page.tabCount} | ${page.checkboxCount} | ${page.tableCount} | ${page.formTableCount} | ${page.reasons.join(", ")} |`,
     );
   }
 
@@ -400,8 +406,8 @@ export function formatDiagnosticsReport(doc: DocumentDiagnostics, title = "PDF‚Ü
     "",
     "## Notes",
     "",
-    "- `tableCount` counts borderless column grids (Phase 2) and future form tables (Phase 3).",
-    "- `partial_broken` with `form_controls_without_tables` flags remaining form-structure debt.",
+    "- `tableCount` includes Phase 2 column grids and Phase 3 form tables.",
+    "- `formTableCount` counts bordered checkbox/option grids (`role: form`).",
     "- `recoveryRatio` = (raw font-garbage chars removed) / (raw font-garbage chars); 1.0 means full strip or no garbage.",
     "",
   );
