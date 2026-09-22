@@ -1,14 +1,13 @@
-# PDF→Word Phase 0–4 — Diagnostics baseline (post Phase 4 hybrid visual)
+# PDF→Word Phase 0–5 — Diagnostics baseline (post Phase 5 polish)
 
-Editable reconstruction for text/forms; dense or mixed pages also attach a **visual reference** preview.
-Phase 5 covers polish / UX.
+Layout stack complete; Phase 5 polishes converter UX (progress stages, page-mix summary, tips, copy).
 
 ## Goals of this baseline
 
 1. Confirm broken-font Arabic recovery ratio on the real vocal form.
 2. Confirm Word XML stays free of illegal controls after normalize.
-3. Confirm Phases 1–3 cleared latin corruption, tabs, and form checkbox grids.
-4. Confirm Phase 4 marks dense form pages with `hybrid_visual_reference` (still editable).
+3. Confirm Phases 1–4: latin cleanup, columns, form tables, hybrid visual reference.
+4. Phase 5 ships UX polish only — metrics below stay the conversion quality baseline.
 
 ---
 # vocal_assessment_form.pdf
@@ -186,14 +185,14 @@ Generated: 2026-09-22
 
 ---
 
-## Implications for later phases
+## Phase status
 
 | Signal | Phase | Status |
 | --- | --- | --- |
 | `latin_corruption` | Phase 1 — text cleanup | **done** |
 | `tab_heavy_layout` | Phase 2 — columns | **done** |
 | checkbox / option grids | Phase 3 — form tables | **done** |
-| `hybrid_visual_reference` / mixed art | Phase 4 — hybrid visual | **done** |
-| polish / UX | Phase 5 | pending |
+| `hybrid_visual_reference` | Phase 4 — hybrid visual | **done** |
+| progress / summary / copy | Phase 5 — polish | **done** |
 
 Regenerate: `node scripts/pdf-to-word-baseline.mjs`

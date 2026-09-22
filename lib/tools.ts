@@ -97,7 +97,8 @@ export const tools: Tool[] = [
   {
     slug: "pdf-to-word",
     title: "PDF to Word",
-    description: "Convert a PDF to an editable Word document in the browser, keeping text formatting and images.",
+    description:
+      "Convert PDF to editable Word in the browser — Arabic RTL, columns, form tables, and hybrid page previews.",
     href: "/tools/pdf-to-word",
     available: true,
     category: "pdf",
