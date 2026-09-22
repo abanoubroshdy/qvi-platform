@@ -280,7 +280,7 @@ export function diagnoseFromRawPages(pages: RawPageText[]): DocumentDiagnostics 
           const hinted: PdfDir = isRtlText(text) ? "rtl" : "ltr";
           const normalized = normalizePdfText(text, hinted);
           if (!normalized.replace(/\s+/g, "").length) return null;
-          return {
+          const span: PdfSpan = {
             text: normalized,
             x: 72,
             y: height - 72 - itemIndex * 14,
@@ -292,9 +292,10 @@ export function diagnoseFromRawPages(pages: RawPageText[]): DocumentDiagnostics 
             italic: false,
             color: "000000",
             dir: hinted,
-          } satisfies PdfSpan;
+          };
+          return span;
         })
-        .filter((span): span is PdfSpan => Boolean(span));
+        .filter((span): span is PdfSpan => span !== null);
 
     const images = Array.from({ length: page.imageCount ?? 0 }, (_, i) => ({
       x: 72,
@@ -323,7 +324,6 @@ export async function extractRawPagesFromPdf(data: Uint8Array): Promise<RawPageT
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
   const loadingTask = pdfjs.getDocument({
     data,
-    disableWorker: true,
     useSystemFonts: true,
     isEvalSupported: false,
   });

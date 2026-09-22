@@ -20,6 +20,7 @@ import {
   type RunModel,
   type PdfDir,
   type TableBlock,
+  type LayoutBlock,
   cmykToHex,
   fontSizeFromTransform,
   grayToHex,
