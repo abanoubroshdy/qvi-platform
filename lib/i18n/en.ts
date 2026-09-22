@@ -1586,6 +1586,7 @@ export const en = {
     reading: "Reading audio…",
     largeFile: "This file is large and may fail to play on a phone.",
     trackCap: "This screen stops at {count} tracks.",
+    trackLimit: "This screen may slow down after {count} tracks.",
     unsupported: "That file type is not supported.",
     decodeFailed: "Could not read that audio file.",
     previewFailed: "Could not update tempo and pitch for that track.",

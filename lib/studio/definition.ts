@@ -370,6 +370,12 @@ export function trackAddBlockReason(trackCount: number, viewport: StudioViewport
   return canAddTrack(trackCount, viewport) ? null : studioRejectReasons.trackCapReached;
 }
 
+/** Tablet and desktop keep accepting tracks, and warn once the comfortable count is reached. */
+export function exceedsTrackWarning(trackCount: number, viewport: StudioViewport): boolean {
+  const limit = qviStudioLimits.tracks[viewport];
+  return limit.enforcement === "warn" && trackCount >= limit.maxTracks;
+}
+
 export function isStudioExportFormat(format: AudioExportFormat): format is StudioExportFormat {
   return (studioExportFormats as readonly AudioExportFormat[]).includes(format);
 }

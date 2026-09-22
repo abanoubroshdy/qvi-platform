@@ -72,3 +72,30 @@ export function trimClipEnd(clip: StudioClipSpan & { sourceDurationSec: number }
 export function clipHeardSeconds(clip: StudioClipSpan, tempo: StudioTempoSetting): number {
   return heardClipDuration(sourceClipDuration(clip), tempo);
 }
+
+/** Draw at most one bar per CSS pixel, and cap the canvas at 2x so phones do not allocate 3x bitmaps. */
+export function waveformDrawBudget(
+  cssWidth: number,
+  peakCount: number,
+  devicePixelRatio = 1,
+): { bars: number; pixelRatio: number } {
+  const width = Number.isFinite(cssWidth) ? Math.max(1, cssWidth) : 1;
+  const ratio = Math.min(2, Math.max(1, Number.isFinite(devicePixelRatio) ? devicePixelRatio : 1));
+  const available = Math.max(1, Math.floor(peakCount) || 1);
+  return { bars: Math.min(available, Math.ceil(width)), pixelRatio: ratio };
+}
+
+export function downsamplePeaks(peaks: readonly number[], bars: number): number[] {
+  const count = Math.max(1, Math.floor(bars) || 1);
+  if (peaks.length <= count) return [...peaks];
+  const next: number[] = [];
+  const block = peaks.length / count;
+  for (let index = 0; index < count; index += 1) {
+    const start = Math.floor(index * block);
+    const end = Math.min(peaks.length, Math.max(start + 1, Math.floor((index + 1) * block)));
+    let max = 0;
+    for (let cursor = start; cursor < end; cursor += 1) max = Math.max(max, peaks[cursor] ?? 0);
+    next.push(max);
+  }
+  return next;
+}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { formatClock } from "@/lib/time";
 import { timelineWidthPx } from "@/lib/studio/timeline-geometry";
 import type { Messages } from "@/lib/i18n";
@@ -60,14 +61,26 @@ export function StudioTimeline({ copy }: { copy: Messages["studio"] }) {
                   onTrim={(clipId, patch) => studio.setTrim(track.id, clipId, patch)}
                 />
               ))}
-              <div
-                className="pointer-events-none absolute bottom-0 top-0 z-30 w-px bg-primary"
-                style={{ left: studio.playhead * studio.pixelsPerSecond }}
-              />
+              <Playhead pixelsPerSecond={studio.pixelsPerSecond} />
             </div>
           </div>
         </div>
       )}
     </section>
   );
+}
+
+function Playhead({ pixelsPerSecond }: { pixelsPerSecond: number }) {
+  const studio = useStudio();
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    const place = (seconds: number) => {
+      node.style.left = `${seconds * pixelsPerSecond}px`;
+    };
+    place(studio.playheadNow());
+    return studio.subscribePlayhead(place);
+  }, [pixelsPerSecond, studio]);
+  return <div ref={ref} className="pointer-events-none absolute bottom-0 top-0 z-30 w-px bg-primary" />;
 }

@@ -4,7 +4,7 @@
  */
 
 import { inspectAudioBuffer } from "@/lib/audio-inspect";
-import { peaksFromBuffer } from "@/lib/time";
+import { studioPeaksFromBuffer } from "@/lib/studio/peaks";
 import { isStudioImportFileName, largeFileWarning, type StudioFileWarning, type StudioImportedFile } from "@/lib/studio/project";
 
 export type StudioDecodeResult =
@@ -14,6 +14,7 @@ export type StudioDecodeResult =
 export async function loadStudioFile(
   file: File,
   decodeAudioData: (data: ArrayBuffer) => Promise<AudioBuffer>,
+  options?: { peakBars?: number },
 ): Promise<StudioDecodeResult> {
   if (!isStudioImportFileName(file.name)) return { ok: false, reason: "unsupported-file" };
   try {
@@ -28,7 +29,7 @@ export async function loadStudioFile(
         sourceDurationSec: info.duration,
         sampleRate: info.sampleRate,
         channels: info.channels,
-        peaks: peaksFromBuffer(buffer),
+        peaks: studioPeaksFromBuffer(buffer, options?.peakBars ?? 180),
         buffer,
       },
     };

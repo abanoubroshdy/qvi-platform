@@ -9,6 +9,8 @@ import {
   trimClipEnd,
   trimClipStart,
   viewportFromWidth,
+  downsamplePeaks,
+  waveformDrawBudget,
 } from "@/lib/studio/timeline-geometry";
 
 const unity = { mode: "bpm" as const, originalBpm: 120, targetBpm: 120, percent: 0 };
@@ -45,5 +47,11 @@ describe("studio timeline geometry", () => {
     expect(timeAtPixel(100, 10, 4)).toBe(4);
     expect(nextPixelsPerSecond(16, "out")).toBe(16);
     expect(nextPixelsPerSecond(160, "in")).toBe(160);
+  });
+
+  it("draws fewer waveform bars than the phone has device pixels", () => {
+    expect(waveformDrawBudget(40, 180, 3)).toEqual({ bars: 40, pixelRatio: 2 });
+    expect(waveformDrawBudget(400, 48, 1)).toEqual({ bars: 48, pixelRatio: 1 });
+    expect(downsamplePeaks([0.1, 0.9, 0.2, 0.4], 2)).toEqual([0.9, 0.4]);
   });
 });

@@ -1575,6 +1575,7 @@ export const ar: Messages = {
     reading: "جارٍ قراءة الصوت…",
     largeFile: "هذا الملف كبير وقد يتعذر تشغيله على الهاتف.",
     trackCap: "هذه الشاشة تتوقف عند {count} تراكات.",
+    trackLimit: "قد تبطؤ هذه الشاشة بعد {count} تراكات.",
     unsupported: "نوع الملف غير مدعوم.",
     decodeFailed: "تعذر قراءة هذا الملف الصوتي.",
     previewFailed: "تعذر تحديث السرعة والطبقة لهذا التراك.",

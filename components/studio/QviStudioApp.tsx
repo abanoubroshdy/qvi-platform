@@ -19,8 +19,10 @@ export function QviStudioApp() {
   const accept = [...studioImportExtensions.map((ext) => `.${ext}`), "audio/*"].join(",");
 
   const notice =
-    session.notice === "track-cap-reached"
-      ? interpolate(studioCopy.trackCap, { count: qviStudioLimits.tracks[session.viewport].maxTracks })
+    session.notice === "track-cap-reached" || session.notice === "track-limit"
+      ? interpolate(session.notice === "track-limit" ? studioCopy.trackLimit : studioCopy.trackCap, {
+          count: qviStudioLimits.tracks[session.viewport].maxTracks,
+        })
       : session.notice
         ? studioCopy[noticeKey(session.notice)]
         : null;

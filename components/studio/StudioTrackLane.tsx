@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { StudioClip, StudioTrack } from "@/lib/studio/types";
-import { clipHeardSeconds, clipRect, moveClipOffset, timeAtPixel, trimClipEnd, trimClipStart } from "@/lib/studio/timeline-geometry";
+import { clipHeardSeconds, clipRect, downsamplePeaks, moveClipOffset, timeAtPixel, trimClipEnd, trimClipStart, waveformDrawBudget } from "@/lib/studio/timeline-geometry";
 
 export function StudioTrackLane({
   track,
@@ -64,6 +64,7 @@ function ClipBlock({
   onTrim: (patch: { offsetSec?: number; trimStartSec?: number; trimEndSec?: number }) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const blockRef = useRef<HTMLDivElement>(null);
   const heard = clipHeardSeconds(clip, track.tempo);
   const rect = clipRect(clip.offsetSec, heard, pixelsPerSecond);
 
@@ -72,14 +73,15 @@ function ClipBlock({
     if (!canvas) return;
     const width = Math.max(1, rect.widthPx);
     const height = 64;
-    const ratio = window.devicePixelRatio || 1;
-    canvas.width = Math.floor(width * ratio);
-    canvas.height = Math.floor(height * ratio);
+    const source = visiblePeaks(clip.peaks, clip.trimStartSec, clip.trimEndSec, clip.sourceDurationSec);
+    const budget = waveformDrawBudget(width, source.length, window.devicePixelRatio || 1);
+    const peaks = downsamplePeaks(source, budget.bars);
+    canvas.width = Math.floor(width * budget.pixelRatio);
+    canvas.height = Math.floor(height * budget.pixelRatio);
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.setTransform(budget.pixelRatio, 0, 0, budget.pixelRatio, 0, 0);
     ctx.clearRect(0, 0, width, height);
-    const peaks = visiblePeaks(clip.peaks, clip.trimStartSec, clip.trimEndSec, clip.sourceDurationSec);
     ctx.fillStyle = track.color;
     if (!peaks.length) {
       ctx.globalAlpha = 0.85;
@@ -96,7 +98,8 @@ function ClipBlock({
 
   return (
     <div
-      className="absolute top-1 bottom-1 overflow-hidden rounded-md border"
+      ref={blockRef}
+      className="absolute top-1 bottom-1 touch-none overflow-hidden rounded-md border"
       style={{
         left: rect.leftPx,
         width: rect.widthPx,
@@ -111,15 +114,24 @@ function ClipBlock({
         const origin = clip.offsetSec;
         const target = event.currentTarget;
         target.setPointerCapture(event.pointerId);
-        const move = (ev: PointerEvent) => {
-          onOffset(moveClipOffset(origin, (ev.clientX - startX) / pixelsPerSecond));
+        const place = (clientX: number) => {
+          const next = moveClipOffset(origin, (clientX - startX) / pixelsPerSecond);
+          target.style.left = `${next * pixelsPerSecond}px`;
+          return next;
         };
-        const up = () => {
+        const move = (ev: PointerEvent) => {
+          place(ev.clientX);
+        };
+        const up = (ev: PointerEvent) => {
           target.removeEventListener("pointermove", move);
           target.removeEventListener("pointerup", up);
+          target.removeEventListener("pointercancel", up);
+          const next = place(ev.clientX);
+          if (next !== origin) onOffset(next);
         };
         target.addEventListener("pointermove", move);
         target.addEventListener("pointerup", up);
+        target.addEventListener("pointercancel", up);
       }}
     >
       <canvas ref={canvasRef} className="h-full w-full" />
@@ -129,13 +141,23 @@ function ClipBlock({
           <TrimHandle
             edge="start"
             label="trim start"
-            onDrag={(deltaPx) => onTrim(trimClipStart(clip, track.tempo, deltaPx / pixelsPerSecond))}
+            onMove={(deltaPx) => {
+              const patch = trimClipStart(clip, track.tempo, deltaPx / pixelsPerSecond);
+              placeBlock(blockRef.current, { ...clip, ...patch }, track.tempo, pixelsPerSecond);
+            }}
+            onCommit={(deltaPx) => onTrim(trimClipStart(clip, track.tempo, deltaPx / pixelsPerSecond))}
           />
           <TrimHandle
             edge="end"
             label="trim end"
-            onDrag={(deltaPx) =>
-              onTrim({ trimEndSec: trimClipEnd({ ...clip, sourceDurationSec: clip.sourceDurationSec }, track.tempo, deltaPx / pixelsPerSecond) })
+            onMove={(deltaPx) => {
+              const trimEndSec = trimClipEnd({ ...clip, sourceDurationSec: clip.sourceDurationSec }, track.tempo, deltaPx / pixelsPerSecond);
+              placeBlock(blockRef.current, { ...clip, trimEndSec }, track.tempo, pixelsPerSecond);
+            }}
+            onCommit={(deltaPx) =>
+              onTrim({
+                trimEndSec: trimClipEnd({ ...clip, sourceDurationSec: clip.sourceDurationSec }, track.tempo, deltaPx / pixelsPerSecond),
+              })
             }
           />
         </>
@@ -144,28 +166,55 @@ function ClipBlock({
   );
 }
 
-function TrimHandle({ edge, label, onDrag }: { edge: "start" | "end"; label: string; onDrag: (deltaPx: number) => void }) {
+function TrimHandle({
+  edge,
+  label,
+  onMove,
+  onCommit,
+}: {
+  edge: "start" | "end";
+  label: string;
+  onMove: (deltaPx: number) => void;
+  onCommit: (deltaPx: number) => void;
+}) {
   return (
     <button
       type="button"
       aria-label={label}
-      className={`absolute top-0 bottom-0 z-10 w-3 cursor-ew-resize bg-foreground/30 ${edge === "start" ? "start-0" : "end-0"}`}
+      className={`absolute top-0 bottom-0 z-10 w-3 touch-none cursor-ew-resize bg-foreground/30 ${edge === "start" ? "start-0" : "end-0"}`}
       onPointerDown={(event) => {
         event.stopPropagation();
         event.preventDefault();
         const startX = event.clientX;
         const target = event.currentTarget;
         target.setPointerCapture(event.pointerId);
-        const move = (ev: PointerEvent) => onDrag(ev.clientX - startX);
-        const up = () => {
+        const move = (ev: PointerEvent) => onMove(ev.clientX - startX);
+        const up = (ev: PointerEvent) => {
           target.removeEventListener("pointermove", move);
           target.removeEventListener("pointerup", up);
+          target.removeEventListener("pointercancel", up);
+          const delta = ev.clientX - startX;
+          if (delta !== 0) onCommit(delta);
         };
         target.addEventListener("pointermove", move);
         target.addEventListener("pointerup", up);
+        target.addEventListener("pointercancel", up);
       }}
     />
   );
+}
+
+function placeBlock(
+  node: HTMLDivElement | null,
+  clip: { offsetSec: number; trimStartSec: number; trimEndSec: number },
+  tempo: StudioTrack["tempo"],
+  pixelsPerSecond: number,
+) {
+  if (!node) return;
+  const heard = clipHeardSeconds(clip, tempo);
+  const next = clipRect(clip.offsetSec, heard, pixelsPerSecond);
+  node.style.left = `${next.leftPx}px`;
+  node.style.width = `${next.widthPx}px`;
 }
 
 function visiblePeaks(peaks: number[], trimStart: number, trimEnd: number, sourceDuration: number): number[] {

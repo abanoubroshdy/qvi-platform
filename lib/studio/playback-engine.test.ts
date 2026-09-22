@@ -389,6 +389,38 @@ describe("tempo preview", () => {
     scheduler.dispose();
     connected.dispose();
   });
+
+  it("renders each changed track and only one ffmpeg job at a time", async () => {
+    vi.useFakeTimers();
+    const results: string[] = [];
+    let active = 0;
+    let maxActive = 0;
+    const first = projectWithClip();
+    const second = projectWithClip();
+    const spedA = setTrackTempo(first.project, first.track.id, { targetBpm: 160 });
+    const spedB = setTrackTempo(second.project, second.track.id, { targetBpm: 180 });
+    if (!spedA.ok || !spedB.ok) throw new Error("tempo");
+    const scheduler = createTempoPreviewScheduler({
+      debounceMs: qviStudioLimits.previewDebounceMs,
+      preview: {
+        renderTrack: async (track) => {
+          active += 1;
+          maxActive = Math.max(maxActive, active);
+          await Promise.resolve();
+          active -= 1;
+          results.push(track.id);
+          return makeBuffer(4, 10, 0.2);
+        },
+      },
+      onResult: () => undefined,
+    });
+    scheduler.schedule(spedA.project.tracks[0]!);
+    scheduler.schedule(spedB.project.tracks[0]!);
+    await vi.advanceTimersByTimeAsync(qviStudioLimits.previewDebounceMs);
+    expect(results).toEqual([spedA.project.tracks[0]!.id, spedB.project.tracks[0]!.id]);
+    expect(maxActive).toBe(1);
+    scheduler.dispose();
+  });
 });
 
 describe("load studio file", () => {

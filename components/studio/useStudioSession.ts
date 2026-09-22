@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createBrowserTempoPitchPreview, connectTempoPreview } from "@/lib/studio/tempo-preview";
 import { loadStudioFile } from "@/lib/studio/load-clip";
+import { studioPeakBarCount } from "@/lib/studio/peaks";
+import { waitForNextPaint } from "@/lib/studio/paint";
 import {
   createStudioAudioHost,
   createStudioPlaybackEngine,
@@ -11,6 +13,7 @@ import {
 } from "@/lib/studio/playback-engine";
 import {
   addImportedFileAsTrack,
+  largeFileWarning,
   addImportedFileToTrack,
   canPlayStudioProject,
   createStudioProject,
@@ -30,13 +33,14 @@ import {
   stopPlayhead,
   trackTempoPitchIsIdentity,
 } from "@/lib/studio/project";
-import type { StudioTempoSetting } from "@/lib/studio/definition";
+import { exceedsTrackWarning, type StudioTempoSetting } from "@/lib/studio/definition";
 import type { StudioProject, StudioTrack } from "@/lib/studio/types";
 import { viewportFromWidth } from "@/lib/studio/timeline-geometry";
 
 export type StudioNoticeCode =
   | "large-file"
   | "track-cap-reached"
+  | "track-limit"
   | "unsupported-file"
   | "decode-failed"
   | "preview-failed";
@@ -83,6 +87,8 @@ export function useStudioSession() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const addTargetRef = useRef<string | null>(null);
   const engineWaitersRef = useRef<Array<() => void>>([]);
+  const playheadListenersRef = useRef(new Set<(seconds: number) => void>());
+  const playheadRef = useRef(0);
 
   const commit = useCallback((next: StudioProject, sync = true) => {
     projectRef.current = next;
@@ -95,7 +101,10 @@ export function useStudioSession() {
     contextRef.current = context;
     const engine = createStudioPlaybackEngine({
       host: createStudioAudioHost(context),
-      onTransport: setTransport,
+      onTransport: (snapshot) => {
+        playheadRef.current = snapshot.playheadSec;
+        setTransport(snapshot);
+      },
     });
     engineRef.current = engine;
     const scheduler = connectTempoPreview({
@@ -203,24 +212,40 @@ export function useStudioSession() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  const publishPlayhead = useCallback((seconds: number) => {
+    playheadRef.current = seconds;
+    playheadListenersRef.current.forEach((listener) => listener(seconds));
+  }, []);
+
+  const subscribePlayhead = useCallback((listener: (seconds: number) => void) => {
+    playheadListenersRef.current.add(listener);
+    return () => {
+      playheadListenersRef.current.delete(listener);
+    };
+  }, []);
+
+  const playheadNow = useCallback(() => playheadRef.current, []);
+
   useEffect(() => {
+    if (transport.status !== "playing") return;
     let frame = 0;
     const tick = () => {
       const engine = engineRef.current;
-      if (engine?.currentStatus() === "playing") {
-        const snap = engine.poll();
+      if (!engine || engine.currentStatus() !== "playing") return;
+      const snap = engine.poll();
+      publishPlayhead(snap.playheadSec);
+      if (snap.status !== "playing") {
+        const next = seekPlayhead(projectRef.current, snap.playheadSec);
+        projectRef.current = next;
+        setProject(next);
         setTransport(snap);
-        if (snap.status !== "playing") {
-          const next = seekPlayhead(projectRef.current, snap.playheadSec);
-          projectRef.current = next;
-          setProject(next);
-        }
+        return;
       }
       frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, []);
+  }, [publishPlayhead, transport.status]);
 
   const seek = useCallback(
     (seconds: number) => {
@@ -261,7 +286,13 @@ export function useStudioSession() {
       let current = projectRef.current;
       let addedTrack: StudioTrack | null = null;
       for (const file of files) {
-        const decoded = await loadStudioFile(file, (data) => context.decodeAudioData(data));
+        if (largeFileWarning(file.size)) {
+          setNotice("large-file");
+          await waitForNextPaint();
+        }
+        const decoded = await loadStudioFile(file, (data) => context.decodeAudioData(data), {
+          peakBars: studioPeakBarCount(viewportRef.current),
+        });
         if (!decoded.ok) {
           setNotice(decoded.reason);
           continue;
@@ -276,6 +307,9 @@ export function useStudioSession() {
         }
         current = result.project;
         addedTrack = trackId ? (current.tracks.find((track) => track.id === trackId) ?? null) : (current.tracks.at(-1) ?? null);
+        if (!decoded.warning && !trackId && exceedsTrackWarning(current.tracks.length, viewportRef.current)) {
+          setNotice("track-limit");
+        }
       }
       commit(current);
       if (addedTrack) selectTrack(addedTrack.id, addedTrack.clips.at(-1)?.id ?? null);
@@ -307,6 +341,8 @@ export function useStudioSession() {
     project,
     duration: projectDuration(project),
     playhead: displayedPlayhead,
+    playheadNow,
+    subscribePlayhead,
     transport,
     viewport,
     pixelsPerSecond,

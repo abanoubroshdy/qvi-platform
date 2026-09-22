@@ -44,7 +44,7 @@ Do not put the Supabase project URL in `NEXT_PUBLIC_SITE_URL`.
 
 ## QVI Studio
 
-V1 scope is defined in `lib/studio/definition.ts` (phase 0). The session model is `lib/studio/project.ts` (phase 1). Phase 2 plays that session with Web Audio and renders tempo and pitch offline. Phase 3 is the multitrack interface. Phase 4 hosts that same in-memory session on `/` and `/studio`. Refresh clears it. Phase 5 bounces the audible mix to MP3 or WAV with ffmpeg.wasm. Stem separation stays on QV1, synthesis stays on Neyora, and the studio is not a `/tools` utility.
+V1 scope is defined in `lib/studio/definition.ts` (phase 0). The session model is `lib/studio/project.ts` (phase 1). Phase 2 plays that session with Web Audio and renders tempo and pitch offline. Phase 3 is the multitrack interface. Phase 4 hosts that same in-memory session on `/` and `/studio`. Refresh clears it. Phase 5 bounces the audible mix to MP3 or WAV with ffmpeg.wasm. Phase 6 keeps phones responsive: the playhead moves without redrawing every track, clip drags commit on release, waveforms stay within the screen's pixels, and tempo previews run one track at a time. Stem separation stays on QV1, synthesis stays on Neyora, and the studio is not a `/tools` utility.
 
 ## Routes
 

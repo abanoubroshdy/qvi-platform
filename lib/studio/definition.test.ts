@@ -15,6 +15,7 @@ import { FFMPEG_LARGE_FILE_BYTES } from "@/lib/ffmpeg";
 import {
   audibleTracks,
   canAddTrack,
+  exceedsTrackWarning,
   canPlayProject,
   clipTimelineEnd,
   defaultClipOffset,
@@ -178,5 +179,9 @@ describe("studio timeline math", () => {
     expect(canAddTrack(7, "mobile")).toBe(true);
     expect(canAddTrack(12, "tablet")).toBe(true);
     expect(canAddTrack(16, "desktop")).toBe(true);
+    expect(exceedsTrackWarning(8, "mobile")).toBe(false);
+    expect(exceedsTrackWarning(11, "tablet")).toBe(false);
+    expect(exceedsTrackWarning(12, "tablet")).toBe(true);
+    expect(exceedsTrackWarning(16, "desktop")).toBe(true);
   });
 });

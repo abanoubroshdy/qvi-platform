@@ -165,48 +165,80 @@ export function createTempoPreviewScheduler(options: {
   onError?: (trackId: string, error: unknown) => void;
 }) {
   const debounceMs = options.debounceMs ?? qviStudioLimits.previewDebounceMs;
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  let controller: AbortController | null = null;
-  let generation = 0;
+  const timers = new Map<string, ReturnType<typeof setTimeout>>();
+  const controllers = new Map<string, AbortController>();
+  const generation = new Map<string, number>();
+  const pending: StudioTrack[] = [];
+  let rendering = false;
+  let disposed = false;
 
-  function cancelTimer() {
-    if (!timer) return;
-    clearTimeout(timer);
-    timer = null;
+  function dropPending(trackId: string) {
+    const index = pending.findIndex((track) => track.id === trackId);
+    if (index >= 0) pending.splice(index, 1);
+  }
+
+  function pump() {
+    if (disposed || rendering || pending.length === 0) return;
+    const track = pending.shift();
+    if (!track) return;
+    const controller = controllers.get(track.id);
+    const generationAtSchedule = generation.get(track.id) ?? 0;
+    if (!controller || controller.signal.aborted) {
+      pump();
+      return;
+    }
+    rendering = true;
+    options.preview.renderTrack(track, controller.signal).then(
+      (buffer) => {
+        rendering = false;
+        const current = !disposed && generation.get(track.id) === generationAtSchedule && !controller.signal.aborted;
+        if (current) options.onResult(track.id, buffer);
+        pump();
+      },
+      (error: unknown) => {
+        rendering = false;
+        const current = !disposed && generation.get(track.id) === generationAtSchedule && !controller.signal.aborted;
+        if (current && !isAbortError(error)) options.onError?.(track.id, error);
+        pump();
+      },
+    );
   }
 
   return {
     schedule(track: StudioTrack) {
-      cancelTimer();
-      controller?.abort();
-      controller = new AbortController();
-      const signal = controller.signal;
-      const generationAtSchedule = ++generation;
+      if (disposed) return;
+      const timer = timers.get(track.id);
+      if (timer) clearTimeout(timer);
+      timers.delete(track.id);
+      controllers.get(track.id)?.abort();
+      dropPending(track.id);
+      const controller = new AbortController();
+      controllers.set(track.id, controller);
+      const generationAtSchedule = (generation.get(track.id) ?? 0) + 1;
+      generation.set(track.id, generationAtSchedule);
       if (trackTempoPitchIsIdentity(track)) {
         options.onResult(track.id, null);
         return;
       }
-      timer = setTimeout(() => {
-        timer = null;
-        options.preview.renderTrack(track, signal).then(
-          (buffer) => {
-            if (generationAtSchedule !== generation || signal.aborted) return;
-            options.onResult(track.id, buffer);
-          },
-          (error: unknown) => {
-            if (generationAtSchedule !== generation || signal.aborted || isAbortError(error)) return;
-            options.onError?.(track.id, error);
-          },
-        );
-      }, debounceMs);
+      timers.set(
+        track.id,
+        setTimeout(() => {
+          timers.delete(track.id);
+          if (disposed || generation.get(track.id) !== generationAtSchedule) return;
+          pending.push(track);
+          pump();
+        }, debounceMs),
+      );
     },
     cancel() {
-      generation += 1;
-      cancelTimer();
-      controller?.abort();
-      controller = null;
+      Array.from(timers.values()).forEach((timer) => clearTimeout(timer));
+      timers.clear();
+      Array.from(controllers.values()).forEach((controller) => controller.abort());
+      controllers.clear();
+      pending.length = 0;
     },
     dispose() {
+      disposed = true;
       this.cancel();
     },
   };
