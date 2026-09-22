@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { WaveformPlayer } from "@/components/AudioWaveform";
 import { FFmpegStatus } from "@/components/FFmpegStatus";
 import { Stat } from "@/components/Stat";
@@ -182,11 +182,15 @@ export function TempoPitch() {
 
   const audioUrlRef = useRef<string | null>(null);
   const resultUrlRef = useRef<string | null>(null);
+  const previewGenRef = useRef(0);
+  const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     return () => {
       if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
       if (resultUrlRef.current) URL.revokeObjectURL(resultUrlRef.current);
+      if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+      previewGenRef.current += 1;
     };
   }, []);
 
@@ -197,6 +201,7 @@ export function TempoPitch() {
   const ratio = useMemo(() => pitchRatio(semitones, cents), [semitones, cents]);
   const deltaBpm = useMemo(() => bpmDelta(originalBpm, targetBpm), [originalBpm, targetBpm]);
   const centsTotal = useMemo(() => totalCents(semitones, cents), [semitones, cents]);
+  const isIdentityTransform = Math.abs(tempoRate - 1) < 1e-6 && semitones === 0 && cents === 0;
 
   function clearResult() {
     if (resultUrlRef.current) URL.revokeObjectURL(resultUrlRef.current);
@@ -207,6 +212,137 @@ export function TempoPitch() {
     setResultDuration(0);
   }
 
+  const processAudio = useCallback(
+    async (options: {
+      file: LoadedAudio;
+      mode: TempoMode;
+      originalBpm: number;
+      targetBpm: number;
+      percent: number;
+      semitones: number;
+      cents: number;
+      format: ToolFormat;
+      settings: AudioExportSettings;
+    }) => {
+      const gen = ++previewGenRef.current;
+      setError(null);
+      clearResult();
+      setPhase("loading");
+      setProgress(0);
+
+      try {
+        const inputName = inputNameFor(options.file.file);
+        const plan = buildTempoPitchExportPlan({
+          inputName,
+          sourceDuration: options.file.duration,
+          sampleRate: options.file.sampleRate || options.settings.sampleRate,
+          mode: options.mode,
+          originalBpm: options.originalBpm,
+          targetBpm: options.targetBpm,
+          percent: options.percent,
+          semitones: options.semitones,
+          cents: options.cents,
+          format: options.format,
+          settings: options.settings,
+        });
+
+        const blob = await runFFmpeg({
+          file: options.file.file,
+          inputName,
+          outputName: plan.outputName,
+          mimeType: plan.mimeType,
+          args: plan.args,
+          fallbackArgs: plan.fallbackArgs,
+          onLoadProgress: (ratioValue) => {
+            if (gen !== previewGenRef.current) return;
+            setPhase("loading");
+            setProgress(ratioValue);
+          },
+          onProgress: (ratioValue) => {
+            if (gen !== previewGenRef.current) return;
+            setPhase("converting");
+            setProgress(ratioValue);
+          },
+        });
+
+        if (gen !== previewGenRef.current) return;
+
+        const url = URL.createObjectURL(blob);
+        resultUrlRef.current = url;
+        setResult(blob);
+        setResultUrl(url);
+        setResultDuration(plan.estimatedDuration);
+        setResultPeaks(await peaksFromBlob(blob));
+        setProgress(1);
+      } catch {
+        if (gen !== previewGenRef.current) return;
+        setError(t.failed);
+      } finally {
+        if (gen === previewGenRef.current) setPhase("idle");
+      }
+    },
+    [t.failed],
+  );
+
+  function cancelPendingPreview() {
+    if (previewTimerRef.current) {
+      clearTimeout(previewTimerRef.current);
+      previewTimerRef.current = null;
+    }
+    previewGenRef.current += 1;
+  }
+
+  useEffect(() => {
+    if (!audio || audio.decodeFailed) return;
+
+    if (previewTimerRef.current) {
+      clearTimeout(previewTimerRef.current);
+      previewTimerRef.current = null;
+    }
+
+    if (isIdentityTransform) {
+      cancelPendingPreview();
+      clearResult();
+      setPhase("idle");
+      setProgress(0);
+      return;
+    }
+
+    previewTimerRef.current = setTimeout(() => {
+      previewTimerRef.current = null;
+      void processAudio({
+        file: audio,
+        mode,
+        originalBpm,
+        targetBpm,
+        percent,
+        semitones,
+        cents,
+        format,
+        settings,
+      });
+    }, 700);
+
+    return () => {
+      if (previewTimerRef.current) {
+        clearTimeout(previewTimerRef.current);
+        previewTimerRef.current = null;
+      }
+    };
+  }, [
+    audio,
+    mode,
+    originalBpm,
+    targetBpm,
+    percent,
+    semitones,
+    cents,
+    format,
+    settings,
+    isIdentityTransform,
+    processAudio,
+  ]);
+
   async function onFiles(files: File[]) {
     const next = files[0];
     if (!next) return;
@@ -216,6 +352,11 @@ export function TempoPitch() {
     }
 
     setError(null);
+    if (previewTimerRef.current) {
+      clearTimeout(previewTimerRef.current);
+      previewTimerRef.current = null;
+    }
+    previewGenRef.current += 1;
     clearResult();
     setPhase("idle");
     setProgress(0);
@@ -298,66 +439,31 @@ export function TempoPitch() {
     setTapCount(0);
   }
 
-  async function convert() {
+  function convertNow() {
     if (!audio || audio.decodeFailed) return;
+    if (previewTimerRef.current) {
+      clearTimeout(previewTimerRef.current);
+      previewTimerRef.current = null;
+    }
     const committedOriginal = commitOriginalBpm();
     const committedTarget = commitTargetBpm();
     const committedSemitones = commitSemitones();
     const committedCents = commitCents();
-    setError(null);
-    clearResult();
-    setPhase("loading");
-    setProgress(0);
-
-    try {
-      const inputName = inputNameFor(audio.file);
-      const plan = buildTempoPitchExportPlan({
-        inputName,
-        sourceDuration: audio.duration,
-        sampleRate: audio.sampleRate || settings.sampleRate,
-        mode,
-        originalBpm: committedOriginal,
-        targetBpm: committedTarget,
-        percent,
-        semitones: committedSemitones,
-        cents: committedCents,
-        format,
-        settings,
-      });
-
-      const blob = await runFFmpeg({
-        file: audio.file,
-        inputName,
-        outputName: plan.outputName,
-        mimeType: plan.mimeType,
-        args: plan.args,
-        fallbackArgs: plan.fallbackArgs,
-        onLoadProgress: (ratioValue) => {
-          setPhase("loading");
-          setProgress(ratioValue);
-        },
-        onProgress: (ratioValue) => {
-          setPhase("converting");
-          setProgress(ratioValue);
-        },
-      });
-
-      const url = URL.createObjectURL(blob);
-      resultUrlRef.current = url;
-      setResult(blob);
-      setResultUrl(url);
-      setResultDuration(plan.estimatedDuration);
-      setResultPeaks(await peaksFromBlob(blob));
-      setProgress(1);
-    } catch {
-      setError(t.failed);
-    } finally {
-      setPhase("idle");
-    }
+    void processAudio({
+      file: audio,
+      mode,
+      originalBpm: committedOriginal,
+      targetBpm: committedTarget,
+      percent,
+      semitones: committedSemitones,
+      cents: committedCents,
+      format,
+      settings,
+    });
   }
 
-  const busy = phase !== "idle";
-  const canConvert = Boolean(audio && !audio.decodeFailed && !busy);
+  const processing = phase !== "idle";
+  const canConvert = Boolean(audio && !audio.decodeFailed);
   const largeFile = Boolean(audio && audio.file.size >= FFMPEG_LARGE_FILE_BYTES);
 
   const waveformPanel = (
@@ -379,7 +485,6 @@ export function TempoPitch() {
                 start={0}
                 end={audio.duration}
                 readOnly
-                disabled={busy}
                 playLabel={t.play}
                 pauseLabel={t.pause}
                 startHandleLabel={t.startHandle}
@@ -405,7 +510,6 @@ export function TempoPitch() {
                   start={0}
                   end={resultDuration || audio.duration / tempoRate}
                   readOnly
-                  disabled={busy}
                   playLabel={t.play}
                   pauseLabel={t.pause}
                   startHandleLabel={t.startHandle}
@@ -452,19 +556,22 @@ export function TempoPitch() {
       dropHint={t.dropHint}
       emptyPreviewText={t.empty}
       actionLabel={result ? t.exportAgain : t.action}
-      onAction={() => void convert()}
-      actionDisabled={!canConvert && !result}
-      actionLoading={busy}
+      onAction={() => convertNow()}
+      actionDisabled={!canConvert}
+      actionLoading={processing}
       downloadLabel={interpolate(t.downloadFormat, { format: format.toUpperCase() })}
       onDownload={() => {
         if (!result || !audio) return;
         downloadBlob(result, `${audio.file.name.replace(/\.[^.]+$/, "")}-tempo-pitch.${format}`);
       }}
-      downloadDisabled={!result || busy}
+      downloadDisabled={!result || processing}
       error={error}
       extra={
         <div className="space-y-4">
           <FFmpegStatus phase={phase} progress={progress} />
+          {audio && !audio.decodeFailed ? (
+            <p className="text-sm text-muted-foreground">{t.autoPreviewHint}</p>
+          ) : null}
           {largeFile ? <p className="text-sm text-muted-foreground">{t.largeFileHint}</p> : null}
         </div>
       }
@@ -483,10 +590,10 @@ export function TempoPitch() {
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button type="button" size="lg" onClick={onTap} disabled={busy} className="min-w-[8rem]">
+                <Button type="button" size="lg" onClick={onTap} className="min-w-[8rem]">
                   {t.tap}
                 </Button>
-                <Button type="button" variant="outline" onClick={resetTaps} disabled={busy || tapCount === 0}>
+                <Button type="button" variant="outline" onClick={resetTaps} disabled={tapCount === 0}>
                   {t.resetTap}
                 </Button>
               </div>
@@ -506,7 +613,6 @@ export function TempoPitch() {
                   size="sm"
                   variant={mode === "bpm" ? "default" : "outline"}
                   aria-pressed={mode === "bpm"}
-                  disabled={busy}
                   onClick={() => setMode("bpm")}
                 >
                   {t.modeBpm}
@@ -516,7 +622,6 @@ export function TempoPitch() {
                   size="sm"
                   variant={mode === "percent" ? "default" : "outline"}
                   aria-pressed={mode === "percent"}
-                  disabled={busy}
                   onClick={() => setMode("percent")}
                 >
                   {t.modePercent}
@@ -534,7 +639,6 @@ export function TempoPitch() {
                       autoComplete="off"
                       dir="ltr"
                       value={originalBpmText}
-                      disabled={busy}
                       onChange={(event) => setOriginalBpmText(sanitizeBpmDraftInput(event.target.value))}
                       onBlur={() => commitOriginalBpm()}
                       onKeyDown={(event) => {
@@ -555,7 +659,6 @@ export function TempoPitch() {
                       autoComplete="off"
                       dir="ltr"
                       value={targetBpmText}
-                      disabled={busy}
                       onChange={(event) => setTargetBpmText(sanitizeBpmDraftInput(event.target.value))}
                       onBlur={() => commitTargetBpm()}
                       onKeyDown={(event) => {
@@ -582,7 +685,6 @@ export function TempoPitch() {
                     max={MAX_TEMPO_PERCENT}
                     step={1}
                     value={[percent]}
-                    disabled={busy}
                     onValueChange={(value) => setPercent(clampTempoPercent(value[0] ?? 0))}
                   />
                 </div>
@@ -615,7 +717,6 @@ export function TempoPitch() {
                       dir="ltr"
                       className="h-9 w-24 text-end tabular-nums"
                       value={semitonesText}
-                      disabled={busy}
                       aria-label={t.semitones}
                       onChange={(event) => setSemitonesText(sanitizeSignedDraftInput(event.target.value, 2))}
                       onBlur={() => commitSemitones()}
@@ -634,7 +735,6 @@ export function TempoPitch() {
                     max={MAX_SEMITONES}
                     step={1}
                     value={[semitones]}
-                    disabled={busy}
                     onValueChange={(value) => setSemitonesFromSlider(value[0] ?? 0)}
                   />
                   <p className="text-xs text-muted-foreground">{t.semitonesHint}</p>
@@ -650,7 +750,6 @@ export function TempoPitch() {
                       dir="ltr"
                       className="h-9 w-24 text-end tabular-nums"
                       value={centsText}
-                      disabled={busy}
                       aria-label={t.cents}
                       onChange={(event) => setCentsText(sanitizeSignedDraftInput(event.target.value, 2))}
                       onBlur={() => commitCents()}
@@ -669,7 +768,6 @@ export function TempoPitch() {
                     max={MAX_CENTS}
                     step={1}
                     value={[cents]}
-                    disabled={busy}
                     onValueChange={(value) => setCentsFromSlider(value[0] ?? 0)}
                   />
                   <p className="text-xs text-muted-foreground">{t.centsHint}</p>
@@ -698,7 +796,6 @@ export function TempoPitch() {
                     size="sm"
                     variant={format === item ? "default" : "outline"}
                     aria-pressed={format === item}
-                    disabled={busy}
                     onClick={() => {
                       setFormat(item);
                       if (audio && !audio.decodeFailed) {
@@ -716,7 +813,6 @@ export function TempoPitch() {
               <AudioExportSettingsPanel
                 format={format}
                 settings={settings}
-                disabled={busy}
                 onChange={(next) => {
                   setSettings(clampAudioExportSettings(format, next));
                   clearResult();

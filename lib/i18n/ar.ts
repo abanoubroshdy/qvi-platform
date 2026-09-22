@@ -778,6 +778,7 @@ export const ar: Messages = {
   tempoPitch: {
     action: "تطبيق التيمبو والطبقة",
     exportAgain: "تصدير مرة أخرى",
+    autoPreviewHint: "تُحدَّث المعاينة تلقائيًا بعد لحظة من تغيير التيمبو أو الطبقة (FFmpeg محلي — وليس playbackRate).",
     downloadFormat: "تنزيل {format}",
     dropTitle: "أسقط ملفًا صوتيًا هنا أو اضغط للاختيار",
     dropHint: "MP3 أو WAV أو M4A أو OGG أو FLAC. اضغط Tap للـ BPM، اضبط التيمبو والطبقة، ثم صدّر محليًا عبر FFmpeg.",

@@ -782,6 +782,7 @@ export const en = {
   tempoPitch: {
     action: "Apply tempo & pitch",
     exportAgain: "Export again",
+    autoPreviewHint: "Preview updates automatically a moment after you change tempo or pitch (local FFmpeg — not playbackRate).",
     downloadFormat: "Download {format}",
     dropTitle: "Drop an audio file here or click to choose",
     dropHint: "MP3, WAV, M4A, OGG, or FLAC. Tap BPM, set tempo and pitch, then export locally with FFmpeg.",
