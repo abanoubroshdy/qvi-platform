@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  compressSpaceBeforeTwips,
   countWords,
   fontSizeFromTransform,
   groupSpansIntoLines,
+  isEmptyishBlockText,
   isRtlText,
   layoutPage,
   looksVisuallyOrderedArabic,
@@ -499,5 +501,59 @@ describe("docx packaging", () => {
     expect(xml).not.toMatch(/\u0000|\u0008/);
     expect(xml).toMatch(/<w:rtl\s*\/>|<w:rtl\b/);
     expect(xml).toContain("ar-SA");
+  });
+
+  it("compresses large vertical voids so Word pages stay dense (Phase 6)", () => {
+    expect(compressSpaceBeforeTwips(0)).toBe(0);
+    expect(compressSpaceBeforeTwips(4)).toBe(80); // 4pt → 80 twips, under soft band
+    expect(compressSpaceBeforeTwips(72)).toBeLessThanOrEqual(360);
+    expect(compressSpaceBeforeTwips(200)).toBe(360);
+    expect(isEmptyishBlockText("")).toBe(true);
+    expect(isEmptyishBlockText("☐ ☐")).toBe(true);
+    expect(isEmptyishBlockText(": —")).toBe(true);
+    expect(isEmptyishBlockText("الاسم")).toBe(false);
+    expect(isEmptyishBlockText("Tenor ☐")).toBe(false);
+
+    const page = layoutPage(
+      595,
+      842,
+      [
+        span({ text: "Title", x: 72, y: 780, fontSize: 16, width: 60 }),
+        span({ text: "☐", x: 72, y: 500, fontSize: 12, width: 12 }),
+        span({ text: ":", x: 90, y: 500, fontSize: 12, width: 8 }),
+        span({ text: "Body after the void", x: 72, y: 460, fontSize: 12, width: 160 }),
+      ],
+      [],
+    );
+
+    const texts = page.blocks
+      .filter((block): block is Extract<(typeof page.blocks)[number], { type: "text" }> => block.type === "text")
+      .map((block) => block.runs.map((run) => (run.kind === "text" ? run.text : "")).join(""));
+    expect(texts.some((text) => text.includes("Title"))).toBe(true);
+    expect(texts.some((text) => text.includes("Body after the void"))).toBe(true);
+    expect(texts.every((text) => !isEmptyishBlockText(text))).toBe(true);
+
+    for (const block of page.blocks) {
+      expect(block.spaceBeforeTwips).toBeLessThanOrEqual(360);
+    }
+  });
+
+  it("does not emit blank spacer paragraphs before tables (Phase 6)", async () => {
+    const page = layoutPage(
+      595,
+      842,
+      [
+        span({ text: "Name", x: 72, y: 700, fontSize: 12, width: 40 }),
+        span({ text: "Ali", x: 300, y: 700, fontSize: 12, width: 30 }),
+      ],
+      [],
+    );
+    const blob = await buildDocxFromPages([{ layout: page, images: [] }], "dense-table");
+    const unzipper = await import("jszip");
+    const zip = await unzipper.default.loadAsync(await blob.arrayBuffer());
+    const xml = await zip.file("word/document.xml")?.async("string");
+    expect(xml).toMatch(/<w:tbl[\s>]/);
+    // No empty paragraph whose only job is spacing before the table.
+    expect(xml).not.toMatch(/<w:p[\s>][^>]*>\s*<w:pPr>[\s\S]*?<w:spacing[^>]*w:before="[1-9][0-9]{2,}"[\s\S]*?<\/w:pPr>\s*<\/w:p>\s*<w:tbl/);
   });
 });
