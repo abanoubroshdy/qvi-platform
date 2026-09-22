@@ -26,13 +26,13 @@ Generated: 2026-09-22
 - Tables detected: 21
 - Form tables (checkbox grids): 9
 - Tabs in output: 0
-- Checkbox glyphs: 21
+- Checkbox glyphs: 20
 
 ## Per-page
 
 | Page | Class | Recovery | Garbage left | Tabs | ☐ | Tables | Form | Reasons |
 | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| 1 | clean | 1.000 | 0 | 0 | 5 | 2 | 2 | hybrid_visual_reference |
+| 1 | clean | 1.000 | 0 | 0 | 4 | 2 | 2 | hybrid_visual_reference |
 | 2 | clean | 1.000 | 0 | 0 | 0 | 10 | 0 | hybrid_visual_reference |
 | 3 | clean | 1.000 | 0 | 0 | 16 | 9 | 7 | hybrid_visual_reference |
 | 4 | clean | 1.000 | 0 | 0 | 0 | 0 | 0 | healthy_text |
@@ -195,5 +195,6 @@ Generated: 2026-09-22
 | checkbox / option grids | Phase 3 — form tables | **done** |
 | `hybrid_visual_reference` | Phase 4 — hybrid visual | **done** |
 | progress / summary / copy | Phase 5 — polish | **done** |
+| empty-looking Word / huge gaps | Phase 6 — layout density | **done** |
 
 Regenerate: `node scripts/pdf-to-word-baseline.mjs`

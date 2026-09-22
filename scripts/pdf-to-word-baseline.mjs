@@ -46,16 +46,17 @@ async function main() {
     sections.push(formatDiagnosticsReport(englishDiag, "simple-english-form.pdf"));
 
     const header = [
-      "# PDF→Word Phase 0–5 — Diagnostics baseline (post Phase 5 polish)",
+      "# PDF→Word Phase 0–6 — Diagnostics baseline (post layout density)",
       "",
-      "Layout stack complete; Phase 5 polishes converter UX (progress stages, page-mix summary, tips, copy).",
+      "Layout stack complete; Phase 6 densifies editable Word output (compressed gaps, drop emptyish blocks, no blank table spacers).",
       "",
       "## Goals of this baseline",
       "",
       "1. Confirm broken-font Arabic recovery ratio on the real vocal form.",
       "2. Confirm Word XML stays free of illegal controls after normalize.",
       "3. Confirm Phases 1–4: latin cleanup, columns, form tables, hybrid visual reference.",
-      "4. Phase 5 ships UX polish only — metrics below stay the conversion quality baseline.",
+      "4. Phase 5 ships UX polish; Phase 6 densifies layout so pages are not mostly blank.",
+      "5. Metrics below stay the conversion quality baseline (density is spacing, not recovery counts).",
       "",
       "---",
       "",
@@ -73,6 +74,7 @@ async function main() {
       "| checkbox / option grids | Phase 3 — form tables | **done** |",
       "| `hybrid_visual_reference` | Phase 4 — hybrid visual | **done** |",
       "| progress / summary / copy | Phase 5 — polish | **done** |",
+      "| empty-looking Word / huge gaps | Phase 6 — layout density | **done** |",
       "",
       `Regenerate: \`node scripts/pdf-to-word-baseline.mjs\``,
       "",

@@ -1110,8 +1110,9 @@ export function layoutPage(
         alignment: (cellLine.rtl ? "right" : "left") as TextBlock["alignment"],
       };
     });
-    // Phase 6 — drop checkbox/colon-only rows with no real labels.
-    if (cells.every((cell) => isEmptyishBlockText(runsPlainText(cell.runs)))) {
+    // Phase 6 — drop colon/punctuation-only rows; keep checkbox grids even without labels.
+    const rowText = cells.map((cell) => runsPlainText(cell.runs)).join("");
+    if (!rowText.replace(/\s+/g, "").length || (isEmptyishBlockText(rowText) && !/[☐☑☒□■]/.test(rowText))) {
       previousBottom = yTop + line.fontSize * 1.15;
       return;
     }
