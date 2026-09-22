@@ -6,6 +6,7 @@ import { JsonLd } from "@/components/JsonLd";
 import { ProductSpotlight } from "@/components/ProductSpotlight";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { Button } from "@/components/ui/button";
+import { products } from "@/lib/products";
 import { siteConfig } from "@/lib/site";
 import { toolCategoryOrder } from "@/lib/tools";
 
@@ -30,18 +31,17 @@ export function HomeView() {
           <p className="qvi-kicker mb-4 text-xs font-semibold uppercase tracking-[0.28em] text-primary">
             {copy.home.kicker}
           </p>
-          <h1 className="max-w-4xl text-4xl font-semibold leading-tight sm:text-5xl lg:text-6xl">
-            {copy.home.title}
-          </h1>
-          <p className="qvi-lead mt-5 max-w-2xl text-base leading-8 text-muted-foreground sm:text-lg">
-            {copy.home.lead}
-          </p>
+          <h1 className="max-w-4xl text-4xl font-semibold leading-tight sm:text-5xl lg:text-6xl">{copy.home.title}</h1>
+          <p className="qvi-lead mt-5 max-w-2xl text-base leading-8 text-muted-foreground sm:text-lg">{copy.home.lead}</p>
           <div className="qvi-actions mt-8 flex flex-wrap gap-3">
             <Button asChild size="lg" className="qvi-btn">
-              <Link href="/products/qv1">
-                {copy.home.exploreQv1}
+              <Link href={products.studio.href}>
+                {copy.home.studioTitle}
                 <ArrowRight />
               </Link>
+            </Button>
+            <Button asChild size="lg" variant="outline" className="qvi-btn qvi-btn-outline">
+              <Link href={products.qv1.href}>{copy.home.exploreQv1}</Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="qvi-btn qvi-btn-outline">
               <Link href="/tools">{copy.home.tryTools}</Link>
@@ -65,7 +65,7 @@ export function HomeView() {
             description={copy.products.qv1.description}
             status={copy.products.qv1.status}
             features={[...copy.products.qv1.features]}
-            href="/products/qv1"
+            href={products.qv1.href}
             cta={copy.home.qv1Cta}
             tone="cyan"
           />
@@ -75,7 +75,7 @@ export function HomeView() {
             description={copy.products.neyora.description}
             status={copy.products.neyora.status}
             features={[...copy.products.neyora.features]}
-            href="/products/neyora"
+            href={products.neyora.href}
             cta={copy.home.neyoraCta}
             tone="violet"
           />
