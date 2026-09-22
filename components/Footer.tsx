@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import { useI18n } from "@/components/i18n/I18nProvider";
-import { products } from "@/lib/products";
 import { siteConfig } from "@/lib/site";
 
 export function Footer() {
@@ -11,9 +10,8 @@ export function Footer() {
   const year = new Date().getFullYear();
 
   const productLinks = [
-    { href: products.studio.workspaceHref, label: copy.products.studio.name },
-    { href: products.qv1.href, label: copy.products.qv1.name },
-    { href: products.neyora.href, label: copy.products.neyora.name },
+    { href: "/products/qv1", label: copy.products.qv1.name },
+    { href: "/products/neyora", label: `${copy.products.neyora.name}` },
   ];
 
   const legalLinks = [

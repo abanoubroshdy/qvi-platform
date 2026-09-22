@@ -16,7 +16,6 @@ export function Header() {
   const { copy } = useI18n();
 
   const navItems = [
-    { href: "/studio", label: copy.nav.studio },
     { href: "/#products", label: copy.nav.products },
     { href: "/tools", label: copy.nav.tools },
     { href: "/lab", label: copy.nav.lab },
