@@ -3,8 +3,9 @@ import { Mp3ToWav } from "@/components/tools/Mp3ToWav";
 import { LiveToolView } from "@/components/views/LiveToolView";
 import { siteConfig } from "@/lib/site";
 
-const pageTitle = "تحويل MP3 إلى WAV أونلاين — بدون رفع";
-const pageDescription = "حوّل MP3 أو M4A أو OGG إلى WAV على جهازك. المعاينة والتنزيل تتم في المتصفح.";
+const pageTitle = "تحويل أي صيغة صوت — دفعة واحدة بلا رفع";
+const pageDescription =
+  "حوّل MP3 أو WAV أو M4A أو AAC أو OGG أو FLAC أو Opus إلى MP3 أو WAV أو M4A أو OGG أو FLAC. عدة ملفات بإعدادات موحّدة وتنزيل ZIP داخل المتصفح.";
 
 export function generateMetadata(): Metadata {
   return {

@@ -197,16 +197,16 @@ function Mp3ToWavScene({ uid }: SceneProps) {
       </defs>
       <g transform="translate(28 34)">
         <rect width="86" height="92" rx="16" fill="#ff8a3d" />
-        <text x="43" y="40" textAnchor="middle" fontSize="16" fontWeight="800" fill="#fff" fontFamily="Outfit, ui-sans-serif">
-          MP3
+        <text x="43" y="40" textAnchor="middle" fontSize="15" fontWeight="800" fill="#fff" fontFamily="Outfit, ui-sans-serif">
+          ANY
         </text>
         <WaveBars x={14} y={64} color="#fff" heights={[10, 22, 14, 28, 12, 20]} />
       </g>
       <ConvertOrb x={140} y={80} uid={uid} />
       <g transform="translate(166 34)">
         <rect width="86" height="92" rx="16" fill="#1a9b88" />
-        <text x="43" y="40" textAnchor="middle" fontSize="16" fontWeight="800" fill="#fff" fontFamily="Outfit, ui-sans-serif">
-          WAV
+        <text x="43" y="40" textAnchor="middle" fontSize="14" fontWeight="800" fill="#fff" fontFamily="Outfit, ui-sans-serif">
+          OUT
         </text>
         <WaveBars x={14} y={64} color="#d9fff6" heights={[18, 12, 26, 14, 30, 16]} />
       </g>
