@@ -142,6 +142,34 @@ export function pointsToTwips(points: number) {
   return Math.max(0, Math.round(points * 20));
 }
 
+/**
+ * Phase 6 — keep small line gaps, heavily dampen large PDF voids so Word
+ * pages do not look mostly blank (previous hard cap was a full inch / 1440).
+ */
+export function compressSpaceBeforeTwips(spaceBeforePoints: number) {
+  const raw = pointsToTwips(spaceBeforePoints);
+  if (raw <= 0) return 0;
+  if (raw <= 120) return raw;
+  const dampened = 120 + Math.round((raw - 120) * 0.25);
+  return Math.min(360, dampened);
+}
+
+/**
+ * True when a block has no letters/digits — only whitespace, checkboxes,
+ * colons, or separator punctuation left after broken-font cleanup.
+ */
+export function isEmptyishBlockText(text: string) {
+  const trimmed = text.replace(/\s+/g, " ").trim();
+  if (!trimmed) return true;
+  return !/[A-Za-z0-9\u00C0-\u024F\u0400-\u04FF\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(
+    trimmed,
+  );
+}
+
+export function runsPlainText(runs: RunModel[]) {
+  return runs.map((run) => (run.kind === "text" ? run.text : "")).join("");
+}
+
 export function pointsToPx(points: number) {
   return Math.max(1, Math.round((points * 96) / 72));
 }
@@ -1049,20 +1077,23 @@ export function layoutPage(
       runs.push(...lineRuns(line));
     });
 
+    // Phase 6 — skip ☐/:/punctuation-only leftovers so voids collapse.
+    const plain = runsPlainText(runs);
+    previousBottom = pageHeight - last.baseline + last.fontSize * 0.25;
+    paragraphLines = [];
+    if (isEmptyishBlockText(plain)) return;
+
     blocks.push({
       type: "text",
       alignment: rtl && alignment === "left" ? "right" : alignment,
       rtl,
       indentTwips: pointsToTwips(bodyIndent),
       firstLineTwips: pointsToTwips(firstLine),
-      spaceBeforeTwips: Math.min(1440, pointsToTwips(spaceBefore)),
+      spaceBeforeTwips: compressSpaceBeforeTwips(spaceBefore),
       spaceAfterTwips: 0,
       lineTwips: Math.max(240, pointsToTwips(fontSize * 1.18)),
       runs,
     });
-
-    previousBottom = pageHeight - last.baseline + last.fontSize * 0.25;
-    paragraphLines = [];
   };
 
   const appendTableRow = (
@@ -1079,6 +1110,12 @@ export function layoutPage(
         alignment: (cellLine.rtl ? "right" : "left") as TextBlock["alignment"],
       };
     });
+    // Phase 6 — drop colon/punctuation-only rows; keep checkbox grids even without labels.
+    const rowText = cells.map((cell) => runsPlainText(cell.runs)).join("");
+    if (!rowText.replace(/\s+/g, "").length || (isEmptyishBlockText(rowText) && !/[☐☑☒□■]/.test(rowText))) {
+      previousBottom = yTop + line.fontSize * 1.15;
+      return;
+    }
     const spaceBefore = Math.max(0, yTop - previousBottom);
     if (
       pendingTable &&
@@ -1092,7 +1129,7 @@ export function layoutPage(
       pendingTable = {
         type: "table",
         rows: [cells],
-        spaceBeforeTwips: Math.min(1440, pointsToTwips(spaceBefore)),
+        spaceBeforeTwips: compressSpaceBeforeTwips(spaceBefore),
         borders: options.borders,
         role: options.role,
       };
@@ -1108,7 +1145,7 @@ export function layoutPage(
       blocks.push({
         type: "image",
         imageIndex: item.image.index,
-        spaceBeforeTwips: Math.min(1440, pointsToTwips(spaceBefore)),
+        spaceBeforeTwips: compressSpaceBeforeTwips(spaceBefore),
         widthPx: pointsToPx(item.image.width),
         heightPx: pointsToPx(item.image.height),
       });

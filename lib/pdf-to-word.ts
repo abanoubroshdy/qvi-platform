@@ -20,7 +20,7 @@ import {
   type RunModel,
   type PdfDir,
   type TableBlock,
-  type LayoutBlock,
+  type TextBlock,
   cmykToHex,
   fontSizeFromTransform,
   grayToHex,
@@ -350,7 +350,7 @@ function spansFromTextContent(
   return spans;
 }
 
-function alignmentOf(block: Extract<LayoutBlock, { type: "text" }>) {
+function alignmentOf(block: TextBlock) {
   if (block.alignment === "center") return AlignmentType.CENTER;
   if (block.alignment === "right") return AlignmentType.RIGHT;
   if (block.alignment === "both") return AlignmentType.JUSTIFIED;
@@ -417,7 +417,7 @@ function tableBlockToDocx(block: TableBlock, images: Array<ConvertedImage | null
     layout: TableLayoutType.FIXED,
     columnWidths: Array.from({ length: colCount }, () => colWidth),
     rows: block.rows.map(
-      (row) =>
+      (row, rowIndex) =>
         new TableRow({
           children: Array.from({ length: colCount }, (_, index) => {
             const cell = row[index];
@@ -433,6 +433,11 @@ function tableBlockToDocx(block: TableBlock, images: Array<ConvertedImage | null
                         ? AlignmentType.RIGHT
                         : AlignmentType.LEFT,
                   bidirectional: cell?.rtl,
+                  // Phase 6 — fold table gap into the first cell (no blank spacer paragraph).
+                  spacing:
+                    rowIndex === 0 && index === 0 && block.spaceBeforeTwips > 0
+                      ? { before: block.spaceBeforeTwips, after: 40 }
+                      : { after: 40 },
                   children: cell ? runsToChildren(cell.runs, images) : [],
                 }),
               ],
@@ -480,14 +485,6 @@ export async function buildDocxFromPages(
           continue;
         }
         if (block.type === "table") {
-          if (block.spaceBeforeTwips > 0) {
-            children.push(
-              new Paragraph({
-                spacing: { before: block.spaceBeforeTwips, after: 0 },
-                children: [],
-              }),
-            );
-          }
           children.push(tableBlockToDocx(block, images, contentWidthTwips));
           continue;
         }

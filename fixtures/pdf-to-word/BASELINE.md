@@ -1,13 +1,14 @@
-# PDF→Word Phase 0–5 — Diagnostics baseline (post Phase 5 polish)
+# PDF→Word Phase 0–6 — Diagnostics baseline (post layout density)
 
-Layout stack complete; Phase 5 polishes converter UX (progress stages, page-mix summary, tips, copy).
+Layout stack complete; Phase 6 densifies editable Word output (compressed gaps, drop emptyish blocks, no blank table spacers).
 
 ## Goals of this baseline
 
 1. Confirm broken-font Arabic recovery ratio on the real vocal form.
 2. Confirm Word XML stays free of illegal controls after normalize.
 3. Confirm Phases 1–4: latin cleanup, columns, form tables, hybrid visual reference.
-4. Phase 5 ships UX polish only — metrics below stay the conversion quality baseline.
+4. Phase 5 ships UX polish; Phase 6 densifies layout so pages are not mostly blank.
+5. Metrics below stay the conversion quality baseline (density is spacing, not recovery counts).
 
 ---
 # vocal_assessment_form.pdf
@@ -25,13 +26,13 @@ Generated: 2026-09-22
 - Tables detected: 21
 - Form tables (checkbox grids): 9
 - Tabs in output: 0
-- Checkbox glyphs: 21
+- Checkbox glyphs: 20
 
 ## Per-page
 
 | Page | Class | Recovery | Garbage left | Tabs | ☐ | Tables | Form | Reasons |
 | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| 1 | clean | 1.000 | 0 | 0 | 5 | 2 | 2 | hybrid_visual_reference |
+| 1 | clean | 1.000 | 0 | 0 | 4 | 2 | 2 | hybrid_visual_reference |
 | 2 | clean | 1.000 | 0 | 0 | 0 | 10 | 0 | hybrid_visual_reference |
 | 3 | clean | 1.000 | 0 | 0 | 16 | 9 | 7 | hybrid_visual_reference |
 | 4 | clean | 1.000 | 0 | 0 | 0 | 0 | 0 | healthy_text |
@@ -194,5 +195,6 @@ Generated: 2026-09-22
 | checkbox / option grids | Phase 3 — form tables | **done** |
 | `hybrid_visual_reference` | Phase 4 — hybrid visual | **done** |
 | progress / summary / copy | Phase 5 — polish | **done** |
+| empty-looking Word / huge gaps | Phase 6 — layout density | **done** |
 
 Regenerate: `node scripts/pdf-to-word-baseline.mjs`

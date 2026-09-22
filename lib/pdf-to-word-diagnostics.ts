@@ -288,8 +288,8 @@ export function diagnoseFromRawPages(pages: RawPageText[]): DocumentDiagnostics 
             height: 12,
             fontSize: 12,
             fontFamily: "Arial",
-            bold: false,
-            italic: false,
+            bold: false as boolean,
+            italic: false as boolean,
             color: "000000",
             dir: hinted,
           };
@@ -326,7 +326,7 @@ export async function extractRawPagesFromPdf(data: Uint8Array): Promise<RawPageT
     data,
     useSystemFonts: true,
     isEvalSupported: false,
-  });
+  } as Parameters<typeof pdfjs.getDocument>[0]);
   const pdf = await loadingTask.promise;
   const pages: RawPageText[] = [];
 

@@ -202,6 +202,9 @@ describe("vocal assessment form fixture", () => {
     expect(diagnoseDocxXml(xml!).xmlValid).toBe(true);
     expect(xml).toContain("نموذج");
     expect(xml).not.toMatch(/[\u1400-\u167F\u0530-\u058F]/);
+    // Phase 6 — densified editable layout (no inch-tall voids / blank table spacers).
+    expect(Math.max(0, ...layout.blocks.map((block) => block.spaceBeforeTwips))).toBeLessThanOrEqual(360);
+    expect(xml).not.toMatch(/<w:p[\s>][^>]*>\s*<w:pPr>[\s\S]*?<w:spacing[^>]*w:before="[1-9][0-9]{2,}"[\s\S]*?<\/w:pPr>\s*<\/w:p>\s*<w:tbl/);
   });
 });
 
