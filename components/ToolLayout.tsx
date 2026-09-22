@@ -60,7 +60,7 @@ export function ToolLayout({
     if (files.length) onFiles?.(files);
   }
 
-  function onDrop(event: DragEvent<HTMLButtonElement>) {
+  function onDrop(event: DragEvent<HTMLElement>) {
     event.preventDefault();
     setIsDragging(false);
     if (event.dataTransfer.files?.length) {
@@ -75,25 +75,27 @@ export function ToolLayout({
       {leading}
 
       {hideDropzone ? null : (
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          onDragOver={(event) => {
-            event.preventDefault();
-            setIsDragging(true);
-          }}
-          onDragLeave={() => setIsDragging(false)}
-          onDrop={onDrop}
-          className={cn(
-            "flex w-full flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-10 text-center transition",
-            isDragging
-              ? "border-primary bg-primary/10"
-              : "border-primary/30 bg-card hover:border-primary hover:bg-primary/5",
-          )}
-        >
-          <UploadCloud className="mb-3 h-10 w-10 text-primary" aria-hidden />
-          <p className="text-base font-bold">{resolvedDropTitle}</p>
-          <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">{resolvedDropHint}</p>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            onDragOver={(event) => {
+              event.preventDefault();
+              setIsDragging(true);
+            }}
+            onDragLeave={() => setIsDragging(false)}
+            onDrop={onDrop}
+            className={cn(
+              "flex w-full flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-10 text-center transition",
+              isDragging
+                ? "border-primary bg-primary/10"
+                : "border-primary/30 bg-card hover:border-primary hover:bg-primary/5",
+            )}
+          >
+            <UploadCloud className="mb-3 h-10 w-10 text-primary" aria-hidden />
+            <p className="text-base font-bold">{resolvedDropTitle}</p>
+            <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">{resolvedDropHint}</p>
+          </button>
           <input
             ref={inputRef}
             type="file"
@@ -105,7 +107,7 @@ export function ToolLayout({
               event.target.value = "";
             }}
           />
-        </button>
+        </div>
       )}
 
       {error ? (
