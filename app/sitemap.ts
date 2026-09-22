@@ -15,7 +15,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/products/neyora",
     "/tools",
     "/lab",
-    "/studio",
   ].map((path) => ({
     url: `${siteConfig.url}${path || "/"}`,
     lastModified,
