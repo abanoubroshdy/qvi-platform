@@ -324,10 +324,94 @@ export function TempoPitch() {
   const canConvert = Boolean(audio && !audio.decodeFailed && !busy);
   const largeFile = Boolean(audio && audio.file.size >= FFMPEG_LARGE_FILE_BYTES);
 
+  const waveformPanel = (
+    <div className="space-y-4 rounded-xl border bg-card p-4 shadow-sm">
+      {audio && !audio.decodeFailed ? (
+        <>
+          <section className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-base font-semibold">{t.sourcePreview}</h2>
+              <p className="truncate text-sm text-muted-foreground" dir="ltr" title={audio.file.name}>
+                {audio.file.name}
+              </p>
+            </div>
+            {audio.peaks.length ? (
+              <WaveformPlayer
+                src={audio.url}
+                peaks={audio.peaks}
+                duration={audio.duration}
+                start={0}
+                end={audio.duration}
+                readOnly
+                disabled={busy}
+                playLabel={t.play}
+                pauseLabel={t.pause}
+                startHandleLabel={t.startHandle}
+                endHandleLabel={t.endHandle}
+              />
+            ) : (
+              <audio controls src={audio.url} className="w-full" />
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              <Stat label={t.fileSize} value={formatBytes(audio.file.size)} />
+              <Stat label={t.sourceQuality} value={formatAudioSourceSummary(audio.source)} />
+            </div>
+          </section>
+
+          {result && resultUrl ? (
+            <section className="space-y-3 border-t border-border pt-4">
+              <h2 className="text-base font-semibold">{t.resultPreview}</h2>
+              {resultPeaks.length ? (
+                <WaveformPlayer
+                  src={resultUrl}
+                  peaks={resultPeaks}
+                  duration={resultDuration || audio.duration / tempoRate}
+                  start={0}
+                  end={resultDuration || audio.duration / tempoRate}
+                  readOnly
+                  disabled={busy}
+                  playLabel={t.play}
+                  pauseLabel={t.pause}
+                  startHandleLabel={t.startHandle}
+                  endHandleLabel={t.endHandle}
+                />
+              ) : (
+                <audio controls src={resultUrl} className="w-full" />
+              )}
+              <div className="grid grid-cols-2 gap-3">
+                <Stat
+                  label={interpolate(t.outputSize, { format: format.toUpperCase() })}
+                  value={formatBytes(result.size)}
+                />
+                <Stat
+                  label={t.exportSummary}
+                  value={formatAudioExportSummary({
+                    sampleRate: settings.sampleRate,
+                    format,
+                    bitrateKbps: format === "mp3" && settings.mp3Mode === "cbr" ? settings.bitrate : null,
+                    bitDepth: format === "wav" ? settings.wavBitDepth : null,
+                  })}
+                />
+              </div>
+            </section>
+          ) : null}
+        </>
+      ) : (
+        <div className="flex min-h-[8.5rem] items-center justify-center rounded-2xl border border-dashed bg-muted/30 px-4 py-8 text-center text-sm text-muted-foreground">
+          {t.waveformPlaceholder}
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <ToolLayout
       accept="audio/mpeg,audio/wav,audio/mp4,audio/ogg,audio/flac,audio/aac,audio/x-m4a,.mp3,.wav,.m4a,.ogg,.oga,.flac,.aac"
       onFiles={(files) => void onFiles(files)}
+      hideDropzone={Boolean(audio)}
+      hideEmptyPreview={!audio}
+      replaceLabel={audio ? t.replaceFile : undefined}
+      leading={waveformPanel}
       dropTitle={t.dropTitle}
       dropHint={t.dropHint}
       emptyPreviewText={t.empty}
@@ -569,69 +653,6 @@ export function TempoPitch() {
                 }}
               />
             </section>
-
-            <section className="space-y-3">
-              <h2 className="text-base font-semibold">{t.sourcePreview}</h2>
-              {audio.peaks.length ? (
-                <WaveformPlayer
-                  src={audio.url}
-                  peaks={audio.peaks}
-                  duration={audio.duration}
-                  start={0}
-                  end={audio.duration}
-                  readOnly
-                  disabled={busy}
-                  playLabel={t.play}
-                  pauseLabel={t.pause}
-                  startHandleLabel={t.startHandle}
-                  endHandleLabel={t.endHandle}
-                />
-              ) : (
-                <audio controls src={audio.url} className="w-full" />
-              )}
-              <div className="grid grid-cols-2 gap-3">
-                <Stat label={t.fileSize} value={formatBytes(audio.file.size)} />
-                <Stat
-                  label={t.sourceQuality}
-                  value={audio.decodeFailed ? t.sourceUnknown : formatAudioSourceSummary(audio.source)}
-                />
-              </div>
-            </section>
-
-            {result && resultUrl ? (
-              <section className="space-y-3">
-                <h2 className="text-base font-semibold">{t.resultPreview}</h2>
-                {resultPeaks.length ? (
-                  <WaveformPlayer
-                    src={resultUrl}
-                    peaks={resultPeaks}
-                    duration={resultDuration || audio.duration / tempoRate}
-                    start={0}
-                    end={resultDuration || audio.duration / tempoRate}
-                    readOnly
-                    disabled={busy}
-                    playLabel={t.play}
-                    pauseLabel={t.pause}
-                    startHandleLabel={t.startHandle}
-                    endHandleLabel={t.endHandle}
-                  />
-                ) : (
-                  <audio controls src={resultUrl} className="w-full" />
-                )}
-                <div className="grid grid-cols-2 gap-3">
-                  <Stat label={interpolate(t.outputSize, { format: format.toUpperCase() })} value={formatBytes(result.size)} />
-                  <Stat
-                    label={t.exportSummary}
-                    value={formatAudioExportSummary({
-                      sampleRate: settings.sampleRate,
-                      format,
-                      bitrateKbps: format === "mp3" && settings.mp3Mode === "cbr" ? settings.bitrate : null,
-                      bitDepth: format === "wav" ? settings.wavBitDepth : null,
-                    })}
-                  />
-                </div>
-              </section>
-            ) : null}
           </div>
         ) : undefined
       }

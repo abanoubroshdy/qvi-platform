@@ -305,7 +305,7 @@ export function WaveformPlayer({
 
   return (
     <div className={cn("space-y-3", disabled && "opacity-60")}>
-      <div className="flex items-stretch gap-3">
+      <div className="flex items-stretch gap-3" dir="ltr">
         <Button
           type="button"
           size="icon"
@@ -353,9 +353,9 @@ export function WaveformPlayer({
           <canvas ref={canvasRef} className="block h-32 w-full" aria-hidden />
         </div>
       </div>
-      <div className="flex items-center justify-between gap-3 text-xs font-semibold tabular-nums text-muted-foreground">
-        <span dir="ltr">{formatClock(currentTime)}</span>
-        <span dir="ltr">
+      <div className="flex items-center justify-between gap-3 text-xs font-semibold tabular-nums text-muted-foreground" dir="ltr">
+        <span>{formatClock(currentTime)}</span>
+        <span>
           {formatClock(selectionLength)} / {formatClock(duration)}
         </span>
       </div>

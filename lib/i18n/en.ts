@@ -786,6 +786,8 @@ export const en = {
     dropTitle: "Drop an audio file here or click to choose",
     dropHint: "MP3, WAV, M4A, OGG, or FLAC. Tap BPM, set tempo and pitch, then export locally with FFmpeg.",
     empty: "The waveform and controls appear after you choose a file.",
+    waveformPlaceholder: "Waveform preview will appear here after you drop a file.",
+    replaceFile: "Replace file",
     bpmSection: "Tempo detect",
     bpmHint: "Tap along with the beat a few times for an approximate BPM, or type the original tempo.",
     tap: "Tap",

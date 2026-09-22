@@ -782,6 +782,8 @@ export const ar: Messages = {
     dropTitle: "أسقط ملفًا صوتيًا هنا أو اضغط للاختيار",
     dropHint: "MP3 أو WAV أو M4A أو OGG أو FLAC. اضغط Tap للـ BPM، اضبط التيمبو والطبقة، ثم صدّر محليًا عبر FFmpeg.",
     empty: "ستظهر الموجة والتحكمات بعد اختيار ملف.",
+    waveformPlaceholder: "ستظهر معاينة الموجة هنا بعد إسقاط ملف.",
+    replaceFile: "استبدال الملف",
     bpmSection: "اكتشاف التيمبو",
     bpmHint: "اضغط مع الإيقاع عدة مرات لتقريب الـ BPM، أو اكتب التيمبو الأصلي يدويًا.",
     tap: "Tap",

@@ -12,6 +12,10 @@ type ToolLayoutProps = {
   multiple?: boolean;
   onFiles?: (files: File[]) => void;
   hideDropzone?: boolean;
+  /** When the large dropzone is hidden, show a compact replace-file control. */
+  replaceLabel?: string;
+  /** Skip the dashed empty preview box when `preview` is unset. */
+  hideEmptyPreview?: boolean;
   leading?: ReactNode;
   preview?: ReactNode;
   extra?: ReactNode;
@@ -33,6 +37,8 @@ export function ToolLayout({
   multiple = false,
   onFiles,
   hideDropzone = false,
+  replaceLabel,
+  hideEmptyPreview = false,
   leading,
   preview,
   extra,
@@ -68,6 +74,20 @@ export function ToolLayout({
     }
   }
 
+  const fileInput = onFiles ? (
+    <input
+      ref={inputRef}
+      type="file"
+      className="sr-only"
+      accept={accept}
+      multiple={multiple}
+      onChange={(event) => {
+        if (event.target.files?.length) handleFiles(event.target.files);
+        event.target.value = "";
+      }}
+    />
+  ) : null;
+
   return (
     <div className="space-y-4">
       <AdPlaceholder position="top" />
@@ -96,19 +116,20 @@ export function ToolLayout({
             <p className="text-base font-bold">{resolvedDropTitle}</p>
             <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">{resolvedDropHint}</p>
           </button>
-          <input
-            ref={inputRef}
-            type="file"
-            className="sr-only"
-            accept={accept}
-            multiple={multiple}
-            onChange={(event) => {
-              if (event.target.files?.length) handleFiles(event.target.files);
-              event.target.value = "";
-            }}
-          />
+          {fileInput}
         </div>
       )}
+
+      {hideDropzone && onFiles && replaceLabel ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <Button type="button" variant="outline" size="sm" onClick={() => inputRef.current?.click()} disabled={actionLoading}>
+            {replaceLabel}
+          </Button>
+          {fileInput}
+        </div>
+      ) : null}
+
+      {hideDropzone && onFiles && !replaceLabel ? fileInput : null}
 
       {error ? (
         <p className="whitespace-pre-wrap break-words rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
@@ -118,7 +139,7 @@ export function ToolLayout({
 
       {preview ? (
         <div className="rounded-xl border bg-card p-4 shadow-sm">{preview}</div>
-      ) : (
+      ) : hideEmptyPreview ? null : (
         <div className="rounded-xl border border-dashed bg-muted/30 p-6 text-center text-sm text-muted-foreground">
           {resolvedEmpty}
         </div>
