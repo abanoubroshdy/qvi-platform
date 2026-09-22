@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
+    "pdf-to-word:baseline": "node scripts/pdf-to-word-baseline.mjs",
     "postinstall": "node scripts/copy-pdfjs-assets.mjs"
   },
   "dependencies": {

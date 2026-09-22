@@ -61,7 +61,24 @@ export type ImageBlock = {
   heightPx: number;
 };
 
-export type LayoutBlock = TextBlock | ImageBlock;
+export type TableCellModel = {
+  runs: RunModel[];
+  rtl: boolean;
+  alignment: TextBlock["alignment"];
+};
+
+/** Multi-cell row: Phase 2 column gutters (borderless) or Phase 3 form grids (bordered). */
+export type TableBlock = {
+  type: "table";
+  rows: TableCellModel[][];
+  spaceBeforeTwips: number;
+  /** When false, Word cells render without visible borders (column grid). */
+  borders: boolean;
+  /** `form` = checkbox/option grids; `columns` = wide-gutter layout only. */
+  role: "columns" | "form";
+};
+
+export type LayoutBlock = TextBlock | ImageBlock | TableBlock;
 
 export type PageLayout = {
   widthPt: number;
@@ -69,8 +86,19 @@ export type PageLayout = {
   margin: { top: number; right: number; bottom: number; left: number };
   blocks: LayoutBlock[];
   useVisualFallback: boolean;
+  /**
+   * Phase 4 — keep editable blocks and also attach a rendered page preview
+   * so complex forms / mixed art can be visually verified in Word.
+   */
+  includeVisualReference: boolean;
+  /** Why hybrid was chosen (empty when not hybrid). */
+  hybridReason: string;
   wordCount: number;
   imageCount: number;
+  /** Number of table blocks (column grids + form tables). */
+  tableCount: number;
+  /** Subset of tableCount with role === "form" (checkbox / option grids). */
+  formTableCount: number;
 };
 
 const ARABIC_RE = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
@@ -287,11 +315,105 @@ function overlapRatio(a: string, b: string) {
 }
 
 /**
+ * Broken ToUnicode maps often replace the first Latin letter with a digit/symbol
+ * (%asic→Basic, 7echnical→Technical, 0etronome→Metronome). Tail → correct word.
+ */
+const CORRUPT_LATIN_TAILS: Record<string, string> = {
+  asic: "Basic",
+  echnical: "Technical",
+  reath: "Breath",
+  hythm: "Rhythm",
+  etronome: "Metronome",
+  iming: "Timing",
+  iano: "Piano",
+  orte: "Forte",
+  imbre: "Timbre",
+  asp: "Rasp",
+  essitura: "Tessitura",
+  ange: "Range",
+  reakpoints: "Breakpoints",
+  ixed: "Mixed",
+  ype: "Type",
+  ass: "Bass",
+  aritone: "Baritone",
+  enor: "Tenor",
+  lto: "Alto",
+  ezzo: "Mezzo",
+  iagnosis: "Diagnosis",
+  lending: "Blending",
+  raining: "Training",
+  itch: "Pitch",
+  owest: "Lowest",
+  ighest: "Highest",
+  one: "Tone",
+  ntonation: "Intonation",
+};
+
+/**
+ * Phase 1 — repair Latin first-letter corruption and glued English label echoes
+ * left after broken-font Arabic recovery (e.g. Basic Information)%asic Information()).
+ */
+export function repairLatinCorruption(text: string) {
+  if (!text) return text;
+
+  // %asic / ).)orte / .,)ntonation — junk prefix + lowercase tail from the dictionary.
+  let next = text.replace(
+    /(^|[^A-Za-z])([^A-Za-z]*?)([a-z]{2,})((?:-[A-Za-z]+)*)/g,
+    (full, boundary: string, junk: string, tail: string, suffix: string) => {
+      if (!junk) return full;
+      const fixed = CORRUPT_LATIN_TAILS[tail.toLowerCase()];
+      if (!fixed) return full;
+      return `${boundary}${fixed}${suffix ?? ""}`;
+    },
+  );
+
+  // Echo glued with junk: Intonation).Intonation / Basic Basic
+  next = next.replace(/\b([A-Za-z][A-Za-z'-]{1,24})[^A-Za-z\n]{1,6}\1\b/gi, "$1");
+  next = next.replace(/\b([A-Za-z][A-Za-z'-]{1,24})\s+\1\b/gi, "$1");
+
+  // Basic Information)Basic Information( → Basic Information
+  next = next.replace(/\b([A-Za-z][A-Za-z0-9 /&'-]{0,40}?)\)\s*\1\s*\(/gi, "$1");
+
+  // Basic Information)Technical Assessment( / Basic Information)1-5(
+  next = next.replace(
+    /\b([A-Za-z][A-Za-z0-9 /&'-]{0,40}?)\)\s*([A-Za-z0-9][A-Za-z0-9 /&'.-]{0,40}?)\s*\(/g,
+    "$1 ($2)",
+  );
+
+  // Score index glued onto the next English heading: .1)Basic Information
+  next = next.replace(/(\d)\)\s*([A-Za-z])/g, "$1 $2");
+  // Arabic/label)EnglishHeading leftovers after paren-strip
+  next = next.replace(/\)\s*([A-Za-z])/g, " $1");
+  // Leading .) or ). junk before Latin labels
+  next = next.replace(/(^|\s)[.)]{1,3}(?=[A-Za-z])/g, "$1");
+  next = next.replace(/(^|\n)\.\s+(?=[A-Za-z])/g, "$1");
+
+  // Dangling open-parens used as PDF label separators: Pitch( الأذن → Pitch الأذن
+  next = next.replace(/\(\s*\)/g, "");
+  next = next.replace(/\b([A-Za-z][A-Za-z'-]*)\(/g, "$1");
+  // Unclosed "(Intonation" after echo collapse
+  next = next.replace(/\(([A-Za-z][A-Za-z' -]*)$/g, "$1");
+  next = next.replace(/([\u0600-\u06FF])\(/g, "$1 (");
+  next = next.replace(/([\u0600-\u06FF])([A-Za-z])/g, "$1 $2");
+  next = next.replace(/([A-Za-z])([\u0600-\u06FF])/g, "$1 $2");
+  next = next.replace(/(^|\s)\)+[.,]*/g, "$1");
+  next = next.replace(/[.,]{2,}/g, ".");
+
+  // Arabic: space after colon between letters; digit spacing in "من1"
+  next = next.replace(/([\u0600-\u06FF]):([\u0600-\u06FF])/g, "$1: $2");
+  next = next.replace(/([\u0600-\u06FF])(\d)/g, "$1 $2");
+  next = next.replace(/(\d)([\u0600-\u06FF])/g, "$1 $2");
+
+  return next.replace(/[ \t]{2,}/g, " ").trim();
+}
+
+/**
  * Normalize + repair PDF text for editable Word output.
  * - NFKC maps Arabic presentation forms to base letters
  * - Strip XML-illegal controls (Word Desktop/Mobile refuse the file otherwise)
  * - Drop mis-decoded Canadian Aboriginal / Armenian glyphs from broken fonts
  * - Reverse visual-order Arabic into logical order when detected
+ * - Repair Latin first-letter corruption and English label echoes (Phase 1)
  */
 export function normalizePdfText(text: string, dir: PdfDir = "ltr") {
   void dir;
@@ -305,6 +427,7 @@ export function normalizePdfText(text: string, dir: PdfDir = "ltr") {
     next = reverseArabicRuns(next);
   }
   next = dedupeRepeatedArabic(next);
+  next = repairLatinCorruption(next);
   // Drop leftover private-use / odd symbols that survive without Arabic neighbors.
   next = next.replace(/[\uE000-\uF8FF]/g, "");
   return next.replace(/[ \t]{2,}/g, " ").trim();
@@ -392,20 +515,176 @@ function sameStyle(a: PdfSpan, b: PdfSpan) {
 function insertGapText(prev: PdfSpan, next: PdfSpan) {
   // Use geometric distance between boxes — works after RTL (right→left) sorting
   // where next.x - (prev.x + prev.width) is negative.
-  const prevLeft = prev.x;
-  const prevRight = prev.x + Math.max(0, prev.width);
-  const nextLeft = next.x;
-  const nextRight = next.x + Math.max(0, next.width);
-  let gap = 0;
-  if (nextLeft >= prevRight) gap = nextLeft - prevRight;
-  else if (prevLeft >= nextRight) gap = prevLeft - nextRight;
-  else gap = 0;
+  const gap = horizontalGap(prev, next);
 
   if (gap <= Math.max(0.12 * prev.fontSize, 0.4)) return "";
   if (/\s$/.test(prev.text) || /^\s/.test(next.text)) return "";
-  if (gap > Math.max(24, prev.fontSize * 1.8)) return "\t";
+  // Phase 2: large gaps become column cells instead of tabs. Within a cluster the
+  // gap should stay modest; if one slips through, prefer spaces over \t.
+  if (gap > Math.max(24, prev.fontSize * 1.8)) return "   ";
   const spaces = Math.max(1, Math.min(6, Math.round(gap / Math.max(prev.fontSize * 0.38, 2))));
   return " ".repeat(spaces);
+}
+
+export function columnGapThreshold(fontSize: number) {
+  // Stricter than the old tab threshold so in-sentence gaps (mixed AR/EN) stay
+  // on one line, while real column gutters (~50pt+) become table cells.
+  return Math.max(40, fontSize * 2.6);
+}
+
+export function horizontalGap(a: PdfSpan, b: PdfSpan) {
+  const aLeft = a.x;
+  const aRight = a.x + Math.max(0, a.width);
+  const bLeft = b.x;
+  const bRight = b.x + Math.max(0, b.width);
+  if (bLeft >= aRight) return bLeft - aRight;
+  if (aLeft >= bRight) return aLeft - bRight;
+  return 0;
+}
+
+/**
+ * Phase 2 — split a line's spans into left→right column clusters when large
+ * horizontal gutters separate them (the same gaps that used to become tabs).
+ */
+export function splitSpansIntoColumnClusters(spans: PdfSpan[]): PdfSpan[][] {
+  const usable = spans.filter((span) => span.text.replace(/\s+/g, "").length > 0);
+  if (usable.length < 2) return usable.length ? [usable] : [];
+
+  const ordered = [...usable].sort((a, b) => a.x - b.x || b.width - a.width);
+  const clusters: PdfSpan[][] = [[ordered[0]!]];
+  for (let index = 1; index < ordered.length; index += 1) {
+    const prev = ordered[index - 1]!;
+    const next = ordered[index]!;
+    const gap = next.x - (prev.x + Math.max(0, prev.width));
+    if (gap > columnGapThreshold(Math.max(prev.fontSize, next.fontSize))) {
+      clusters.push([next]);
+    } else {
+      clusters[clusters.length - 1]!.push(next);
+    }
+  }
+  return clusters;
+}
+
+const CHECKBOX_RE = /[☐☑☒□■]/;
+const FORM_PUNCT_RE = /^[\s:.\-–—|/\\[\]()]+$/;
+
+export function isCheckboxSpan(span: PdfSpan) {
+  const compact = span.text.replace(/\s+/g, "");
+  return compact.length > 0 && compact.length <= 2 && CHECKBOX_RE.test(compact);
+}
+
+function formPairGap(fontSize: number) {
+  // Voice-type rows place labels ~45–75pt left of ☐.
+  return Math.max(80, fontSize * 5);
+}
+
+/**
+ * Phase 3 — pair each checkbox with its nearest short label and emit one cell
+ * per option (e.g. Tenor☐ | Baritone☐ | Bass☐). Returns null when the line is
+ * not a multi-checkbox form row.
+ */
+export function splitSpansIntoFormCells(spans: PdfSpan[]): PdfSpan[][] | null {
+  const usable = spans.filter((span) => span.text.replace(/\s+/g, "").length > 0);
+  if (usable.length < 2) return null;
+
+  const ordered = [...usable].sort((a, b) => a.x - b.x || b.width - a.width);
+  const checkboxIndexes = ordered
+    .map((span, index) => (isCheckboxSpan(span) ? index : -1))
+    .filter((index) => index >= 0);
+  if (checkboxIndexes.length < 2) return null;
+
+  const used = new Set<number>();
+  const cells: PdfSpan[][] = [];
+
+  for (const checkboxIndex of checkboxIndexes) {
+    const checkbox = ordered[checkboxIndex]!;
+    const maxGap = formPairGap(checkbox.fontSize);
+    let labelIndex = -1;
+
+    // Prefer Label ☐ — walk left, skipping bare punctuation.
+    for (let index = checkboxIndex - 1; index >= 0; index -= 1) {
+      if (used.has(index)) break;
+      if (isCheckboxSpan(ordered[index]!)) break;
+      const label = ordered[index]!;
+      const gap = checkbox.x - (label.x + Math.max(0, label.width));
+      if (gap < 0) continue;
+      if (FORM_PUNCT_RE.test(label.text)) continue;
+      if (gap > maxGap) break;
+      if (label.text.replace(/\s+/g, "").length > 48) break;
+      labelIndex = index;
+      break;
+    }
+
+    // ☐ Label only when no left label and the right span is a short option name
+    // that is not itself the label for a following checkbox.
+    if (labelIndex < 0 && checkboxIndex + 1 < ordered.length && !used.has(checkboxIndex + 1)) {
+      const right = ordered[checkboxIndex + 1]!;
+      const nextCheckbox = checkboxIndexes.find((index) => index > checkboxIndex);
+      if (
+        !isCheckboxSpan(right) &&
+        !FORM_PUNCT_RE.test(right.text) &&
+        right.text.replace(/\s+/g, "").length <= 48 &&
+        (nextCheckbox === undefined || nextCheckbox > checkboxIndex + 1)
+      ) {
+        const gap = right.x - (checkbox.x + Math.max(0, checkbox.width));
+        if (gap >= 0 && gap <= Math.max(36, checkbox.fontSize * 3)) {
+          labelIndex = checkboxIndex + 1;
+        }
+      }
+    }
+
+    const cell: PdfSpan[] = [];
+    if (labelIndex >= 0) {
+      if (ordered[labelIndex]!.x <= checkbox.x) cell.push(ordered[labelIndex]!, checkbox);
+      else cell.push(checkbox, ordered[labelIndex]!);
+      used.add(labelIndex);
+    } else {
+      cell.push(checkbox);
+    }
+    used.add(checkboxIndex);
+    cells.push(cell);
+  }
+
+  const leftover = ordered.filter((_, index) => !used.has(index));
+  if (leftover.length) {
+    const punct = leftover.filter((span) => FORM_PUNCT_RE.test(span.text));
+    const rest = leftover.filter((span) => !FORM_PUNCT_RE.test(span.text));
+    if (rest.length) {
+      cells.unshift(...splitSpansIntoColumnClusters(rest));
+    }
+    for (const span of punct) {
+      let bestCell = 0;
+      let bestDist = Number.POSITIVE_INFINITY;
+      cells.forEach((cell, index) => {
+        const host = cell[cell.length - 1] ?? cell[0]!;
+        const dist = Math.abs(host.x - span.x);
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestCell = index;
+        }
+      });
+      cells[bestCell]!.push(span);
+    }
+  }
+
+  return cells.length >= 2 ? cells : null;
+}
+
+function lineFromCluster(cluster: PdfSpan[], baseline: number, fontSize: number): Line {
+  const joined = cluster.map((span) => span.text).join("");
+  const rtlVotes = cluster.filter((span) => span.dir === "rtl" || isRtlText(span.text)).length;
+  const rtl = isRtlText(joined) || rtlVotes > cluster.length / 2;
+  const sorted = [...cluster].sort((a, b) => (rtl ? b.x - a.x || b.width - a.width : a.x - b.x));
+  const x = Math.min(...sorted.map((span) => span.x));
+  const right = Math.max(...sorted.map((span) => span.x + span.width));
+  return {
+    baseline,
+    x,
+    width: right - x,
+    fontSize: Math.max(fontSize, ...sorted.map((span) => span.fontSize)),
+    rtl,
+    items: sorted.map((span) => ({ kind: "text" as const, span })),
+  };
 }
 
 function lineAlignment(line: Line, pageWidth: number, marginLeft: number, marginRight: number): TextBlock["alignment"] {
@@ -428,6 +707,49 @@ function isFullPageBackground(image: PdfImageRef, pageWidth: number, pageHeight:
   const area = image.width * image.height;
   const pageArea = pageWidth * pageHeight;
   return area / pageArea > 0.82 && image.width > pageWidth * 0.88 && image.height > pageHeight * 0.88;
+}
+
+/**
+ * Phase 4 — decide whether an editable page should also carry a visual reference
+ * snapshot (mixed art, dense forms, many inline images).
+ */
+export function pageNeedsHybridVisual(input: {
+  textChars: number;
+  pageWidth: number;
+  pageHeight: number;
+  images: PdfImageRef[];
+  formTableCount: number;
+  tableCount: number;
+  checkboxCount: number;
+}): { needed: boolean; reason: string } {
+  if (input.textChars < 8) return { needed: false, reason: "" };
+
+  const pageArea = Math.max(1, input.pageWidth * input.pageHeight);
+  const midImages = input.images.filter((image) => {
+    const area = image.width * image.height;
+    return area > pageArea * 0.12 && area < pageArea * 0.82;
+  });
+  if (midImages.length >= 1 && input.textChars >= 40) {
+    return { needed: true, reason: "mixed_text_and_art" };
+  }
+
+  const smallImages = input.images.filter((image) => {
+    const area = image.width * image.height;
+    return area >= 24 && area <= pageArea * 0.12;
+  });
+  if (smallImages.length >= 4 && input.textChars >= 40) {
+    return { needed: true, reason: "many_inline_images" };
+  }
+
+  if (input.formTableCount >= 2 && input.checkboxCount >= 4) {
+    return { needed: true, reason: "dense_form_tables" };
+  }
+
+  if (input.tableCount >= 6 && input.textChars >= 80) {
+    return { needed: true, reason: "complex_column_grid" };
+  }
+
+  return { needed: false, reason: "" };
 }
 
 function yTopForSpan(span: PdfSpan, pageHeight: number) {
@@ -603,9 +925,13 @@ export function layoutPage(
   pageHeight: number,
   spans: PdfSpan[],
   images: PdfImageRef[],
-  options?: { forceVisual?: boolean; forceEditable?: boolean },
+  options?: { forceVisual?: boolean; forceEditable?: boolean; forceHybrid?: boolean },
 ): PageLayout {
   const textChars = spans.reduce((sum, span) => sum + span.text.replace(/\s+/g, "").length, 0);
+  const checkboxCount = spans.reduce(
+    (sum, span) => sum + (span.text.match(/[☐☑☒□■]/g) ?? []).length,
+    0,
+  );
   const contentImages = images
     .map((image, index) => ({ ...image, index }))
     .filter((image) => image.width >= 4 && image.height >= 4 && image.width * image.height >= 24);
@@ -623,8 +949,12 @@ export function layoutPage(
       margin: { top: 36, right: 36, bottom: 36, left: 36 },
       blocks: [],
       useVisualFallback: true,
+      includeVisualReference: false,
+      hybridReason: "",
       wordCount: countWords(spans.map((span) => span.text).join(" ")),
       imageCount: 1,
+      tableCount: 0,
+      formTableCount: 0,
     };
   }
 
@@ -681,6 +1011,13 @@ export function layoutPage(
   const blocks: LayoutBlock[] = [];
   let previousBottom = margin.top;
   let paragraphLines: Line[] = [];
+  let pendingTable: TableBlock | null = null;
+
+  const flushTable = () => {
+    if (!pendingTable) return;
+    blocks.push(pendingTable);
+    pendingTable = null;
+  };
 
   const flushParagraph = () => {
     if (!paragraphLines.length) return;
@@ -728,9 +1065,45 @@ export function layoutPage(
     paragraphLines = [];
   };
 
+  const appendTableRow = (
+    line: Line,
+    clusters: PdfSpan[][],
+    yTop: number,
+    options: { borders: boolean; role: "columns" | "form" },
+  ) => {
+    const cells: TableCellModel[] = clusters.map((cluster) => {
+      const cellLine = lineFromCluster(cluster, line.baseline, line.fontSize);
+      return {
+        runs: lineRuns(cellLine),
+        rtl: cellLine.rtl,
+        alignment: (cellLine.rtl ? "right" : "left") as TextBlock["alignment"],
+      };
+    });
+    const spaceBefore = Math.max(0, yTop - previousBottom);
+    if (
+      pendingTable &&
+      pendingTable.rows[0]?.length === cells.length &&
+      pendingTable.borders === options.borders &&
+      pendingTable.role === options.role
+    ) {
+      pendingTable.rows.push(cells);
+    } else {
+      flushTable();
+      pendingTable = {
+        type: "table",
+        rows: [cells],
+        spaceBeforeTwips: Math.min(1440, pointsToTwips(spaceBefore)),
+        borders: options.borders,
+        role: options.role,
+      };
+    }
+    previousBottom = yTop + line.fontSize * 1.15;
+  };
+
   for (const item of flow) {
     if (item.kind === "image") {
       flushParagraph();
+      flushTable();
       const spaceBefore = Math.max(0, item.yTop - previousBottom);
       blocks.push({
         type: "image",
@@ -743,11 +1116,37 @@ export function layoutPage(
       continue;
     }
 
+    const textSpans = item.line.items
+      .filter((entry): entry is { kind: "text"; span: PdfSpan } => entry.kind === "text")
+      .map((entry) => entry.span);
+
+    // Phase 3: multi-checkbox option rows → bordered form table.
+    const formCells = splitSpansIntoFormCells(textSpans);
+    if (formCells && formCells.length >= 2) {
+      flushParagraph();
+      appendTableRow(item.line, formCells, item.yTop, { borders: true, role: "form" });
+      continue;
+    }
+
+    // Phase 2: wide gutters → column table (bordered when a lone checkbox is present).
+    const clusters = splitSpansIntoColumnClusters(textSpans);
+    if (clusters.length >= 2) {
+      flushParagraph();
+      const hasCheckbox = textSpans.some(isCheckboxSpan);
+      appendTableRow(item.line, clusters, item.yTop, {
+        borders: hasCheckbox,
+        role: hasCheckbox ? "form" : "columns",
+      });
+      continue;
+    }
+
+    flushTable();
     const last = paragraphLines[paragraphLines.length - 1];
     if (last && !linesBelongTogether(last, item.line)) flushParagraph();
     paragraphLines.push(item.line);
   }
   flushParagraph();
+  flushTable();
 
   const wordCount = countWords(
     spans
@@ -756,14 +1155,36 @@ export function layoutPage(
       .replace(/\t/g, " "),
   );
 
+  const tableBlocks = blocks.filter((block): block is TableBlock => block.type === "table");
+  const tableCount = tableBlocks.length;
+  const formTableCount = tableBlocks.filter((block) => block.role === "form").length;
+
+  const hybrid = options?.forceEditable
+    ? { needed: false, reason: "" }
+    : options?.forceHybrid
+      ? { needed: true, reason: "forced_hybrid" }
+      : pageNeedsHybridVisual({
+          textChars,
+          pageWidth,
+          pageHeight,
+          images: contentImages,
+          formTableCount,
+          tableCount,
+          checkboxCount,
+        });
+
   return {
     widthPt: pageWidth,
     heightPt: pageHeight,
     margin,
     blocks,
     useVisualFallback: false,
+    includeVisualReference: hybrid.needed,
+    hybridReason: hybrid.reason,
     wordCount,
     imageCount: blockImages.length + lines.reduce((sum, line) => sum + line.items.filter((item) => item.kind === "image").length, 0),
+    tableCount,
+    formTableCount,
   };
 }
 
@@ -771,12 +1192,25 @@ export function previewTextFromLayouts(pages: PageLayout[]) {
   return pages
     .map((page, pageIndex) => {
       if (page.useVisualFallback) return `[Page ${pageIndex + 1} visual copy]`;
-      return page.blocks
+      const body = page.blocks
         .map((block) => {
           if (block.type === "image") return `[image ${block.imageIndex + 1}]`;
+          if (block.type === "table") {
+            return block.rows
+              .map((row) =>
+                row
+                  .map((cell) => cell.runs.map((run) => (run.kind === "text" ? run.text : `[image ${run.imageIndex + 1}]`)).join(""))
+                  .join(" | "),
+              )
+              .join("\n");
+          }
           return block.runs.map((run) => (run.kind === "text" ? run.text : `[image ${run.imageIndex + 1}]`)).join("");
         })
         .join("\n");
+      if (page.includeVisualReference) {
+        return `${body}\n[Page ${pageIndex + 1} visual reference${page.hybridReason ? `: ${page.hybridReason}` : ""}]`;
+      }
+      return body;
     })
     .join("\n\n")
     .trim();

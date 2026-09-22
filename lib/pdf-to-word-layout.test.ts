@@ -110,6 +110,36 @@ describe("pdf to word layout", () => {
     expect(normalizePdfText(logical, "rtl")).toBe(logical);
   });
 
+  it("repairs Latin first-letter corruption and English label echoes (Phase 1)", async () => {
+    const { repairLatinCorruption } = await import("@/lib/pdf-to-word-layout");
+    expect(repairLatinCorruption("%asic")).toBe("Basic");
+    expect(repairLatinCorruption("7echnical")).toBe("Technical");
+    expect(repairLatinCorruption(").0etronome")).toBe("Metronome");
+    expect(repairLatinCorruption(").0ezzo-Soprano")).toBe("Mezzo-Soprano");
+    expect(repairLatinCorruption(").)orte")).toBe("Forte");
+    expect(normalizePdfText("Basic Information)%asic Information(")).toBe("Basic Information");
+    expect(normalizePdfText("Basic Information)7echnical Assessment(")).toBe(
+      "Basic Information (Technical Assessment)",
+    );
+    expect(normalizePdfText("Rhythm 5hythm(")).toBe("Rhythm");
+    expect(normalizePdfText("Vocal 5ange(")).toBe("Vocal Range");
+    expect(normalizePdfText("Passaggio %reakpoints(")).toBe("Passaggio Breakpoints");
+    expect(normalizePdfText("Basic Information)/owest Note(")).toBe("Basic Information (Lowest Note)");
+    expect(normalizePdfText("Basic Information)1-5(")).toBe("Basic Information (1-5)");
+    const intonation = normalizePdfText("ةعومسملا (Intonation).,ntonation");
+    expect(intonation).toContain("المسموعة");
+    expect(intonation).toContain("Intonation");
+    expect(intonation).not.toMatch(/%|[0-9][a-z]{3,}|\bntonation\b/);
+    const mixed = normalizePdfText(
+      "Rhythm 7essitura( نمزلاو عاقيإلا .5 Vocal 5ange( مييقتلا رصنع)Basic Information( ةيساسألا تانايبلا :لوألا مسقلا",
+    );
+    expect(mixed).toContain("Tessitura");
+    expect(mixed).toContain("Range");
+    expect(mixed).toContain("Basic Information");
+    expect(mixed).toContain("البيانات الأساسية");
+    expect(mixed).not.toMatch(/\)[A-Za-z]|%[a-z]|[0-9][a-z]{3,}/);
+  });
+
   it("keeps mixed English islands readable inside an Arabic line", () => {
     const page = layoutPage(
       595,
@@ -165,10 +195,179 @@ describe("pdf to word layout", () => {
     expect(countWords("one two three")).toBe(3);
   });
 
+  it("splits large horizontal gutters into borderless column table rows (Phase 2)", async () => {
+    const { splitSpansIntoColumnClusters } = await import("@/lib/pdf-to-word-layout");
+    const clusters = splitSpansIntoColumnClusters([
+      span({ text: "Left label", x: 72, y: 700, fontSize: 12, width: 80 }),
+      span({ text: "Right value", x: 320, y: 700, fontSize: 12, width: 90 }),
+    ]);
+    expect(clusters).toHaveLength(2);
+    expect(clusters[0]![0]!.text).toBe("Left label");
+    expect(clusters[1]![0]!.text).toBe("Right value");
+
+    const page = layoutPage(
+      595,
+      842,
+      [
+        span({ text: "Name", x: 72, y: 720, fontSize: 12, width: 40 }),
+        span({ text: "Ali", x: 300, y: 720, fontSize: 12, width: 30 }),
+        span({ text: "City", x: 72, y: 690, fontSize: 12, width: 40 }),
+        span({ text: "Cairo", x: 300, y: 690, fontSize: 12, width: 50 }),
+        span({ text: "Single column note without a wide gutter here.", x: 72, y: 640, fontSize: 12, width: 400 }),
+      ],
+      [],
+    );
+    expect(page.tableCount).toBeGreaterThanOrEqual(1);
+    const table = page.blocks.find((block) => block.type === "table");
+    expect(table?.type).toBe("table");
+    if (table?.type !== "table") return;
+    expect(table.borders).toBe(false);
+    expect(table.role).toBe("columns");
+    expect(table.rows.length).toBeGreaterThanOrEqual(2);
+    expect(table.rows[0]).toHaveLength(2);
+    const preview = previewTextFromLayouts([page]);
+    expect(preview).toContain("Name");
+    expect(preview).toContain("Ali");
+    expect(preview).toContain("|");
+    expect(preview).not.toContain("\t");
+
+    const blob = await buildDocxFromPages([{ layout: page, images: [] }], "columns");
+    const unzipper = await import("jszip");
+    const zip = await unzipper.default.loadAsync(await blob.arrayBuffer());
+    const xml = await zip.file("word/document.xml")?.async("string");
+    expect(xml).toContain("Name");
+    expect(xml).toContain("Ali");
+    expect(xml).toMatch(/<w:tbl[\s>]/);
+    // Borderless column grid
+    expect(xml).toMatch(/w:val="nil"|w:val="none"/i);
+  });
+
+  it("pairs checkbox options into bordered form table cells (Phase 3)", async () => {
+    const { splitSpansIntoFormCells, isCheckboxSpan } = await import("@/lib/pdf-to-word-layout");
+    expect(isCheckboxSpan(span({ text: "☐", x: 0, y: 0 }))).toBe(true);
+
+    const cells = splitSpansIntoFormCells([
+      span({ text: "Tenor", x: 80, y: 700, fontSize: 12, width: 40 }),
+      span({ text: "☐", x: 130, y: 700, fontSize: 12, width: 12 }),
+      span({ text: "Baritone", x: 180, y: 700, fontSize: 12, width: 55 }),
+      span({ text: "☐", x: 245, y: 700, fontSize: 12, width: 12 }),
+      span({ text: "Bass", x: 290, y: 700, fontSize: 12, width: 35 }),
+      span({ text: "☐", x: 335, y: 700, fontSize: 12, width: 12 }),
+    ]);
+    expect(cells).not.toBeNull();
+    expect(cells).toHaveLength(3);
+    expect(cells![0]!.map((item) => item.text).join("")).toContain("Tenor");
+    expect(cells![0]!.some((item) => item.text.includes("☐"))).toBe(true);
+    expect(cells![1]!.map((item) => item.text).join("")).toContain("Baritone");
+    expect(cells![2]!.map((item) => item.text).join("")).toContain("Bass");
+
+    const page = layoutPage(
+      595,
+      842,
+      [
+        span({ text: "Tenor", x: 80, y: 700, fontSize: 12, width: 40 }),
+        span({ text: "☐", x: 130, y: 700, fontSize: 12, width: 12 }),
+        span({ text: "Baritone", x: 180, y: 700, fontSize: 12, width: 55 }),
+        span({ text: "☐", x: 245, y: 700, fontSize: 12, width: 12 }),
+        span({ text: "Bass", x: 290, y: 700, fontSize: 12, width: 35 }),
+        span({ text: "☐", x: 335, y: 700, fontSize: 12, width: 12 }),
+        span({ text: "Soprano", x: 80, y: 670, fontSize: 12, width: 50 }),
+        span({ text: "☐", x: 140, y: 670, fontSize: 12, width: 12 }),
+        span({ text: "Alto", x: 200, y: 670, fontSize: 12, width: 35 }),
+        span({ text: "☐", x: 245, y: 670, fontSize: 12, width: 12 }),
+        span({ text: "Notes", x: 80, y: 620, fontSize: 12, width: 40 }),
+        span({ text: "Body", x: 300, y: 620, fontSize: 12, width: 40 }),
+      ],
+      [],
+    );
+    expect(page.formTableCount).toBeGreaterThanOrEqual(1);
+    const form = page.blocks.find((block) => block.type === "table" && block.role === "form");
+    expect(form?.type).toBe("table");
+    if (form?.type !== "table") return;
+    expect(form.borders).toBe(true);
+    expect(form.rows[0]).toHaveLength(3);
+
+    const blob = await buildDocxFromPages([{ layout: page, images: [] }], "form-table");
+    const unzipper = await import("jszip");
+    const zip = await unzipper.default.loadAsync(await blob.arrayBuffer());
+    const xml = await zip.file("word/document.xml")?.async("string");
+    expect(xml).toContain("Tenor");
+    expect(xml).toMatch(/<w:tbl[\s>]/);
+    // Bordered form grid should not force all borders to none.
+    expect(xml).toMatch(/Tenor[\s\S]*☐|☐[\s\S]*Tenor/);
+  });
+
   it("uses a visual fallback when the page is effectively scanned", () => {
     const page = layoutPage(595, 842, [], [{ x: 0, y: 0, width: 595, height: 842 }]);
     expect(page.useVisualFallback).toBe(true);
+    expect(page.includeVisualReference).toBe(false);
     expect(previewTextFromLayouts([page])).toContain("visual copy");
+  });
+
+  it("adds a hybrid visual reference for dense form pages (Phase 4)", async () => {
+    const { pageNeedsHybridVisual } = await import("@/lib/pdf-to-word-layout");
+    expect(
+      pageNeedsHybridVisual({
+        textChars: 120,
+        pageWidth: 595,
+        pageHeight: 842,
+        images: [],
+        formTableCount: 3,
+        tableCount: 3,
+        checkboxCount: 6,
+      }),
+    ).toEqual({ needed: true, reason: "dense_form_tables" });
+
+    expect(
+      pageNeedsHybridVisual({
+        textChars: 80,
+        pageWidth: 595,
+        pageHeight: 842,
+        images: [{ x: 40, y: 200, width: 400, height: 300 }],
+        formTableCount: 0,
+        tableCount: 0,
+        checkboxCount: 0,
+      }).reason,
+    ).toBe("mixed_text_and_art");
+
+    const page = layoutPage(
+      595,
+      842,
+      [
+        span({ text: "Tenor", x: 80, y: 700, fontSize: 12, width: 40 }),
+        span({ text: "☐", x: 130, y: 700, fontSize: 12, width: 12 }),
+        span({ text: "Baritone", x: 180, y: 700, fontSize: 12, width: 55 }),
+        span({ text: "☐", x: 245, y: 700, fontSize: 12, width: 12 }),
+        span({ text: "Bass", x: 290, y: 700, fontSize: 12, width: 35 }),
+        span({ text: "☐", x: 335, y: 700, fontSize: 12, width: 12 }),
+        span({ text: "Soprano", x: 80, y: 670, fontSize: 12, width: 50 }),
+        span({ text: "☐", x: 140, y: 670, fontSize: 12, width: 12 }),
+        span({ text: "Alto", x: 200, y: 670, fontSize: 12, width: 35 }),
+        span({ text: "☐", x: 245, y: 670, fontSize: 12, width: 12 }),
+        span({ text: "Mezzo", x: 300, y: 670, fontSize: 12, width: 40 }),
+        span({ text: "☐", x: 350, y: 670, fontSize: 12, width: 12 }),
+      ],
+      [],
+      { forceHybrid: true },
+    );
+    expect(page.useVisualFallback).toBe(false);
+    expect(page.includeVisualReference).toBe(true);
+    expect(page.hybridReason).toBe("forced_hybrid");
+    expect(previewTextFromLayouts([page])).toContain("visual reference");
+
+    const png = Uint8Array.from([
+      137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0, 31, 21, 196, 137, 0, 0, 0, 13, 73, 68, 65, 84, 120, 156, 99, 248, 207, 192, 4, 0, 1, 1, 1, 0, 24, 221, 141, 24, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130,
+    ]);
+    const blob = await buildDocxFromPages(
+      [{ layout: page, images: [], visual: { bytes: png, type: "png" } }],
+      "hybrid",
+    );
+    const unzipper = await import("jszip");
+    const zip = await unzipper.default.loadAsync(await blob.arrayBuffer());
+    const xml = await zip.file("word/document.xml")?.async("string");
+    expect(xml).toContain("Visual reference");
+    expect(xml).toContain("Tenor");
+    expect(Object.keys(zip.files).some((name) => name.startsWith("word/media/"))).toBe(true);
   });
 
   it("names the Word download from the PDF filename", () => {
@@ -190,8 +389,12 @@ describe("docx packaging", () => {
             heightPt: 842,
             margin: { top: 72, right: 72, bottom: 72, left: 72 },
             useVisualFallback: false,
+            includeVisualReference: false,
+            hybridReason: "",
             wordCount: 2,
             imageCount: 1,
+            tableCount: 0,
+            formTableCount: 0,
             blocks: [
               {
                 type: "text",
@@ -251,8 +454,12 @@ describe("docx packaging", () => {
             heightPt: 842,
             margin: { top: 72, right: 72, bottom: 72, left: 72 },
             useVisualFallback: false,
+            includeVisualReference: false,
+            hybridReason: "",
             wordCount: 1,
             imageCount: 0,
+            tableCount: 0,
+            formTableCount: 0,
             blocks: [
               {
                 type: "text",

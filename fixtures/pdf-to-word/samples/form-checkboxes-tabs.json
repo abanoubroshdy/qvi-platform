@@ -1,0 +1,15 @@
+{
+  "id": "form-checkboxes-tabs",
+  "description": "Form-like layout with checkboxes and tabs (no tables in converter)",
+  "pages": [
+    {
+      "widthPt": 595,
+      "heightPt": 842,
+      "rawItems": [
+        "Name:\t________\tAge:\t____",
+        "☐ Option A\t☐ Option B\t☐ Option C\t☐ Option D",
+        "Notes:\t____________________"
+      ]
+    }
+  ]
+}

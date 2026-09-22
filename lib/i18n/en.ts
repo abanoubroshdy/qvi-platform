@@ -340,7 +340,8 @@ export const en = {
     },
     "pdf-to-word": {
       title: "PDF to Word",
-      description: "Convert a PDF to an editable Word file in your browser. Text size, bold, and images stay on the page.",
+      description:
+        "Convert PDF to editable Word in your browser — Arabic RTL, columns, form tables, and hybrid page previews. Nothing is uploaded.",
     },
     "qr-generator": {
       title: "QR Generator",
@@ -495,7 +496,7 @@ export const en = {
     action: "Convert to Word",
     download: "Download Word",
     dropTitle: "Drop a PDF here or click to choose",
-    dropHint: "Conversion runs in this tab with PDF.js and a high-fidelity Word builder. The file is never uploaded.",
+    dropHint: "Conversion runs in this tab. Text, columns, forms, and hybrid page previews stay on your device — nothing is uploaded.",
     empty: "Extracted text and conversion stats will appear here after you choose a PDF.",
     file: "File",
     pages: "Pages",
@@ -503,15 +504,26 @@ export const en = {
     images: "Images",
     output: "Word size",
     visualPages: "Visual pages",
+    hybridPages: "Hybrid pages",
     status: "Status",
     working: "Converting…",
     ready: "Ready to download",
     waiting: "Waiting for a PDF",
     mode: "Conversion mode",
-    modeAuto: "Auto — editable text, visual copy for scans",
-    modeEditable: "Editable text — reconstruct words, size, bold, and images",
-    modeVisual: "Visual copy — each page as a high-resolution image",
-    modeHint: "Auto is best for simple single-column PDFs. Use visual copy for scans or complex page art.",
+    modeAuto: "Auto — editable, hybrid for complex pages, visual for scans",
+    modeEditable: "Editable text only",
+    modeHybrid: "Hybrid — editable + visual preview",
+    modeVisual: "Visual copy — page images only",
+    modeHint: "Auto rebuilds selectable text, adds a page preview on dense forms, and uses a full visual copy for scans.",
+    progressLoading: "Reading PDF…",
+    progressPages: "Rebuilding pages…",
+    progressPackaging: "Packaging Word file…",
+    progressHint: "Large files take longer on phones. You can leave this tab open.",
+    resultLabel: "Page mix",
+    resultSummary: "{editable} editable · {hybrid} hybrid · {visual} visual",
+    tipHybrid: "Hybrid pages keep editable text and add a visual preview underneath so you can check layout fidelity.",
+    tipVisual: "Visual-only pages looked scanned (almost no selectable text), so the original page image was inserted.",
+    previewTitle: "Extracted text preview",
     badFormat: "Unsupported format. Choose a PDF file.",
     failed: "Could not convert this PDF. Try another file, or switch to visual copy for scanned pages.",
   },
@@ -929,14 +941,14 @@ export const en = {
       category: "PDF tools",
       title: "Convert PDF to Word online — no upload",
       description:
-        "Turn a PDF into a .docx file in your browser. The converter rebuilds text size, bold, and images, and uses a high-resolution page copy for scans.",
+        "Turn a PDF into a .docx file in your browser. Rebuilds text, columns, and form checkboxes; adds a hybrid page preview on complex pages and a visual copy for scans.",
       howToTitle: "How do I convert PDF to Word?",
       howToNote:
-        "Best results are simple single-column PDFs with selectable text. Scanned pages are stored as images so nothing is lost. The file never leaves this device.",
+        "Best results come from PDFs with selectable text. Auto mode repairs Arabic font garbage, builds column/form tables, and attaches a visual preview on dense pages. Scans become page images. The file never leaves this device.",
       howToSteps: [
         "Drop a PDF or choose it from your device.",
-        "Keep Auto mode, or pick editable text / visual copy.",
-        "Wait for local conversion, then preview the extracted text.",
+        "Keep Auto, or pick editable / hybrid / visual copy.",
+        "Watch the progress bar, then review the page mix and text preview.",
         "Download the Word file. Nothing is uploaded.",
       ],
       faqs: [
@@ -946,7 +958,11 @@ export const en = {
         },
         {
           q: "What formatting is kept?",
-          a: "For selectable text the tool preserves font size, bold, italic, color when available, right-to-left Arabic, and embedded images with their positions.",
+          a: "Selectable text keeps font size, bold, italic, color when available, right-to-left Arabic, embedded images, column gutters as tables, and checkbox option rows as bordered form tables.",
+        },
+        {
+          q: "What is hybrid mode?",
+          a: "Hybrid keeps editable text and also inserts a scaled preview of the original page so you can verify complex forms or mixed artwork.",
         },
         {
           q: "What about scanned PDFs?",
@@ -954,7 +970,7 @@ export const en = {
         },
         {
           q: "Does it handle Arabic?",
-          a: "Yes. Right-to-left runs are detected and written as RTL text in Word. Complex multi-column layouts may still need a visual copy.",
+          a: "Yes. Broken ToUnicode fonts are cleaned up, visual-order Arabic is reversed to logical order, and RTL runs are written correctly in Word.",
         },
         {
           q: "Is it free?",

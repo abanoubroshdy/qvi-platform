@@ -1,19 +1,25 @@
 import {
   AlignmentType,
+  BorderStyle,
   Document,
   ImageRun,
   LineRuleType,
   Packer,
   Paragraph,
+  Table,
+  TableCell,
+  TableLayoutType,
+  TableRow,
   TextRun,
+  WidthType,
 } from "docx";
 import {
-  type LayoutBlock,
   type PageLayout,
   type PdfImageRef,
   type PdfSpan,
   type RunModel,
   type PdfDir,
+  type TableBlock,
   cmykToHex,
   fontSizeFromTransform,
   grayToHex,
@@ -31,7 +37,7 @@ import {
 
 export const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
-export type ConvertMode = "auto" | "editable" | "visual";
+export type ConvertMode = "auto" | "editable" | "visual" | "hybrid";
 
 export type ConvertedImage = {
   bytes: Uint8Array;
@@ -44,6 +50,8 @@ export type PdfToWordResult = {
   words: number;
   images: number;
   visualPages: number;
+  /** Pages that kept editable text and also attached a visual reference (Phase 4). */
+  hybridPages: number;
   preview: string;
   /** True when preview content is predominantly Arabic/Hebrew — UI should force RTL. */
   rtlPreview: boolean;
@@ -397,6 +405,43 @@ function runsToChildren(runs: RunModel[], images: Array<ConvertedImage | null>) 
   return children;
 }
 
+const NO_BORDER = { style: BorderStyle.NONE, size: 0, color: "FFFFFF" };
+const NO_BORDERS = { top: NO_BORDER, bottom: NO_BORDER, left: NO_BORDER, right: NO_BORDER };
+
+function tableBlockToDocx(block: TableBlock, images: Array<ConvertedImage | null>, contentWidthTwips: number) {
+  const colCount = Math.max(1, ...block.rows.map((row) => row.length));
+  const colWidth = Math.max(200, Math.floor(contentWidthTwips / colCount));
+  return new Table({
+    width: { size: contentWidthTwips, type: WidthType.DXA },
+    layout: TableLayoutType.FIXED,
+    columnWidths: Array.from({ length: colCount }, () => colWidth),
+    rows: block.rows.map(
+      (row) =>
+        new TableRow({
+          children: Array.from({ length: colCount }, (_, index) => {
+            const cell = row[index];
+            return new TableCell({
+              borders: block.borders ? undefined : NO_BORDERS,
+              width: { size: colWidth, type: WidthType.DXA },
+              children: [
+                new Paragraph({
+                  alignment:
+                    cell?.alignment === "center"
+                      ? AlignmentType.CENTER
+                      : cell?.alignment === "right" || cell?.rtl
+                        ? AlignmentType.RIGHT
+                        : AlignmentType.LEFT,
+                  bidirectional: cell?.rtl,
+                  children: cell ? runsToChildren(cell.runs, images) : [],
+                }),
+              ],
+            });
+          }),
+        }),
+    ),
+  });
+}
+
 export async function buildDocxFromPages(
   pages: Array<{ layout: PageLayout; images: Array<ConvertedImage | null>; visual?: ConvertedImage | null }>,
   title: string,
@@ -404,7 +449,8 @@ export async function buildDocxFromPages(
   const sections = pages.map(({ layout, images, visual }) => {
     const width = Math.min(MAX_PAGE_PT, Math.max(300, layout.widthPt));
     const height = Math.min(MAX_PAGE_PT, Math.max(300, layout.heightPt));
-    const children: Paragraph[] = [];
+    const children: Array<Paragraph | Table> = [];
+    const contentWidthTwips = pointsToTwips(width - layout.margin.left - layout.margin.right);
 
     if (layout.useVisualFallback && visual) {
       children.push(
@@ -432,6 +478,18 @@ export async function buildDocxFromPages(
           );
           continue;
         }
+        if (block.type === "table") {
+          if (block.spaceBeforeTwips > 0) {
+            children.push(
+              new Paragraph({
+                spacing: { before: block.spaceBeforeTwips, after: 0 },
+                children: [],
+              }),
+            );
+          }
+          children.push(tableBlockToDocx(block, images, contentWidthTwips));
+          continue;
+        }
         children.push(
           new Paragraph({
             alignment: alignmentOf(block),
@@ -447,6 +505,38 @@ export async function buildDocxFromPages(
               lineRule: LineRuleType.AT_LEAST,
             },
             children: runsToChildren(block.runs, images),
+          }),
+        );
+      }
+
+      // Phase 4 — editable content + scaled page preview for verification.
+      if (layout.includeVisualReference && visual) {
+        const rtlPage = layout.blocks.some((block) => block.type === "text" && block.rtl);
+        children.push(
+          new Paragraph({
+            spacing: { before: 240, after: 80 },
+            bidirectional: rtlPage,
+            children: [
+              new TextRun({
+                text: rtlPage ? "مرجع بصري (الصفحة الأصلية)" : "Visual reference (original page)",
+                italics: true,
+                size: 18,
+                color: "666666",
+                rightToLeft: rtlPage,
+                language: rtlPage ? { value: "ar-SA", bidirectional: "ar-SA" } : { value: "en-US" },
+              }),
+            ],
+          }),
+        );
+        const previewWidthPx = pointsToPx(width - layout.margin.left - layout.margin.right);
+        const previewHeightPx = Math.max(
+          120,
+          Math.round(previewWidthPx * ((height - layout.margin.top - layout.margin.bottom) / Math.max(1, width - layout.margin.left - layout.margin.right))),
+        );
+        children.push(
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [imageRun(visual, previewWidthPx, previewHeightPx)],
           }),
         );
       }
@@ -546,6 +636,7 @@ export async function convertPdfToWord(
   let words = 0;
   let imageCount = 0;
   let visualPages = 0;
+  let hybridPages = 0;
 
   for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
     const page = await pdf.getPage(pageNumber);
@@ -563,13 +654,16 @@ export async function convertPdfToWord(
     const layout = layoutPage(viewport.width, viewport.height, spans, imageRefs, {
       forceVisual: mode === "visual",
       forceEditable: mode === "editable",
+      forceHybrid: mode === "hybrid",
     });
 
     let visual: ConvertedImage | null = null;
-    if (layout.useVisualFallback) {
-      visual = await renderPagePng(page, 2.2);
+    if (layout.useVisualFallback || layout.includeVisualReference) {
+      // Hybrid reference uses a lighter render scale to keep Word files smaller.
+      visual = await renderPagePng(page, layout.includeVisualReference && !layout.useVisualFallback ? 1.35 : 2.2);
       visualPages += 1;
       imageCount += 1;
+      if (layout.includeVisualReference) hybridPages += 1;
     }
 
     const converted = rawImages.map((image) => image.converted ?? null);
@@ -590,6 +684,7 @@ export async function convertPdfToWord(
     words,
     images: imageCount,
     visualPages,
+    hybridPages,
     preview,
     rtlPreview: isRtlText(preview),
   };

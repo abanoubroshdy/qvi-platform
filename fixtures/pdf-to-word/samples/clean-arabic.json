@@ -1,0 +1,16 @@
+{
+  "id": "clean-arabic-logical",
+  "description": "Logical-order Arabic paragraphs with no font garbage",
+  "pages": [
+    {
+      "widthPt": 595,
+      "heightPt": 842,
+      "rawItems": [
+        "نموذج التقييم الصوتي الشامل",
+        "القسم الأول: البيانات الأساسية",
+        "Basic Information",
+        "معايير الأداء والتدريب الفوكال العالمي"
+      ]
+    }
+  ]
+}
