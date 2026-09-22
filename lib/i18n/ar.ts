@@ -146,6 +146,7 @@ export const ar: Messages = {
     audioTitle: "أدوات الصوت والفيديو - جديدة",
     audioLead: "استخرج الصوت، حوّل الصيغ، واقطع المقاطع بالكامل في المتصفح. لا يُرفع شيء.",
     labSectionKicker: "بعد المنتجات الرئيسية",
+    labProductCta: "صفحة منتج Neyora",
     toolsSectionKicker: "تصفّح حسب التصنيف",
     toolsSectionTitle: "أدوات مجانية على جهازك",
     toolsSectionLead:

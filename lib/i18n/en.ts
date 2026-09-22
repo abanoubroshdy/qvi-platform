@@ -145,6 +145,7 @@ export const en = {
     audioTitle: "Audio & video tools — new",
     audioLead: "Extract audio, convert formats, and trim clips entirely in your browser. Nothing is uploaded.",
     labSectionKicker: "After the flagship products",
+    labProductCta: "Neyora product page",
     toolsSectionKicker: "Browse by category",
     toolsSectionTitle: "Free tools on your device",
     toolsSectionLead:
