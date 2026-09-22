@@ -48,7 +48,7 @@ const siteUrl = firstString(
     ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL.replace(/^https?:\/\//, "")}`
     : "",
   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL.replace(/^https?:\/\//, "")}` : "",
-  "https://qvi.audio",
+  "https://getqvi.com",
 );
 
 const nextConfig = {

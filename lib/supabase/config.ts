@@ -1,5 +1,5 @@
 export const DEFAULT_SUPABASE_URL = "https://eiwvlsmgrhzzriuaftfx.supabase.co";
-export const DEFAULT_SITE_URL = "https://qvi.audio";
+export const DEFAULT_SITE_URL = "https://getqvi.com";
 
 export type PublicSupabaseConfig = {
   url: string;

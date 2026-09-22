@@ -29,16 +29,16 @@ Optional: copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_SITE_URL` bef
 
 ## Authentication (Vercel)
 
-Sign-in uses Supabase. On [qvi-platform.vercel.app](https://qvi-platform.vercel.app), set these in **Vercel → Project Settings → Environment Variables** (Production + Preview), then **Redeploy**:
+Sign-in uses Supabase. On [getqvi.com](https://getqvi.com), set these in **Vercel → Project Settings → Environment Variables** (Production + Preview), then **Redeploy**:
 
 - `NEXT_PUBLIC_SUPABASE_URL` — `https://<project-ref>.supabase.co`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — the anon/publishable key from Supabase → **Project Settings → API**
-- `NEXT_PUBLIC_SITE_URL` — the public site origin, for example `https://qvi-platform.vercel.app` (not the Supabase URL)
+- `NEXT_PUBLIC_SITE_URL` — the public site origin, `https://getqvi.com` (not the Supabase URL)
 
 Then in Supabase → **Authentication → URL Configuration**, add:
 
-- Site URL: `https://qvi-platform.vercel.app`
-- Redirect URLs: `https://qvi-platform.vercel.app/**` and `https://qvi-platform.vercel.app/auth/callback`
+- Site URL: `https://getqvi.com`
+- Redirect URLs: `https://getqvi.com/**`, `https://getqvi.com/auth/callback`, and the Vercel preview origin if needed
 
 Do not put the Supabase project URL in `NEXT_PUBLIC_SITE_URL`.
 

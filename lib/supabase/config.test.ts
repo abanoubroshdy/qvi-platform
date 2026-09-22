@@ -18,6 +18,7 @@ describe("supabase public config", () => {
   it("treats supabase project hosts as backend URLs, not the public site", () => {
     expect(isSupabaseHost("https://eiwvlsmgrhzzriuaftfx.supabase.co")).toBe(true);
     expect(isSupabaseHost("https://qvi-platform.vercel.app")).toBe(false);
+    expect(isSupabaseHost("https://getqvi.com")).toBe(false);
   });
 
   it("reads anon keys from unprefixed Vercel names and recovers a misplaced site URL", () => {
