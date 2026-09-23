@@ -3,10 +3,13 @@
  *
  * Web Audio schedules the plan from `playback-schedule`. Tempo and pitch are
  * not applied here; a rendered track buffer is, once the preview has one.
+ * AnalyserNodes sit after the track and master gains so the console can read
+ * peaks. They do not change the mix.
  */
 
 import type { StudioEngineStatus, StudioPlaybackEngine } from "@/lib/studio/engine";
 import { loadStudioFile, type StudioDecodeResult } from "@/lib/studio/load-clip";
+import { peakFromTimeDomain, type StudioMeterReading } from "@/lib/studio/meters";
 import { planPlayback } from "@/lib/studio/playback-schedule";
 import { canPlayStudioProject, projectDuration } from "@/lib/studio/project";
 import type { StudioProject } from "@/lib/studio/types";
@@ -18,6 +21,13 @@ export interface StudioAudioNode {
 
 export interface StudioGainNode extends StudioAudioNode {
   gain: { value: number };
+}
+
+/** Pass-through tap. Peak meters read this; it does not change the mix. */
+export interface StudioAnalyserNode extends StudioAudioNode {
+  fftSize: number;
+  smoothingTimeConstant: number;
+  getFloatTimeDomainData(array: Float32Array): void;
 }
 
 export interface StudioBufferSource extends StudioAudioNode {
@@ -35,6 +45,7 @@ export interface StudioAudioHost {
   close(): Promise<void>;
   createGain(): StudioGainNode;
   createBufferSource(): StudioBufferSource;
+  createAnalyser?(): StudioAnalyserNode;
   createBuffer?(channels: number, length: number, sampleRate: number): AudioBuffer;
   decodeAudioData?(data: ArrayBuffer): Promise<AudioBuffer>;
 }
@@ -49,6 +60,9 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
   private readonly onTransport?: (snapshot: StudioTransportSnapshot) => void;
   private readonly master: StudioGainNode;
   private readonly trackGains = new Map<string, StudioGainNode>();
+  private readonly trackAnalysers = new Map<string, StudioAnalyserNode>();
+  private masterAnalyser: StudioAnalyserNode | null = null;
+  private meterScratch = new Float32Array(256);
   private readonly rendered = new Map<string, AudioBuffer>();
   private sources: StudioBufferSource[] = [];
   private activeProject: StudioProject | null = null;
@@ -63,7 +77,18 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
     this.onTransport = onTransport;
     this.master = host.createGain();
     this.master.gain.value = 1;
-    this.master.connect(host.destination);
+    this.connectTap(this.master, host.destination, null);
+  }
+
+  readMeters(): StudioMeterReading {
+    const tracks: Record<string, number> = {};
+    this.trackAnalysers.forEach((analyser, trackId) => {
+      tracks[trackId] = this.levelOf(analyser);
+    });
+    return {
+      master: this.masterAnalyser ? this.levelOf(this.masterAnalyser) : 0,
+      tracks,
+    };
   }
 
   currentStatus(): StudioEngineStatus {
@@ -172,19 +197,13 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
     this.disposed = true;
     this.stopSources();
     this.status = "idle";
-    this.trackGains.forEach((node) => {
-      try {
-        node.disconnect();
-      } catch {
-        /* already disconnected */
-      }
-    });
+    this.trackGains.forEach((node) => disconnectQuiet(node));
     this.trackGains.clear();
-    try {
-      this.master.disconnect();
-    } catch {
-      /* already disconnected */
-    }
+    this.trackAnalysers.forEach((node) => disconnectQuiet(node));
+    this.trackAnalysers.clear();
+    if (this.masterAnalyser) disconnectQuiet(this.masterAnalyser);
+    this.masterAnalyser = null;
+    disconnectQuiet(this.master);
     void this.host.close().catch(() => undefined);
   }
 
@@ -225,7 +244,7 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
     let node = this.trackGains.get(trackId);
     if (!node) {
       node = this.host.createGain();
-      node.connect(this.master);
+      this.connectTap(node, this.master, trackId);
       this.trackGains.set(trackId, node);
     }
     node.gain.value = linear;
@@ -250,8 +269,39 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
     }
   }
 
+  private connectTap(from: StudioAudioNode, to: StudioAudioNode, trackId: string | null): void {
+    const create = this.host.createAnalyser;
+    if (!create) {
+      from.connect(to);
+      return;
+    }
+    const analyser = create.call(this.host);
+    analyser.fftSize = 256;
+    analyser.smoothingTimeConstant = 0;
+    from.connect(analyser);
+    analyser.connect(to);
+    if (trackId) this.trackAnalysers.set(trackId, analyser);
+    else this.masterAnalyser = analyser;
+  }
+
+  private levelOf(analyser: StudioAnalyserNode): number {
+    const size = analyser.fftSize > 0 ? analyser.fftSize : 256;
+    if (this.meterScratch.length < size) this.meterScratch = new Float32Array(size);
+    const view = this.meterScratch.subarray(0, size);
+    analyser.getFloatTimeDomainData(view);
+    return peakFromTimeDomain(view);
+  }
+
   private emit(): void {
     this.onTransport?.({ status: this.status, playheadSec: this.currentPlayhead() });
+  }
+}
+
+function disconnectQuiet(node: StudioAudioNode): void {
+  try {
+    node.disconnect();
+  } catch {
+    /* already disconnected */
   }
 }
 
@@ -277,6 +327,12 @@ export function createStudioAudioHost(existing?: AudioContext): StudioAudioHost 
     resume: () => context.resume(),
     close: () => context.close(),
     createGain: () => context.createGain(),
+    createAnalyser: () => {
+      const analyser = context.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0;
+      return analyser;
+    },
     createBufferSource: () => wrapBufferSource(context.createBufferSource()),
     createBuffer: (channels, length, sampleRate) => context.createBuffer(channels, length, sampleRate),
     decodeAudioData: (data) => context.decodeAudioData(data),

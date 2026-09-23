@@ -118,7 +118,7 @@ export const qviStudioLimits = {
 export const qviStudioEngines = {
   playback: {
     runtime: "web-audio",
-    nodes: ["AudioContext", "AudioBufferSourceNode", "GainNode"],
+    nodes: ["AudioContext", "AudioBufferSourceNode", "GainNode", "AnalyserNode"],
     startPolicy: "resume-after-user-gesture",
   },
   tempoPitchPreview: {
