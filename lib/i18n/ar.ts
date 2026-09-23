@@ -6,10 +6,12 @@ export const ar: Messages = {
     languageShort: "ع",
   },
   nav: {
+    home: "الرئيسية",
     products: "المنتجات",
     tools: "أدوات مجانية",
     lab: "المختبر",
     about: "عنّا",
+    contact: "اتصل بنا",
     exploreQv1: "استكشف QV1",
     primary: "القائمة الرئيسية",
     mobile: "قائمة الجوال",
@@ -196,6 +198,9 @@ export const ar: Messages = {
   footer: {
     blurb:
       "برمجيات صوت ذكية تعمل على جهازك، مع أدوات مجانية في المتصفح لا ترفع ملفاتك أبدًا.",
+    explore: "استكشف",
+    home: "الرئيسية",
+    siteMap: "خريطة الموقع",
     products: "المنتجات",
     company: "الشركة",
     freeTools: "أدوات مجانية",

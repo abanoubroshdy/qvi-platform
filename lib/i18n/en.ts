@@ -4,10 +4,12 @@ export const en = {
     languageShort: "EN",
   },
   nav: {
+    home: "Home",
     products: "Products",
     tools: "Free Tools",
     lab: "Lab",
     about: "About",
+    contact: "Contact",
     exploreQv1: "Explore QV1",
     primary: "Primary",
     mobile: "Mobile",
@@ -195,6 +197,9 @@ export const en = {
   footer: {
     blurb:
       "Intelligent audio software that runs on your device, plus free browser utilities that never upload your files.",
+    explore: "Explore",
+    home: "Home",
+    siteMap: "Site map",
     products: "Products",
     company: "Company",
     freeTools: "Free Tools",
