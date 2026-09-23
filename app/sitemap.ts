@@ -17,6 +17,7 @@ const staticRouteConfig: Record<
   "/products/neyora": { changeFrequency: "weekly", priority: 0.95 },
   "/tools": { changeFrequency: "weekly", priority: 0.9 },
   "/lab": { changeFrequency: "weekly", priority: 0.85 },
+  "/studio": { changeFrequency: "weekly", priority: 0.92 },
 };
 
 export default function sitemap(): MetadataRoute.Sitemap {

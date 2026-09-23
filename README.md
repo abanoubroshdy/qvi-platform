@@ -52,9 +52,14 @@ Then in Supabase → **Authentication → URL Configuration**, add:
 
 Do not put the Supabase project URL in `NEXT_PUBLIC_SITE_URL`.
 
+## QVI Studio
+
+V1 scope is defined in `lib/studio/definition.ts`. The in-memory session lives only on `/studio`. Refresh clears it. The homepage and header link to that page. Files stay on the device. Stem separation stays on QV1, synthesis stays on Neyora, and the studio is not a `/tools` utility.
+
 ## Routes
 
-- `/` platform homepage (products + free tools)
+- `/` product home, with links to QVI Studio, QV1, Neyora, and free tools
+- `/studio` the QVI Studio session
 - `/products/qv1` QV1 waitlist landing
 - `/products/neyora` Neyora lab (also `/lab`)
 - `/tools/image-compressor` Image Compressor
@@ -71,7 +76,7 @@ Do not put the Supabase project URL in `NEXT_PUBLIC_SITE_URL`.
 - `/tools/image-resizer` Image resizer
 - `/tools/word-counter` Word and character counter
 - `/tools/mp4-to-mp3` Extract audio from video (MP3, WAV, M4A, OGG, FLAC) with sample rate, bitrate or bit depth, and quality. Runs in the browser via ffmpeg.wasm; files over ~80 MB may fail because the whole video is loaded into memory.
-- `/tools/mp3-to-wav` Convert MP3/M4A/OGG to WAV
+- `/tools/mp3-to-wav` Convert any audio format in batch (shared quality + ZIP)
 - `/tools/audio-cutter` Trim audio
 - `/login` sign in or create an account (name, gender, country, date of birth, phone)
 - `/account` signed-in profile

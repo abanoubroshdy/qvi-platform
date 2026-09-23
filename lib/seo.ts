@@ -65,6 +65,7 @@ export function websiteSchema() {
 export function siteNavigationItemListSchema() {
   const paths: { name: string; path: string }[] = [
     { name: "Home", path: "/" },
+    { name: "QVI Studio", path: "/studio" },
     { name: "QV1", path: "/products/qv1" },
     { name: "Neyora", path: "/products/neyora" },
     { name: "Lab", path: "/lab" },

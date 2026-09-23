@@ -11,8 +11,10 @@ import {
   Scale,
   Shield,
   Sparkles,
+  SlidersHorizontal,
   Wrench,
 } from "lucide-react";
+import { products } from "@/lib/products";
 import type { LucideIcon } from "lucide-react";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { cn } from "@/lib/utils";
@@ -28,6 +30,12 @@ export function HomeSiteExplore() {
   const { copy } = useI18n();
 
   const links: ExploreLink[] = [
+    {
+      href: products.studio.href,
+      label: copy.products.studio.name,
+      description: copy.products.studio.title,
+      icon: SlidersHorizontal,
+    },
     {
       href: "/products/qv1",
       label: copy.products.qv1.name,
