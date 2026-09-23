@@ -72,9 +72,8 @@ describe("resolveAdSensePlacement", () => {
 describe("adsense script", () => {
   it("loads the manual display loader and does not enable page-level ads", () => {
     const src = adsenseScriptSrc(DEFAULT_ADSENSE_CLIENT);
-    expect(src).toBe(
-      "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9019451998006609",
-    );
+    expect(src).toBe("https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js");
+    expect(src).not.toContain("client=");
     expect(src).not.toContain("enable_page_level_ads");
   });
 

@@ -81,6 +81,13 @@ const nextConfig = {
         ],
       },
       {
+        // AdSense display frames do not send COEP. credentialless still blocks
+        // them (coep-frame-resource-needs-coep-header) and the slot paints a
+        // broken "refused to connect" frame instead of an ad.
+        source: "/tools/:slug",
+        headers: [{ key: "Cross-Origin-Embedder-Policy", value: "unsafe-none" }],
+      },
+      {
         source: "/brand.css",
         headers: [
           { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },

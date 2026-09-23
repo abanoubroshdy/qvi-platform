@@ -58,8 +58,12 @@ export function adsenseVerificationClient(
   return client || DEFAULT_ADSENSE_CLIENT;
 }
 
-/** Loader for manual units only. No page-level or auto-ads flag. */
+/**
+ * Manual units only. The publisher id stays on each `<ins>` (`data-ad-client`).
+ * Putting `?client=` on this URL is the Auto ads head tag, which also requests
+ * a page-level slot. Do not add `enable_page_level_ads`.
+ */
 export function adsenseScriptSrc(client: string): string | null {
   if (!CLIENT_RE.test(client)) return null;
-  return `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${client}`;
+  return "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js";
 }
