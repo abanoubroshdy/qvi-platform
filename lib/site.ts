@@ -18,6 +18,9 @@ export const siteConfig = {
     "on-device audio",
     "free online tools",
   ],
-  email: "hello@qvi.audio",
+  /** Public support inbox for contact form and general inquiries. */
+  supportEmail: "support@getqvi.com",
+  /** Legacy alias — prefer supportEmail for new UI. */
+  email: "support@getqvi.com",
   locale: "en",
 } as const;

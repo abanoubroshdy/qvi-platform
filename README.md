@@ -27,6 +27,16 @@ npm start
 
 Optional: copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_SITE_URL` before deploy.
 
+## Contact form (Vercel)
+
+`/contact` posts to `/api/contact` and emails **support@getqvi.com** via [Resend](https://resend.com). In **Vercel → Environment Variables** (Production + Preview), set:
+
+- `RESEND_API_KEY`
+- `CONTACT_FROM_EMAIL` — e.g. `QVI Contact <noreply@getqvi.com>` (domain must be verified in Resend)
+- `CONTACT_TO_EMAIL` — optional; defaults to `support@getqvi.com`
+
+Redeploy after adding variables.
+
 ## Authentication (Vercel)
 
 Sign-in uses Supabase. On [getqvi.com](https://getqvi.com), set these in **Vercel → Project Settings → Environment Variables** (Production + Preview), then **Redeploy**:

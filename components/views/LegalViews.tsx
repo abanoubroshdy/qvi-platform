@@ -56,8 +56,8 @@ export function ContactView() {
       <div className="rounded-xl border border-border bg-muted/40 p-4 text-sm">
         <p>
           {page.emailLabel}{" "}
-          <a className="font-semibold text-primary hover:underline" href={`mailto:${siteConfig.email}`}>
-            {siteConfig.email}
+          <a className="font-semibold text-primary hover:underline" href={`mailto:${siteConfig.supportEmail}`}>
+            {siteConfig.supportEmail}
           </a>
         </p>
         <p className="mt-2 text-muted-foreground">{page.note}</p>
