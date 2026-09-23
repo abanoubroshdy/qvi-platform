@@ -78,10 +78,17 @@ function PolicyList({ items }: { items: readonly string[] }) {
   );
 }
 
+const GOOGLE_PRIVACY_LINKS = [
+  { href: "https://policies.google.com/privacy", labelKey: "googlePrivacyLabel" },
+  { href: "https://policies.google.com/technologies/ads", labelKey: "googleAdsCookiesLabel" },
+  { href: "https://policies.google.com/technologies/partner-sites", labelKey: "googlePartnerSitesLabel" },
+  { href: "https://adssettings.google.com/", labelKey: "googleAdsSettingsLabel" },
+] as const;
+
 export function PrivacyView({ isPlaceholder = false }: { isPlaceholder?: boolean }) {
-  const { copy, locale } = useI18n();
+  const { copy } = useI18n();
   const page = copy.privacy;
-  const effectiveDate = new Date().toLocaleDateString(locale === "ar" ? "ar-EG" : "en-GB");
+  const effectiveDate = page.effectiveDate;
   const privacyEmail = page.privacyEmail;
 
   if (isPlaceholder) {
@@ -171,6 +178,21 @@ export function PrivacyView({ isPlaceholder = false }: { isPlaceholder?: boolean
         <h2 className="text-xl font-bold">{page.cookiesTitle}</h2>
         <p>{page.cookiesLead}</p>
         <PolicyList items={page.cookies} />
+        <p>{page.googleLinksLead}</p>
+        <ul className="list-disc space-y-2 ps-5">
+          {GOOGLE_PRIVACY_LINKS.map((link) => (
+            <li key={link.href}>
+              <a
+                className="font-semibold text-primary hover:underline"
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {page[link.labelKey]}
+              </a>
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section className="space-y-3">

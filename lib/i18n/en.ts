@@ -1473,14 +1473,15 @@ export const en = {
   },
   privacy: {
     title: "Privacy Policy - QVI",
-    updated: "September 18, 2026",
+    updated: "23 September 2026",
     effectiveDateLabel: "Effective date",
-    privacyEmail: "privacy@qvi.app",
+    effectiveDate: "23 September 2026",
+    privacyEmail: "privacy@getqvi.com",
     comingSoon: "Content will be updated soon.",
     introTitle: "1. About QVI",
     intro: [
       "QVI (Quality Virtual Instruments) builds intelligent audio software — including QV1 and Neyora — and free browser tools that process files on your device. When you create an account you can save your waitlist place and manage it from any device.",
-      "This notice describes only the data the current website actually collects and processes, as implemented in the application code and database. It is not a list of services we might add later.",
+      "This notice describes the data the current website collects and the parties that process it: accounts, profiles, and waitlists in the application; the contact form; hosting; and Google AdSense, which is enrolled on getqvi.com and may show display ads on free tools pages.",
     ],
     collectTitle: "2. Data we collect",
     collectLead:
@@ -1503,7 +1504,7 @@ export const en = {
     ],
     collectNotTitle: "What we do not collect through free tools",
     collectNot:
-      "Images, audio, video, PDFs, and text you process in the free tools stay in the browser. There is no upload API for those files. We do not use GPS or precise location. The current application dependencies do not include analytics or messaging SDKs such as Google Analytics, Mixpanel, Sentry, or OneSignal.",
+      "Images, audio, video, PDFs, and text you process in the free tools stay in the browser. There is no upload API for those files. We do not use GPS or precise location. The current application dependencies do not include product-analytics or messaging SDKs such as Google Analytics, Mixpanel, Sentry, or OneSignal. Measurement of display ads, when those ads are shown, is done by Google AdSense as described below, not by a separate analytics package in this application.",
     useTitle: "3. How we use your data and why",
     use: [
       "Create and secure your account, and sign you in.",
@@ -1513,6 +1514,7 @@ export const en = {
       "Reply if you contact us.",
       "If you ticked the marketing box: send updates and offers about QVI services by email.",
       "Operate and protect the service (session handling and basic abuse prevention needed for the site to work).",
+      "Show non-intrusive display ads on free tools pages through Google AdSense, to help cover hosting. Those ads are not placed on product-page hero sections or purchase calls to action.",
     ],
     legalTitle: "4. Legal bases (Egyptian Law No. 151 of 2020)",
     legalLead:
@@ -1521,17 +1523,18 @@ export const en = {
       "Consent: the required privacy/terms checkbox, and the separate optional marketing checkbox.",
       "Performance of a service (contract): creating the account, storing the profile, and letting you save and manage your waitlist place from any device.",
       "Legitimate interest: keeping authentication secure, pre-filling country so the form is usable, and operating hosting for the website. That interest is limited to what the code actually does.",
+      "Legitimate interest: funding the free tools with Google AdSense display ads. Google may personalize those ads only where its policies and applicable law allow. You can limit personalization in Google Ad Settings, linked in the Cookies section.",
     ],
     shareTitle: "5. Sharing data",
-    shareLead:
-      "We share data only with the processors wired into this codebase. We do not sell personal data.",
+    shareLead: "We share data only with the processors this site uses. We do not sell personal data.",
     share: [
       "Supabase: email/password authentication and the PostgreSQL tables public.profiles and public.waitlist_signups, plus auth user metadata. Row Level Security lets an authenticated user read and update only their own profile. Waitlist emails cannot be read with the public anon key.",
       "Hosting platform: serves the site and supplies the country-code header used by /api/geo. Like any web host, it may retain technical request logs (such as IP and user agent) under its own operations. Those logs are not written into our application tables.",
       "unpkg.com: when you use in-browser audio conversion or trimming, the page downloads the FFmpeg engine (JavaScript/WASM) from unpkg. Your media files are not uploaded to unpkg or to our servers.",
+      "Google AdSense (publisher ID ca-pub-9019451998006609): the site is enrolled with Google for display advertising. Ads may appear on free tools pages (paths under /tools) and are not placed on product hero sections or purchase calls to action. We do not send your account profile — name, email, phone, date of birth, or similar fields — to Google. When an ad loads, your browser contacts Google, which may receive technical data such as IP address, browser type, the page URL, and cookie or advertising identifiers. Google uses that data to deliver ads, measure them, and personalize them where permitted.",
     ],
     shareNot:
-      "We do not integrate advertising networks, analytics pixels, or crash-reporting services in the current package.json or application code.",
+      "We do not sell personal data. We do not integrate product-analytics or crash-reporting services such as Google Analytics, Mixpanel, Sentry, or OneSignal. Advertising on this site is Google AdSense display ads on free tools pages, as described above. We do not use the contents of files you process in the browser to build advertising profiles.",
     retentionTitle: "6. How long we keep data",
     retention: [
       "Account, profile, and authentication records: for as long as the account exists. The site does not currently include an in-app delete-account button; you may request deletion by emailing the privacy address below.",
@@ -1558,11 +1561,18 @@ export const en = {
     ],
     cookiesTitle: "9. Cookies",
     cookiesLead:
-      "We use cookies and similar storage only as implemented below. The current code does not set third-party advertising cookies.",
+      "We use cookies and similar storage as described below. Supabase Auth sets essential session cookies after you sign in. When a Google AdSense ad is shown on a free tools page, Google may set or read third-party advertising cookies and similar identifiers.",
     cookies: [
       "Essential session cookies from Supabase Auth after sign-in, so the site can recognize you on later visits.",
       "localStorage keys on this device: qvi-locale, qvi-theme, qvi-recent-colors, qvi-neyora-last-prompt, and qvi-waitlist-* as described above. These stay in your browser and are not sent to our database except when you submit a waitlist email to the server.",
+      "Google AdSense cookies and similar identifiers on free tools pages, used for ad delivery, measurement, and personalization where permitted. Google sets these in your browser. They are not written into our profiles or waitlist tables.",
     ],
+    googleLinksLead:
+      "These Google pages explain advertising cookies and how to limit personalized ads:",
+    googlePrivacyLabel: "Google Privacy Policy",
+    googleAdsCookiesLabel: "How Google uses cookies in advertising",
+    googlePartnerSitesLabel: "How Google uses information from sites or apps that use its services",
+    googleAdsSettingsLabel: "Google Ad Settings",
     childrenTitle: "10. Children’s privacy",
     children:
       "You must be at least 13 years old to create an account. The date-of-birth field rejects younger ages in the form (MIN_ACCOUNT_AGE = 13). We do not knowingly allow accounts for children under 13.",
@@ -1575,7 +1585,7 @@ export const en = {
     ],
     changesTitle: "12. Changes to this policy",
     changes:
-      "We may update this policy when the product changes. The effective date at the top of this page is generated when the page is viewed. Material changes will be reflected in this text; continued use after an update means you accept the revised policy for further use of the site.",
+      "We may update this policy when the product changes. The effective date at the top of this page is the date of this revision and does not change on each visit. Material changes will be reflected in this text; continued use after an update means you accept the revised policy for further use of the site.",
     contactTitle: "13. Contact us",
     contact:
       "For privacy requests (access, correction, deletion, or withdrawing marketing consent), email",
