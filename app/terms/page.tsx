@@ -1,11 +1,11 @@
-import type { Metadata } from "next";
 import { TermsView } from "@/components/views/LegalViews";
+import { buildPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata = buildPageMetadata({
   title: "Terms of Use",
   description: "Terms of use for the QVI platform, products, and free browser tools.",
-  alternates: { canonical: "/terms" },
-};
+  path: "/terms",
+});
 
 export default function TermsPage() {
   return <TermsView />;
