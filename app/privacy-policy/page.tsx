@@ -1,12 +1,12 @@
-import type { Metadata } from "next";
 import { PrivacyView } from "@/components/views/LegalViews";
+import { buildPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "سياسة الخصوصية - QVI",
+export const metadata = buildPageMetadata({
+  title: "Privacy Policy",
   description:
-    "سياسة خصوصية QVI: البيانات التي نجمعها عند إنشاء الحساب وقائمة الانتظار، وكيف نستخدمها، وحقوقك وفق القانون المصري رقم 151 لسنة 2020.",
-  alternates: { canonical: "/privacy-policy" },
-};
+    "QVI privacy policy: account and waitlist data, on-device tools, contact form email delivery, and your rights.",
+  path: "/privacy-policy",
+});
 
 export default function PrivacyPolicyPage() {
   return <PrivacyView />;

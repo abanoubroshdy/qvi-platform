@@ -16,6 +16,15 @@ export function Footer() {
     { href: products.neyora.href, label: copy.products.neyora.name },
   ];
 
+  const exploreLinks = [
+    { href: "/", label: copy.footer.home },
+    { href: "/#products", label: copy.nav.products },
+    { href: "/#tools", label: copy.footer.freeTools },
+    { href: products.studio.href, label: copy.nav.studio },
+    { href: "/lab", label: copy.nav.lab },
+    { href: "/#explore", label: copy.footer.siteMap },
+  ];
+
   const legalLinks = [
     { href: "/about", label: copy.footer.about },
     { href: "/privacy-policy", label: copy.footer.privacy },
@@ -25,12 +34,25 @@ export function Footer() {
 
   return (
     <footer className="qvi-footer mt-auto border-t border-border bg-muted/40">
-      <div className="qvi-footer-inner mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="space-y-3 lg:col-span-2">
+      <div className="qvi-footer-inner mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="space-y-3 sm:col-span-2 lg:col-span-2">
           <Logo />
           <p className="max-w-md text-sm leading-7 text-muted-foreground">
             {siteConfig.fullName}. {copy.home.kicker}. {copy.footer.blurb}
           </p>
+        </div>
+
+        <div>
+          <h2 className="mb-3 text-sm font-semibold tracking-wide text-foreground">{copy.footer.explore}</h2>
+          <ul className="space-y-2 text-sm">
+            {exploreLinks.map((link) => (
+              <li key={link.href}>
+                <Link href={link.href} className="text-muted-foreground transition hover:text-primary">
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
 
         <div>

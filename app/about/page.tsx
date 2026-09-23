@@ -1,13 +1,19 @@
-import type { Metadata } from "next";
+import { JsonLd } from "@/components/JsonLd";
 import { AboutView } from "@/components/views/LegalViews";
+import { aboutPageJsonLd, buildPageMetadata } from "@/lib/seo";
+import { siteConfig } from "@/lib/site";
 
-export const metadata: Metadata = {
+export const metadata = buildPageMetadata({
   title: "About",
-  description:
-    "QVI - Quality Virtual Instruments builds intelligent audio software that runs on your device, plus free local browser utilities.",
-  alternates: { canonical: "/about" },
-};
+  description: `${siteConfig.fullName} builds intelligent audio software on your device, plus free local browser utilities.`,
+  path: "/about",
+});
 
 export default function AboutPage() {
-  return <AboutView />;
+  return (
+    <>
+      <JsonLd data={aboutPageJsonLd()} />
+      <AboutView />
+    </>
+  );
 }

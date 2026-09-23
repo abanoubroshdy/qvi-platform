@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { JsonLd } from "@/components/JsonLd";
+import { HomeClosingCta } from "@/components/home/HomeClosingCta";
+import { HomeLabSection } from "@/components/home/HomeLabSection";
+import { HomeSiteExplore } from "@/components/home/HomeSiteExplore";
+import { HomeToolsCategories } from "@/components/home/HomeToolsCategories";
 import { ProductSpotlight } from "@/components/ProductSpotlight";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { Button } from "@/components/ui/button";
 import { products } from "@/lib/products";
-import { siteConfig } from "@/lib/site";
 import { toolCategoryOrder } from "@/lib/tools";
 
 export function HomeView() {
@@ -15,17 +17,6 @@ export function HomeView() {
 
   return (
     <div>
-      <JsonLd
-        data={{
-          "@context": "https://schema.org",
-          "@type": "Organization",
-          name: siteConfig.fullName,
-          url: siteConfig.url,
-          slogan: copy.home.kicker,
-          description: siteConfig.description,
-        }}
-      />
-
       <section className="qvi-hero hero-grid border-b border-border">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:py-20 lg:py-24">
           <p className="qvi-kicker mb-4 text-xs font-semibold uppercase tracking-[0.28em] text-primary">
@@ -91,6 +82,11 @@ export function HomeView() {
           />
         </div>
       </section>
+
+      <HomeLabSection />
+      <HomeToolsCategories />
+      <HomeSiteExplore />
+      <HomeClosingCta />
     </div>
   );
 }

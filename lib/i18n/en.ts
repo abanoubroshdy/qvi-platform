@@ -4,10 +4,12 @@ export const en = {
     languageShort: "EN",
   },
   nav: {
+    home: "Home",
     products: "Products",
     tools: "Free Tools",
     lab: "Lab",
     about: "About",
+    contact: "Contact",
     exploreQv1: "Explore QV1",
     primary: "Primary",
     mobile: "Mobile",
@@ -148,6 +150,21 @@ export const en = {
     audioKicker: "New",
     audioTitle: "Audio & video tools — new",
     audioLead: "Extract audio, convert formats, and trim clips entirely in your browser. Nothing is uploaded.",
+    labSectionKicker: "After the flagship products",
+    labProductCta: "Neyora product page",
+    toolsSectionKicker: "Browse by category",
+    toolsSectionTitle: "Free tools on your device",
+    toolsSectionLead:
+      "Open a category to see every utility in that family. Processing stays in your browser — nothing is uploaded.",
+    viewAllTools: "Open full tools hub",
+    exploreKicker: "Site map",
+    exploreTitle: "Explore the platform",
+    exploreLead:
+      "Jump to products, the lab, free utilities, your account, or company pages without hunting through menus.",
+    closingKicker: "Next step",
+    closingTitle: "Ready when you are",
+    closingLead: "Save your spot on the QV1 waitlist or write to us about Neyora, the tools, or your account.",
+    closingContact: "Contact us",
   },
   toolGroups: {
     audio: {
@@ -184,6 +201,9 @@ export const en = {
   footer: {
     blurb:
       "Intelligent audio software that runs on your device, plus free browser utilities that never upload your files.",
+    explore: "Explore",
+    home: "Home",
+    siteMap: "Site map",
     products: "Products",
     company: "Company",
     freeTools: "Free Tools",
@@ -1425,8 +1445,10 @@ export const en = {
     email: "Email",
     message: "Message",
     send: "Send message",
+    sending: "Sending…",
     error: "Please fill in every field before sending.",
-    ready: "Your mail app should open with the message ready to send.",
+    success: "Thanks — we received your message and will reply on business days when we can.",
+    serverError: "We could not send your message right now. Try again or email",
   },
   about: {
     title: "About QVI",
@@ -1470,7 +1492,7 @@ export const en = {
       "Sign-in form: email and password only.",
       "Account page: you may correct the same profile fields (name, gender, country, date of birth, phone).",
       "Product waitlist: email address and product name (QV1 or Neyora), plus your account id if you are signed in.",
-      "Contact form: name, email, and message. Submitting opens your own mail app (mailto) and does not insert a row in our database.",
+      "Contact form: name, email, and message. Submitting sends the message to our support inbox via email (Resend). We do not store contact messages in the site database.",
     ],
     collectAutoTitle: "Data collected automatically",
     collectAuto: [
@@ -1576,7 +1598,7 @@ export const en = {
     h3: "3. Cookies and ads",
     p5: "The site may use cookies required to run the page. Blocking cookies may affect sign-in; it will not stop local tools from working.",
     h4: "4. Waitlists and contact",
-    p6: "Product waitlists store your email in the waitlist_signups table when the server is available, and otherwise in this browser via local storage. Messages you send through the contact form go to your mail app and are used only to reply.",
+    p6: "Product waitlists store your email in the waitlist_signups table when the server is available, and otherwise in this browser via local storage. Contact form messages are emailed to our support inbox and used only to reply.",
     h5: "5. Children",
     p7: "You must be at least 13 years old to create an account. We do not knowingly collect personal information from children under 13.",
     h6: "6. Changes",

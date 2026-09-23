@@ -1,12 +1,22 @@
-import type { Metadata } from "next";
+import { JsonLd } from "@/components/JsonLd";
 import { ContactView } from "@/components/views/LegalViews";
+import { buildPageMetadata, contactPageJsonLd } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Contact",
-  description: "Contact QVI about QV1, Neyora, waitlists, privacy, or the free tools.",
-  alternates: { canonical: "/contact" },
-};
+const pageTitle = "Contact";
+const pageDescription =
+  "Contact QVI support at support@getqvi.com about QV1, Neyora, waitlists, your account, or the free tools.";
+
+export const metadata = buildPageMetadata({
+  title: pageTitle,
+  description: pageDescription,
+  path: "/contact",
+});
 
 export default function ContactPage() {
-  return <ContactView />;
+  return (
+    <>
+      <JsonLd data={contactPageJsonLd()} />
+      <ContactView />
+    </>
+  );
 }
