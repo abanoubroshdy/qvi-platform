@@ -874,6 +874,20 @@ export const en = {
     cents: "Cents",
     centsHint: "Micro-tuning from −50¢ to +50¢.",
     pitchSummary: "{semitones} st · {cents} · total {total} · ratio {ratio}",
+    presetSection: "Stretch quality",
+    presetHint:
+      "Music uses a phase vocoder on longer clips. Speech uses a faster WSOLA profile. Solo vocal uses a denser phase-vocoder overlap.",
+    presetMusic: "Music",
+    presetSpeech: "Speech",
+    presetSoloVocal: "Solo vocal",
+    formantNote: "Pitch moves the whole spectrum. SoundTouch does not offer a separate formant-preserve control.",
+    tempoComfort:
+      "This tempo is outside the usual range (half speed to double speed). You can still preview and export; the stretch may sound less natural.",
+    pitchComfort:
+      "Pitch plus cents is past ±12 semitones. You can still preview and export; the shift may sound less natural.",
+    compare: "Compare",
+    hearBefore: "Before",
+    hearAfter: "After",
     exportSection: "Export",
     exportHint: "Choose MP3 or WAV and the sample rate / bitrate for the processed file.",
     outputFormat: "Output format",
@@ -1561,7 +1575,7 @@ export const en = {
       "We use cookies and similar storage only as implemented below. The current code does not set third-party advertising cookies.",
     cookies: [
       "Essential session cookies from Supabase Auth after sign-in, so the site can recognize you on later visits.",
-      "localStorage keys on this device: qvi-locale, qvi-theme, qvi-recent-colors, qvi-neyora-last-prompt, and qvi-waitlist-* as described above. These stay in your browser and are not sent to our database except when you submit a waitlist email to the server.",
+      "localStorage keys on this device: qvi-locale, qvi-theme, qvi-recent-colors, qvi-neyora-last-prompt, qvi-tempo-pitch-preset, and qvi-waitlist-* as described above. These stay in your browser and are not sent to our database except when you submit a waitlist email to the server.",
     ],
     childrenTitle: "10. Children’s privacy",
     children:
@@ -1632,6 +1646,13 @@ export const en = {
     pitch: "Pitch",
     semitones: "Semitones",
     cents: "Cents",
+    stretchPreset: "Stretch quality",
+    presetMusic: "Music",
+    presetSpeech: "Speech",
+    presetSoloVocal: "Solo vocal",
+    formantNote: "Pitch moves the whole spectrum. SoundTouch does not keep vocal formants in place.",
+    tempoComfort: "This tempo is outside half speed to double speed. Preview and export still run.",
+    pitchComfort: "Pitch plus cents is past ±12 semitones. Preview and export still run.",
     trimStart: "Trim start",
     trimEnd: "Trim end",
     removeTrack: "Remove track",

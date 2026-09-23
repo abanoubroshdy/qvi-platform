@@ -20,6 +20,7 @@ scope.onmessage = (event) => {
       tempoRate: request.tempoRate,
       semitones: request.semitones,
       cents: request.cents,
+      preset: request.preset,
       onProgress: (ratio) => scope.postMessage({ id: request.id, progress: ratio }),
     });
     const transfer = result.channels.map((channel) => channel.buffer);

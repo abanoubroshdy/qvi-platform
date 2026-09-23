@@ -30,10 +30,12 @@ import {
   setTrackName,
   setTrackPitch,
   setTrackSolo,
+  setTrackStretchPreset,
   setTrackTempo,
   stopPlayhead,
   trackTempoPitchIsIdentity,
 } from "@/lib/studio/project";
+import type { StretchPresetId } from "@/lib/audio-stretch-preset";
 import { exceedsTrackWarning, type StudioTempoSetting } from "@/lib/studio/definition";
 import type { StudioProject, StudioTrack } from "@/lib/studio/types";
 import { viewportFromWidth } from "@/lib/studio/timeline-geometry";
@@ -57,6 +59,7 @@ function previewKey(project: StudioProject): string {
         track.tempo.percent,
         track.pitchSemitones,
         track.pitchCents,
+        track.stretchPreset,
         track.clips
           .map((clip) => [clip.id, clip.offsetSec, clip.trimStartSec, clip.trimEndSec, clip.sourceDurationSec].join(":"))
           .join(","),
@@ -392,6 +395,10 @@ export function useStudioSession() {
     },
     setPitch: (trackId: string, pitch: { semitones?: number; cents?: number }) => {
       const result = setTrackPitch(projectRef.current, trackId, pitch);
+      if (result.ok) commit(result.project);
+    },
+    setStretchPreset: (trackId: string, preset: StretchPresetId) => {
+      const result = setTrackStretchPreset(projectRef.current, trackId, preset);
       if (result.ok) commit(result.project);
     },
     setName: (trackId: string, name: string) => {

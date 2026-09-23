@@ -124,6 +124,10 @@ export const qviStudioEngines = {
   tempoPitchPreview: {
     strategy: "offline-render",
     engine: "soundtouch",
+    /**
+     * Default music preset. Speech stays on WSOLA. Solo vocal uses a denser
+     * overlap. Mapping lives in `lib/audio-stretch-preset.ts`.
+     */
     stretch: "phase-vocoder",
     debounceMs: qviStudioLimits.previewDebounceMs,
     /** playbackRate changes pitch with speed and is not the preview path. */

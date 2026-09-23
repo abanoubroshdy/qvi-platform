@@ -25,6 +25,11 @@ import {
   type AudioSourceInfo,
 } from "@/lib/audio-inspect";
 import { stretchAudioBufferOffThread } from "@/lib/audio-stretch-task";
+import {
+  parseStretchPreset,
+  tempoPitchComfort,
+  type StretchPresetId,
+} from "@/lib/audio-stretch-preset";
 import { downloadBlob } from "@/lib/download";
 import { formatBytes } from "@/lib/format";
 import { FFMPEG_LARGE_FILE_BYTES, runFFmpeg } from "@/lib/ffmpeg";
@@ -57,6 +62,9 @@ import {
   totalCents,
   type TempoMode,
 } from "@/lib/audio-tempo";
+
+const PRESET_STORAGE_KEY = "qvi-tempo-pitch-preset";
+const STRETCH_PRESETS = ["music", "speech", "solo-vocal"] as const satisfies readonly StretchPresetId[];
 
 const exportFormats = ["mp3", "wav"] as const satisfies readonly AudioExportFormat[];
 type ToolFormat = (typeof exportFormats)[number];
@@ -172,6 +180,8 @@ export function TempoPitch() {
   const [percent, setPercent] = useState(0);
   const [semitones, setSemitones] = useState(0);
   const [cents, setCents] = useState(0);
+  const [preset, setPreset] = useState<StretchPresetId>("music");
+  const [hear, setHear] = useState<"before" | "after">("before");
   const [semitonesText, setSemitonesText] = useState(() => formatSignedDraft(0));
   const [centsText, setCentsText] = useState(() => formatSignedDraft(0));
   const [tapTimes, setTapTimes] = useState<number[]>([]);
@@ -192,6 +202,10 @@ export function TempoPitch() {
   const stretchAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
+    setPreset(parseStretchPreset(window.localStorage.getItem(PRESET_STORAGE_KEY)));
+  }, []);
+
+  useEffect(() => {
     return () => {
       if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
       if (resultUrlRef.current) URL.revokeObjectURL(resultUrlRef.current);
@@ -209,6 +223,20 @@ export function TempoPitch() {
   const deltaBpm = useMemo(() => bpmDelta(originalBpm, targetBpm), [originalBpm, targetBpm]);
   const centsTotal = useMemo(() => totalCents(semitones, cents), [semitones, cents]);
   const isIdentityTransform = Math.abs(tempoRate - 1) < 1e-6 && semitones === 0 && cents === 0;
+  const comfort = useMemo(
+    () => tempoPitchComfort({ tempoRate, semitones, cents }),
+    [tempoRate, semitones, cents],
+  );
+  const presetLabel: Record<StretchPresetId, string> = {
+    music: t.presetMusic,
+    speech: t.presetSpeech,
+    "solo-vocal": t.presetSoloVocal,
+  };
+
+  function choosePreset(next: StretchPresetId) {
+    setPreset(next);
+    window.localStorage.setItem(PRESET_STORAGE_KEY, next);
+  }
 
   function clearResult() {
     if (resultUrlRef.current) URL.revokeObjectURL(resultUrlRef.current);
@@ -217,6 +245,7 @@ export function TempoPitch() {
     setResultUrl(null);
     setResultPeaks([]);
     setResultDuration(0);
+    setHear("before");
   }
 
   const processAudio = useCallback(
@@ -228,6 +257,7 @@ export function TempoPitch() {
       percent: number;
       semitones: number;
       cents: number;
+      preset: StretchPresetId;
       format: ToolFormat;
       settings: AudioExportSettings;
     }) => {
@@ -253,6 +283,7 @@ export function TempoPitch() {
           tempoRate,
           semitones: options.semitones,
           cents: options.cents,
+          preset: options.preset,
           signal: stretchAbort.signal,
           onProgress: (ratioValue) => {
             if (gen !== previewGenRef.current) return;
@@ -303,6 +334,7 @@ export function TempoPitch() {
         setResultUrl(url);
         setResultDuration(stretched.duration || plan.estimatedDuration);
         setResultPeaks(await peaksFromBlob(blob));
+        setHear("after");
         setProgress(1);
       } catch {
         if (gen !== previewGenRef.current) return;
@@ -349,6 +381,7 @@ export function TempoPitch() {
         percent,
         semitones,
         cents,
+        preset,
         format,
         settings,
       });
@@ -368,6 +401,7 @@ export function TempoPitch() {
     percent,
     semitones,
     cents,
+    preset,
     format,
     settings,
     isIdentityTransform,
@@ -488,6 +522,7 @@ export function TempoPitch() {
       percent,
       semitones: committedSemitones,
       cents: committedCents,
+      preset,
       format,
       settings,
     });
@@ -503,38 +538,36 @@ export function TempoPitch() {
         <>
           <section className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-base font-semibold">{t.sourcePreview}</h2>
-              <p className="truncate text-sm text-muted-foreground" dir="ltr" title={audio.file.name}>
-                {audio.file.name}
-              </p>
+              <h2 className="text-base font-semibold">{hear === "after" && resultUrl ? t.resultPreview : t.sourcePreview}</h2>
+              <div className="flex flex-wrap gap-2" role="group" aria-label={t.compare}>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={hear === "before" ? "default" : "outline"}
+                  aria-pressed={hear === "before"}
+                  onClick={() => setHear("before")}
+                >
+                  {t.hearBefore}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={hear === "after" ? "default" : "outline"}
+                  aria-pressed={hear === "after"}
+                  disabled={!resultUrl}
+                  onClick={() => setHear("after")}
+                >
+                  {t.hearAfter}
+                </Button>
+              </div>
             </div>
-            {audio.peaks.length ? (
-              <WaveformPlayer
-                src={audio.url}
-                peaks={audio.peaks}
-                duration={audio.duration}
-                start={0}
-                end={audio.duration}
-                readOnly
-                playLabel={t.play}
-                pauseLabel={t.pause}
-                startHandleLabel={t.startHandle}
-                endHandleLabel={t.endHandle}
-              />
-            ) : (
-              <audio controls src={audio.url} className="w-full" />
-            )}
-            <div className="grid grid-cols-2 gap-3">
-              <Stat label={t.fileSize} value={formatBytes(audio.file.size)} />
-              <Stat label={t.sourceQuality} value={formatAudioSourceSummary(audio.source)} />
-            </div>
-          </section>
-
-          {result && resultUrl ? (
-            <section className="space-y-3 border-t border-border pt-4">
-              <h2 className="text-base font-semibold">{t.resultPreview}</h2>
-              {resultPeaks.length ? (
+            <p className="truncate text-sm text-muted-foreground" dir="ltr" title={audio.file.name}>
+              {audio.file.name}
+            </p>
+            {hear === "after" && resultUrl ? (
+              resultPeaks.length ? (
                 <WaveformPlayer
+                  key={resultUrl}
                   src={resultUrl}
                   peaks={resultPeaks}
                   duration={resultDuration || audio.duration / tempoRate}
@@ -547,13 +580,35 @@ export function TempoPitch() {
                   endHandleLabel={t.endHandle}
                 />
               ) : (
-                <audio controls src={resultUrl} className="w-full" />
-              )}
-              <div className="grid grid-cols-2 gap-3">
+                <audio key={resultUrl} controls src={resultUrl} className="w-full" />
+              )
+            ) : audio.peaks.length ? (
+              <WaveformPlayer
+                key={audio.url}
+                src={audio.url}
+                peaks={audio.peaks}
+                duration={audio.duration}
+                start={0}
+                end={audio.duration}
+                readOnly
+                playLabel={t.play}
+                pauseLabel={t.pause}
+                startHandleLabel={t.startHandle}
+                endHandleLabel={t.endHandle}
+              />
+            ) : (
+              <audio key={audio.url} controls src={audio.url} className="w-full" />
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              <Stat label={t.fileSize} value={formatBytes(audio.file.size)} />
+              <Stat label={t.sourceQuality} value={formatAudioSourceSummary(audio.source)} />
+              {result ? (
                 <Stat
                   label={interpolate(t.outputSize, { format: format.toUpperCase() })}
                   value={formatBytes(result.size)}
                 />
+              ) : null}
+              {result ? (
                 <Stat
                   label={t.exportSummary}
                   value={formatAudioExportSummary({
@@ -563,9 +618,9 @@ export function TempoPitch() {
                     bitDepth: format === "wav" ? settings.wavBitDepth : null,
                   })}
                 />
-              </div>
-            </section>
-          ) : null}
+              ) : null}
+            </div>
+          </section>
         </>
       ) : (
         <div className="flex min-h-[8.5rem] items-center justify-center rounded-2xl border border-dashed bg-muted/30 px-4 py-8 text-center text-sm text-muted-foreground">
@@ -631,6 +686,27 @@ export function TempoPitch() {
               <p className="text-xs text-muted-foreground" dir="ltr">
                 {interpolate(t.tapCount, { count: tapCount })}
               </p>
+            </section>
+
+            <section className="space-y-3">
+              <div>
+                <h2 className="text-base font-semibold">{t.presetSection}</h2>
+                <p className="text-sm text-muted-foreground">{t.presetHint}</p>
+              </div>
+              <div className="flex flex-wrap gap-2" role="group" aria-label={t.presetSection}>
+                {STRETCH_PRESETS.map((id) => (
+                  <Button
+                    key={id}
+                    type="button"
+                    size="sm"
+                    variant={preset === id ? "default" : "outline"}
+                    aria-pressed={preset === id}
+                    onClick={() => choosePreset(id)}
+                  >
+                    {presetLabel[id]}
+                  </Button>
+                ))}
+              </div>
             </section>
 
             <section className="space-y-3">
@@ -729,6 +805,7 @@ export function TempoPitch() {
                 <Stat label={t.tempoRate} value={formatRate(tempoRate)} />
                 <Stat label={t.estimatedLength} value={`${estimateClock(audio.duration / tempoRate)}`} />
               </div>
+              {comfort.tempo ? <p className="text-sm text-amber-700 dark:text-amber-300">{t.tempoComfort}</p> : null}
             </section>
 
             <section className="space-y-3">
@@ -736,6 +813,7 @@ export function TempoPitch() {
                 <h2 className="text-base font-semibold">{t.pitchSection}</h2>
                 <p className="text-sm text-muted-foreground">{t.pitchHint}</p>
               </div>
+              <p className="text-sm text-muted-foreground">{t.formantNote}</p>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-3 rounded-xl border border-border p-4">
                   <div className="flex items-center justify-between gap-3">
@@ -812,6 +890,7 @@ export function TempoPitch() {
                   ratio: ratio.toFixed(4),
                 })}
               </p>
+              {comfort.pitch ? <p className="text-sm text-amber-700 dark:text-amber-300">{t.pitchComfort}</p> : null}
             </section>
 
             <section className="space-y-3">

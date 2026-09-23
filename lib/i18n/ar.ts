@@ -870,6 +870,20 @@ export const ar: Messages = {
     cents: "سنت",
     centsHint: "مايكرو تيونينج من −50¢ إلى +50¢.",
     pitchSummary: "{semitones} st · {cents} · الإجمالي {total} · النسبة {ratio}",
+    presetSection: "جودة التمديد",
+    presetHint:
+      "الموسيقى تستخدم phase vocoder للمقاطع الأطول. الكلام يستخدم ملف WSOLA أسرع. الغناء المنفرد يستخدم تداخلًا أكثف.",
+    presetMusic: "موسيقى",
+    presetSpeech: "كلام",
+    presetSoloVocal: "غناء منفرد",
+    formantNote: "تحريك الطبقة يحرّك الطيف كله. SoundTouch لا يوفّر تحكمًا منفصلًا للحفاظ على الفورمانت.",
+    tempoComfort:
+      "هذه السرعة خارج النطاق المعتاد (من نصف السرعة إلى ضعفها). يمكنك المعاينة والتصدير، وقد يبدو التمديد أقل طبيعية.",
+    pitchComfort:
+      "الطبقة مع السنت تتجاوز ±12 نصف تون. يمكنك المعاينة والتصدير، وقد يبدو التحويل أقل طبيعية.",
+    compare: "مقارنة",
+    hearBefore: "قبل",
+    hearAfter: "بعد",
     exportSection: "التصدير",
     exportHint: "اختر MP3 أو WAV ومعدل العينة / البيت ريت للملف المعالج.",
     outputFormat: "صيغة الخروج",
@@ -1550,7 +1564,7 @@ export const ar: Messages = {
       "نستخدم ملفات الارتباط والتخزين المماثل فقط كما هو مطبَّق أدناه. ولا تضبط الشيفرة الحالية ملفات ارتباط إعلانية لطرف ثالث.",
     cookies: [
       "ملفات جلسة ضرورية من Supabase Auth بعد تسجيل الدخول، ليتعرّف الموقع عليك في الزيارات اللاحقة.",
-      "مفاتيح localStorage على هذا الجهاز: qvi-locale وqvi-theme وqvi-recent-colors وqvi-neyora-last-prompt وqvi-waitlist-* كما سبق. تبقى في متصفحك ولا تُرسل إلى قاعدتنا إلا عند إرسال بريد قائمة الانتظار إلى الخادم.",
+      "مفاتيح localStorage على هذا الجهاز: qvi-locale وqvi-theme وqvi-recent-colors وqvi-neyora-last-prompt وqvi-tempo-pitch-preset وqvi-waitlist-* كما سبق. تبقى في متصفحك ولا تُرسل إلى قاعدتنا إلا عند إرسال بريد قائمة الانتظار إلى الخادم.",
     ],
     childrenTitle: "10. خصوصية الأطفال",
     children:
@@ -1621,6 +1635,13 @@ export const ar: Messages = {
     pitch: "الطبقة",
     semitones: "أنصاف التون",
     cents: "سنت",
+    stretchPreset: "جودة التمديد",
+    presetMusic: "موسيقى",
+    presetSpeech: "كلام",
+    presetSoloVocal: "غناء منفرد",
+    formantNote: "تحريك الطبقة يحرّك الطيف كله. SoundTouch لا يُبقي فورمانت الصوت في مكانه.",
+    tempoComfort: "هذه السرعة خارج نطاق نصف السرعة إلى ضعفها. المعاينة والتصدير يبقيان متاحين.",
+    pitchComfort: "الطبقة مع السنت تتجاوز ±12 نصف تون. المعاينة والتصدير يبقيان متاحين.",
     trimStart: "بداية القص",
     trimEnd: "نهاية القص",
     removeTrack: "حذف التراك",

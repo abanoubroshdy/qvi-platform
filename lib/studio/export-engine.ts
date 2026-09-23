@@ -76,6 +76,7 @@ async function prepareClip(
     tempoRate: resolveTempoRate(track.tempo),
     semitones: track.pitchSemitones,
     cents: track.pitchCents,
+    preset: track.stretchPreset,
     createBuffer,
   });
 }

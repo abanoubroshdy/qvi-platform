@@ -11,20 +11,21 @@
  */
 
 import { SoundTouch, type StretchFactory } from "@soundtouchjs/core";
-import { createPhaseVocoderFactory, type PhaseVocoderOverlapFactor } from "@soundtouchjs/stretch-phase-vocoder";
+import { createPhaseVocoderFactory } from "@soundtouchjs/stretch-phase-vocoder";
 import { pitchRatio } from "@/lib/audio-tempo";
+import { resolveStretchSettings, type StretchPresetId } from "@/lib/audio-stretch-preset";
 
 const IDENTITY_EPS = 1e-6;
 const MIN_TEMPO_RATE = 1 / 16;
 const MAX_TEMPO_RATE = 16;
 const CHUNK_FRAMES = 4096;
-const PHASE_VOCODER_MIN_FRAMES = 2048;
-const PHASE_VOCODER_EXTREME_MIN_FRAMES = 8192;
 
 export type AudioStretchOptions = {
   tempoRate: number;
   semitones: number;
   cents: number;
+  /** Defaults to music, the phase-vocoder quality path. */
+  preset?: StretchPresetId;
   signal?: AbortSignal;
   onProgress?: (ratio: number) => void;
   createBuffer?: (channels: number, length: number, sampleRate: number) => AudioBuffer;
@@ -36,6 +37,7 @@ export type StretchChannelRequest = {
   tempoRate: number;
   semitones: number;
   cents: number;
+  preset?: StretchPresetId;
   signal?: AbortSignal;
   onProgress?: (ratio: number) => void;
 };
@@ -78,6 +80,7 @@ export function stretchAudioBuffer(buffer: AudioBuffer, options: AudioStretchOpt
     tempoRate: options.tempoRate,
     semitones: options.semitones,
     cents: options.cents,
+    preset: options.preset,
     signal: options.signal,
     onProgress: options.onProgress,
   });
@@ -112,7 +115,17 @@ export function stretchChannels(request: StretchChannelRequest): StretchChannelR
   for (let index = 0; index < source.length; index += 2) {
     const left = source[index] ?? new Float32Array(frames);
     const right = source[index + 1];
-    const pair = stretchStereo(left, right ?? left, sampleRate, frames, tempoRate, ratio, request.signal, request.onProgress);
+    const pair = stretchStereo(
+      left,
+      right ?? left,
+      sampleRate,
+      frames,
+      tempoRate,
+      ratio,
+      request.preset,
+      request.signal,
+      request.onProgress,
+    );
     groups.push(pair[0]);
     if (right) groups.push(pair[1]);
   }
@@ -131,10 +144,11 @@ function stretchStereo(
   frames: number,
   tempoRate: number,
   ratio: number,
+  preset: StretchPresetId | undefined,
   signal: AbortSignal | undefined,
   onProgress: ((ratio: number) => void) | undefined,
 ): [Float32Array, Float32Array] {
-  const soundtouch = createProcessor(sampleRate, frames, tempoRate);
+  const soundtouch = createProcessor(sampleRate, frames, tempoRate, preset);
   soundtouch.pitch = ratio;
   soundtouch.stretch.tempo = tempoRate / ratio;
 
@@ -198,22 +212,28 @@ function stretchStereo(
   return [takeFrames(leftChunks, target), takeFrames(rightChunks, target)];
 }
 
-function createProcessor(sampleRate: number, frames: number, tempoRate: number): SoundTouch {
-  const extreme = tempoRate < 0.5 || tempoRate > 2;
-  const overlap: PhaseVocoderOverlapFactor = extreme ? 8 : 4;
-  const minimumFrames = extreme ? PHASE_VOCODER_EXTREME_MIN_FRAMES : PHASE_VOCODER_MIN_FRAMES;
-  const durationSec = frames / Math.max(1, sampleRate);
-  const windowSec = 2048 / Math.max(1, sampleRate);
-  const usePhaseVocoder = frames >= minimumFrames && durationSec >= windowSec * 8;
-  const stretchFactory: StretchFactory | undefined = usePhaseVocoder
-    ? createPhaseVocoderFactory(2048, overlap)
-    : undefined;
+function createProcessor(
+  sampleRate: number,
+  frames: number,
+  tempoRate: number,
+  preset: StretchPresetId | undefined,
+): SoundTouch {
+  const settings = resolveStretchSettings({ preset, tempoRate, frames, sampleRate });
+  const stretchFactory: StretchFactory | undefined =
+    settings.backend === "phase-vocoder"
+      ? createPhaseVocoderFactory(settings.fftSize, settings.overlapFactor)
+      : undefined;
   const soundtouch = new SoundTouch({
     sampleRate,
     sampleBufferType: "fifo",
     stretchFactory,
   });
-  if (!usePhaseVocoder) soundtouch.setStretchParameters({ quickSeek: false, overlapMs: 12 });
+  soundtouch.setStretchParameters({
+    sequenceMs: settings.sequenceMs,
+    seekWindowMs: settings.seekWindowMs,
+    overlapMs: settings.overlapMs,
+    quickSeek: settings.quickSeek,
+  });
   return soundtouch;
 }
 

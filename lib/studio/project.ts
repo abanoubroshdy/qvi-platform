@@ -6,6 +6,7 @@
  */
 
 import { clampGainDb } from "@/lib/audio-edit";
+import { DEFAULT_STRETCH_PRESET, parseStretchPreset, type StretchPresetId } from "@/lib/audio-stretch-preset";
 import {
   clampBpm,
   clampCents,
@@ -145,6 +146,7 @@ export function createStudioTrack(input: {
     tempo: defaultTempo(),
     pitchSemitones: 0,
     pitchCents: 0,
+    stretchPreset: DEFAULT_STRETCH_PRESET,
   };
 }
 
@@ -349,6 +351,17 @@ export function setTrackTempo(
   });
 }
 
+export function setTrackStretchPreset(
+  project: StudioProject,
+  trackId: string,
+  preset: StretchPresetId,
+): StudioWriteResult {
+  return editTrack(project, trackId, (track) => ({
+    ...track,
+    stretchPreset: parseStretchPreset(preset),
+  }));
+}
+
 export function setTrackPitch(
   project: StudioProject,
   trackId: string,
@@ -432,6 +445,7 @@ export function snapshotStudioProject(project: StudioProject): StudioProjectSnap
       tempo: { ...track.tempo },
       pitchSemitones: track.pitchSemitones,
       pitchCents: track.pitchCents,
+      stretchPreset: track.stretchPreset,
       clips: track.clips.map((clip) => clipState(clip)),
     })),
   };

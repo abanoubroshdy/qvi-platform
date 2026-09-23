@@ -69,6 +69,7 @@ export function createSoundTouchClipProcessor(deps: {
       tempoRate: resolveTempoRate(track.tempo),
       semitones: track.pitchSemitones,
       cents: track.pitchCents,
+      preset: track.stretchPreset,
       signal,
       createBuffer: deps.createBuffer,
     });

@@ -27,6 +27,7 @@ import {
   setTrackMuted,
   setTrackPitch,
   setTrackSolo,
+  setTrackStretchPreset,
   setTrackTempo,
   snapshotStudioProject,
   stopPlayhead,
@@ -101,6 +102,17 @@ describe("studio project model", () => {
     expect(projectDuration(pitched.project)).toBe(8);
     expect(trackTempoPitchIsIdentity(pitched.project.tracks[0]!)).toBe(false);
     expect(trackTempoPitchIsIdentity(project.tracks[0]!)).toBe(true);
+  });
+
+  it("stores the stretch preset on the track without changing identity", () => {
+    const project = withTrack();
+    expect(project.tracks[0]!.stretchPreset).toBe("music");
+    const speech = setTrackStretchPreset(project, project.tracks[0]!.id, "speech");
+    expect(speech.ok).toBe(true);
+    if (!speech.ok) return;
+    expect(speech.project.tracks[0]!.stretchPreset).toBe("speech");
+    expect(trackTempoPitchIsIdentity(speech.project.tracks[0]!)).toBe(true);
+    expect(snapshotStudioProject(speech.project).tracks[0]!.stretchPreset).toBe("speech");
   });
 
   it("counts muted clips in the timeline and drops them from the bounce", () => {

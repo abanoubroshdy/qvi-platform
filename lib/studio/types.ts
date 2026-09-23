@@ -5,6 +5,7 @@
  * Snapshots in `project.ts` omit them. Persistence is out of v1 scope.
  */
 
+import type { StretchPresetId } from "@/lib/audio-stretch-preset";
 import type { StudioClipSpan, StudioTempoSetting } from "@/lib/studio/definition";
 
 export const STUDIO_MODEL_PHASE = 1 as const;
@@ -48,6 +49,8 @@ export type StudioTrack = {
   tempo: StudioTempoSetting;
   pitchSemitones: number;
   pitchCents: number;
+  /** SoundTouch quality profile for this track. Session-only, same as tempo. */
+  stretchPreset: StretchPresetId;
 };
 
 export type StudioProject = {

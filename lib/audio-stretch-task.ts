@@ -107,6 +107,7 @@ function stretchInWorker(buffer: AudioBuffer, options: AudioStretchOptions): Pro
           tempoRate: options.tempoRate,
           semitones: options.semitones,
           cents: options.cents,
+          preset: options.preset,
         },
         transfer,
       );
