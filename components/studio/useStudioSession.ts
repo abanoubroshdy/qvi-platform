@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { isStudioTextTarget, studioTransportCommand } from "@/lib/studio/chrome";
 import { createBrowserTempoPitchPreview, connectTempoPreview } from "@/lib/studio/tempo-preview";
 import { loadStudioFile } from "@/lib/studio/load-clip";
 import { studioPeakBarCount } from "@/lib/studio/peaks";
@@ -199,18 +200,6 @@ export function useStudioSession() {
 
   const toggleRef = useRef(togglePlay);
   toggleRef.current = togglePlay;
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.code !== "Space") return;
-      const target = event.target as HTMLElement | null;
-      const tag = target?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || tag === "BUTTON" || tag === "A" || target?.isContentEditable) return;
-      event.preventDefault();
-      void toggleRef.current();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
 
   const publishPlayhead = useCallback((seconds: number) => {
     playheadRef.current = seconds;
@@ -265,6 +254,37 @@ export function useStudioSession() {
     commit(next, false);
     setTransport({ status: "idle", playheadSec: 0 });
   }, [commit]);
+
+  const stopRef = useRef(stop);
+  const seekRef = useRef(seek);
+  stopRef.current = stop;
+  seekRef.current = seek;
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (isStudioTextTarget(event.target)) return;
+      const command = studioTransportCommand(event);
+      if (!command) return;
+      event.preventDefault();
+      if (command.action === "play-pause") {
+        void toggleRef.current();
+        return;
+      }
+      if (command.action === "stop") {
+        stopRef.current();
+        return;
+      }
+      const engine = engineRef.current;
+      const now = engine ? engine.currentPlayhead() : projectRef.current.playheadSec;
+      seekRef.current(now + command.deltaSec);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const readMeters = useCallback(
+    () => engineRef.current?.readMeters() ?? { master: 0, tracks: {} },
+    [],
+  );
 
   const selectTrack = useCallback((trackId: string, clipId?: string | null, sheet = false) => {
     setSelectedTrackId(trackId);
@@ -364,6 +384,7 @@ export function useStudioSession() {
     togglePlay,
     stop,
     seek,
+    readMeters,
     browse,
     onFileInput,
     importFiles,

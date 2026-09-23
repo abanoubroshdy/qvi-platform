@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { HeaderAuth } from "@/components/auth/HeaderAuth";
@@ -13,6 +14,8 @@ import { cn } from "@/lib/utils";
 
 export function Header() {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+  const studio = pathname === "/studio";
   const { copy } = useI18n();
 
   const navItems = [
@@ -25,7 +28,7 @@ export function Header() {
   ];
 
   return (
-    <header className="qvi-header sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-xl">
+    <header className={cn("qvi-header sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-xl", studio && "studio-site-header")}>
       <div className="qvi-header-inner mx-auto flex h-16 max-w-6xl flex-nowrap items-center justify-between gap-3 px-4">
         <Logo compact />
 

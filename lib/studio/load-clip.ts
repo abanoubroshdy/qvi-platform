@@ -4,7 +4,7 @@
  */
 
 import { inspectAudioBuffer } from "@/lib/audio-inspect";
-import { studioPeaksFromBuffer } from "@/lib/studio/peaks";
+import { studioPeakBarCount, studioPeaksFromBuffer } from "@/lib/studio/peaks";
 import { isStudioImportFileName, largeFileWarning, type StudioFileWarning, type StudioImportedFile } from "@/lib/studio/project";
 
 export type StudioDecodeResult =
@@ -29,7 +29,7 @@ export async function loadStudioFile(
         sourceDurationSec: info.duration,
         sampleRate: info.sampleRate,
         channels: info.channels,
-        peaks: studioPeaksFromBuffer(buffer, options?.peakBars ?? 180),
+        peaks: studioPeaksFromBuffer(buffer, options?.peakBars ?? studioPeakBarCount("desktop")),
         buffer,
       },
     };

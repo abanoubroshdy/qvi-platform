@@ -16,7 +16,7 @@ describe("studio peaks", () => {
   it("uses fewer bars on a phone than on a desktop", () => {
     expect(studioPeakBarCount("mobile")).toBeLessThan(studioPeakBarCount("tablet"));
     expect(studioPeakBarCount("tablet")).toBeLessThan(studioPeakBarCount("desktop"));
-    expect(studioPeakBarCount("desktop")).toBe(180);
+    expect(studioPeakBarCount("desktop")).toBe(320);
   });
 
   it("samples each bar instead of reading every frame", () => {

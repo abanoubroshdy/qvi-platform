@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { AudioLines } from "lucide-react";
 import { formatClock } from "@/lib/time";
 import { rulerMarks, timelineWidthPx } from "@/lib/studio/timeline-geometry";
 import type { Messages } from "@/lib/i18n";
@@ -14,19 +15,21 @@ export function StudioTimeline({ copy }: { copy: Messages["studio"] }) {
   const marks = rulerMarks(studio.duration, studio.pixelsPerSecond);
 
   return (
-    <section aria-label={copy.timeline} className="min-w-0" dir="ltr">
+    <section aria-label={copy.timeline} className="flex min-h-0 flex-1 flex-col" dir="ltr">
       {studio.project.tracks.length === 0 ? (
         <button
           type="button"
-          className="m-4 flex min-h-48 w-[calc(100%-2rem)] flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-10 text-center"
+          className="studio-drop m-3 flex min-h-48 flex-1 flex-col items-center justify-center rounded-xl border border-dashed px-6 py-12 text-center"
           onClick={() => studio.browse()}
         >
-          <span className="text-base font-semibold">{copy.emptyTitle}</span>
+          <AudioLines className="mb-3 h-8 w-8 text-[hsl(var(--studio-teal))]" aria-hidden />
+          <span className="text-base font-semibold tracking-tight">{copy.emptyTitle}</span>
           <span className="mt-2 max-w-md text-sm text-muted-foreground">{copy.emptyBody}</span>
+          <span className="mt-4 text-[10px] font-semibold uppercase tracking-[0.16em] text-[hsl(var(--studio-sand))]">{copy.dropHint}</span>
         </button>
       ) : (
-        <div className="flex max-h-[calc(100dvh-12rem)] overflow-y-auto">
-          <div className="sticky left-0 z-20 w-28 shrink-0 border-e border-border bg-background sm:w-40">
+        <div className="flex min-h-0 flex-1 overflow-y-auto">
+          <div className="studio-track-heads sticky left-0 z-20 w-[7.75rem] shrink-0 border-e border-border sm:w-44">
             <div className="h-7 border-b border-border" />
             {studio.project.tracks.map((track) => (
               <StudioTrackHeader
@@ -40,11 +43,14 @@ export function StudioTimeline({ copy }: { copy: Messages["studio"] }) {
               />
             ))}
           </div>
-          <div className="min-w-0 flex-1 overflow-x-auto">
+          <div className="studio-lanes min-w-0 flex-1 overflow-x-auto">
             <div className="relative" style={{ width }}>
-              <div className="flex h-7 border-b border-border text-[10px] text-muted-foreground">
+              <div
+                className="studio-ruler relative h-7 border-b border-border text-[10px] text-muted-foreground"
+                style={{ ["--studio-tick" as string]: `${studio.pixelsPerSecond}px` }}
+              >
                 {marks.map((second) => (
-                  <span key={second} className="absolute top-1" style={{ left: second * studio.pixelsPerSecond }}>
+                  <span key={second} className="absolute top-1 font-mono tabular-nums" style={{ left: second * studio.pixelsPerSecond }}>
                     {formatClock(second)}
                   </span>
                 ))}
@@ -85,5 +91,10 @@ function Playhead({ pixelsPerSecond }: { pixelsPerSecond: number }) {
     place(studio.playheadNow());
     return studio.subscribePlayhead(place);
   }, [pixelsPerSecond, studio]);
-  return <div ref={ref} className="pointer-events-none absolute bottom-0 top-0 z-30 w-px bg-primary" />;
+  return (
+    <div ref={ref} className="studio-playhead pointer-events-none absolute bottom-0 top-0 z-30">
+      <span className="studio-playhead-cap" />
+      <span className="studio-playhead-line" />
+    </div>
+  );
 }

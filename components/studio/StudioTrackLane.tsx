@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { StudioClip, StudioTrack } from "@/lib/studio/types";
+import { paintStudioWaveform } from "@/lib/studio/paint";
 import { clipHeardSeconds, clipRect, downsamplePeaks, moveClipOffset, timeAtPixel, trimClipEnd, trimClipStart, waveformDrawBudget } from "@/lib/studio/timeline-geometry";
 
 export function StudioTrackLane({
@@ -86,19 +87,7 @@ function ClipBlock({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.setTransform(budget.pixelRatio, 0, 0, budget.pixelRatio, 0, 0);
-    ctx.clearRect(0, 0, width, height);
-    ctx.fillStyle = track.color;
-    if (!peaks.length) {
-      ctx.globalAlpha = 0.85;
-      ctx.fillRect(0, height / 2 - 2, width, 4);
-      return;
-    }
-    const bar = width / peaks.length;
-    peaks.forEach((peak, index) => {
-      const barHeight = Math.max(2, peak * (height - 8));
-      ctx.globalAlpha = 0.9;
-      ctx.fillRect(index * bar, (height - barHeight) / 2, Math.max(1, bar - 1), barHeight);
-    });
+    paintStudioWaveform(ctx, peaks, width, height, track.color);
   }, [clip.peaks, clip.sourceDurationSec, clip.trimEndSec, clip.trimStartSec, rect.widthPx, track.color]);
 
   return (

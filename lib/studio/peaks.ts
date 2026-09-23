@@ -7,10 +7,15 @@ import type { StudioViewport } from "@/lib/studio/definition";
 
 const SAMPLES_PER_BAR = 32;
 
+/** Desktop stores a denser overview so zoomed clips keep their shape. */
+export const studioPeakBars = {
+  mobile: 80,
+  tablet: 160,
+  desktop: 320,
+} as const;
+
 export function studioPeakBarCount(viewport: StudioViewport): number {
-  if (viewport === "mobile") return 48;
-  if (viewport === "tablet") return 96;
-  return 180;
+  return studioPeakBars[viewport];
 }
 
 export function studioPeaksFromBuffer(buffer: AudioBuffer, bars: number): number[] {
