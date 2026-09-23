@@ -17,8 +17,6 @@ import {
   isValidEmail,
   isValidFullName,
   toAuthMetadata,
-  toE164,
-  validateProfile,
   validateSignIn,
   validateSignUpInput,
   type ProfileIssue,
@@ -30,10 +28,7 @@ type Mode = "signin" | "signup";
 function emptyProfile(locale: string, language: string): ProfileFormValues {
   return {
     fullName: "",
-    gender: "",
     country: detectCountryFromLocale(locale, language),
-    dateOfBirth: "",
-    nationalPhone: "",
   };
 }
 
@@ -58,6 +53,7 @@ export function AuthForm({ initialMode = "signin" }: { initialMode?: Mode }) {
   const [profile, setProfile] = useState<ProfileFormValues>(() =>
     emptyProfile(locale, typeof navigator === "undefined" ? locale : navigator.language),
   );
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [agreedToPrivacy, setAgreedToPrivacy] = useState(false);
   const [agreedToMarketing, setAgreedToMarketing] = useState(false);
   const [status, setStatus] = useState<"idle" | "working">("idle");
@@ -75,12 +71,8 @@ export function AuthForm({ initialMode = "signin" }: { initialMode?: Mode }) {
       password: a.shortPassword,
       passwordMismatch: a.passwordMismatch,
       fullName: a.invalidName,
-      gender: a.invalidGender,
       country: a.invalidCountry,
-      dateOfBirth: a.invalidDob,
-      tooYoung: a.tooYoung,
-      tooOld: a.tooOld,
-      phone: a.invalidPhone,
+      ageConfirm: a.ageRequired,
       privacyConsent: a.privacyRequired,
     }),
     [a],
@@ -104,20 +96,17 @@ export function AuthForm({ initialMode = "signin" }: { initialMode?: Mode }) {
   }, [isSignUp]);
 
   const signupFields = useMemo(() => {
-    const phone = toE164(profile.country, profile.nationalPhone);
     return {
       fullName: profile.fullName,
-      gender: profile.gender,
       country: profile.country,
-      dateOfBirth: profile.dateOfBirth,
-      phone,
       email: email.trim().toLowerCase(),
       password,
       confirmPassword,
+      ageConfirmed,
       privacyConsent: agreedToPrivacy,
       marketingConsent: agreedToMarketing,
     };
-  }, [agreedToMarketing, agreedToPrivacy, confirmPassword, email, password, profile]);
+  }, [ageConfirmed, agreedToMarketing, agreedToPrivacy, confirmPassword, email, password, profile]);
 
   const signupIssue = isSignUp ? validateSignUpInput(signupFields) : null;
   const canSubmit = isSignUp
@@ -133,26 +122,9 @@ export function AuthForm({ initialMode = "signin" }: { initialMode?: Mode }) {
     return issueCopy[issue];
   }
 
-  const profileIssue = validateProfile({
-    fullName: profile.fullName,
-    gender: profile.gender,
-    country: profile.country,
-    dateOfBirth: profile.dateOfBirth,
-    phone: toE164(profile.country, profile.nationalPhone),
-  });
-
   const profileErrors = {
     fullName: touched.fullName && !isValidFullName(profile.fullName) ? issueCopy.fullName : undefined,
-    gender: touched.gender && profileIssue === "gender" ? issueCopy.gender : undefined,
-    country: touched.country && profileIssue === "country" ? issueCopy.country : undefined,
-    dateOfBirth:
-      touched.dateOfBirth && (profileIssue === "dateOfBirth" || profileIssue === "tooYoung" || profileIssue === "tooOld")
-        ? issueCopy[profileIssue]
-        : undefined,
-    tooYoung: undefined,
-    tooOld: undefined,
-    nationalPhone: touched.nationalPhone && profileIssue === "phone" ? issueCopy.phone : undefined,
-    phone: touched.nationalPhone && profileIssue === "phone" ? issueCopy.phone : undefined,
+    country: touched.country && !isCountryCode(profile.country) ? issueCopy.country : undefined,
   };
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -160,13 +132,11 @@ export function AuthForm({ initialMode = "signin" }: { initialMode?: Mode }) {
     setError(null);
     setTouched({
       fullName: true,
-      gender: true,
       country: true,
-      dateOfBirth: true,
-      nationalPhone: true,
       email: true,
       password: true,
       confirmPassword: true,
+      age: true,
       privacy: true,
     });
 
@@ -215,10 +185,8 @@ export function AuthForm({ initialMode = "signin" }: { initialMode?: Mode }) {
       const origin = window.location.origin;
       const fields = {
         fullName: signupFields.fullName,
-        gender: signupFields.gender,
         country: signupFields.country,
-        dateOfBirth: signupFields.dateOfBirth,
-        phone: signupFields.phone,
+        ageConfirmed: true,
         privacyConsent: true,
         marketingConsent: agreedToMarketing,
       };
@@ -380,9 +348,16 @@ export function AuthForm({ initialMode = "signin" }: { initialMode?: Mode }) {
         {isSignUp ? (
           <FormSection title={a.consentSection}>
             <ConsentFields
+              ageConfirmed={ageConfirmed}
               agreedToPrivacy={agreedToPrivacy}
               agreedToMarketing={agreedToMarketing}
+              ageError={touched.age && !ageConfirmed ? a.ageRequired : undefined}
               privacyError={touched.privacy && !agreedToPrivacy ? a.privacyRequired : undefined}
+              onAgeChange={(value) => {
+                setAgeConfirmed(value);
+                markTouched("age");
+                if (error) setError(null);
+              }}
               onPrivacyChange={(value) => {
                 setAgreedToPrivacy(value);
                 markTouched("privacy");
@@ -403,7 +378,7 @@ export function AuthForm({ initialMode = "signin" }: { initialMode?: Mode }) {
           type="submit"
           size="lg"
           className="h-11 w-full text-base"
-          disabled={status === "working" || !canSubmit}
+          disabled={status === "working" || loading || !configured || (!isSignUp && !canSubmit)}
         >
           {status === "working" ? (
             <>
@@ -427,6 +402,7 @@ export function AuthForm({ initialMode = "signin" }: { initialMode?: Mode }) {
             setMode(isSignUp ? "signin" : "signup");
             setError(null);
             setTouched({});
+            setAgeConfirmed(false);
             setAgreedToPrivacy(false);
             setAgreedToMarketing(false);
           }}

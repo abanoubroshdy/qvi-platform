@@ -6,7 +6,7 @@ export const siteConfig = {
   tagline: "The Future of Intelligent Audio",
   url: resolveSiteUrl(),
   description:
-    "QVI builds intelligent audio tools that run on your device. From AI stem separation to DDSP instrument synthesis, plus free browser utilities that never upload your files.",
+    "QVI’s core products are QV1 and Neyora, desktop intelligent audio for stem separation and instrument synthesis. Free browser tools are extras.",
   keywords: [
     "QVI",
     "Quality Virtual Instruments",

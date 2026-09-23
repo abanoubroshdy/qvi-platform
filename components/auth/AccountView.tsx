@@ -11,27 +11,19 @@ import { getSupabaseClient } from "@/lib/supabase/client";
 import { fetchProfile, fieldsFromUserMetadata, saveProfile } from "@/lib/supabase/profile";
 import { Button } from "@/components/ui/button";
 import {
-  GENDERS,
   isProfileComplete,
+  isValidFullName,
   recordToFields,
-  splitE164,
-  toE164,
   validateProfile,
-  type Gender,
   type ProfileIssue,
   type ProfileRecord,
 } from "@/lib/auth/profile";
-import { countryDisplayName } from "@/lib/geo/countries";
+import { countryDisplayName, isCountryCode } from "@/lib/geo/countries";
 
 function toFormValues(fields: ReturnType<typeof recordToFields>): ProfileFormValues {
-  const { callingCode: _callingCode, national } = splitE164(fields.phone, fields.country);
-  void _callingCode;
   return {
     fullName: fields.fullName,
-    gender: fields.gender,
     country: fields.country,
-    dateOfBirth: fields.dateOfBirth,
-    nationalPhone: national,
   };
 }
 
@@ -44,15 +36,13 @@ export function AccountView() {
   const [profile, setProfile] = useState<ProfileRecord | null>(null);
   const [form, setForm] = useState<ProfileFormValues>({
     fullName: "",
-    gender: "",
     country: "",
-    dateOfBirth: "",
-    nationalPhone: "",
   });
   const [editing, setEditing] = useState(false);
   const [status, setStatus] = useState<"loading" | "idle" | "saving">("loading");
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [touched, setTouched] = useState(false);
 
   const issueCopy = useMemo<Record<ProfileIssue, string>>(
     () => ({
@@ -60,12 +50,8 @@ export function AccountView() {
       password: a.shortPassword,
       passwordMismatch: a.passwordMismatch,
       fullName: a.invalidName,
-      gender: a.invalidGender,
       country: a.invalidCountry,
-      dateOfBirth: a.invalidDob,
-      tooYoung: a.tooYoung,
-      tooOld: a.tooOld,
-      phone: a.invalidPhone,
+      ageConfirm: a.ageRequired,
       privacyConsent: a.privacyRequired,
     }),
     [a],
@@ -110,11 +96,15 @@ export function AccountView() {
 
   const complete = isProfileComplete({
     fullName: form.fullName,
-    gender: form.gender,
     country: form.country,
-    dateOfBirth: form.dateOfBirth,
-    phone: toE164(form.country, form.nationalPhone) || form.nationalPhone,
   });
+
+  const fieldErrors = touched
+    ? {
+        fullName: isValidFullName(form.fullName) ? undefined : issueCopy.fullName,
+        country: isCountryCode(form.country) ? undefined : issueCopy.country,
+      }
+    : {};
 
   if (loading || !user || status === "loading") {
     return (
@@ -128,9 +118,6 @@ export function AccountView() {
   }
 
   const createdAt = user.created_at ? new Date(user.created_at) : null;
-  const genderLabel = (GENDERS as readonly string[]).includes(form.gender)
-    ? a.genders[form.gender as Gender]
-    : "—";
 
   async function handleSignOut() {
     await signOut();
@@ -141,13 +128,11 @@ export function AccountView() {
     event.preventDefault();
     setError(null);
     setSaved(false);
+    setTouched(true);
 
     const fields = {
       fullName: form.fullName,
-      gender: form.gender,
       country: form.country,
-      dateOfBirth: form.dateOfBirth,
-      phone: toE164(form.country, form.nationalPhone),
     };
     const issue = validateProfile(fields);
     if (issue) {
@@ -170,14 +155,16 @@ export function AccountView() {
     }
     setProfile({
       id: user.id,
-      full_name: fields.fullName,
-      gender: fields.gender,
+      full_name: fields.fullName.trim(),
       country: fields.country,
-      date_of_birth: fields.dateOfBirth,
-      phone: fields.phone,
+      gender: profile?.gender ?? null,
+      date_of_birth: profile?.date_of_birth ?? null,
+      phone: profile?.phone ?? null,
+      age_confirmed: profile?.age_confirmed ?? null,
     });
     setEditing(false);
     setSaved(true);
+    setTouched(false);
     await refresh();
   }
 
@@ -212,13 +199,15 @@ export function AccountView() {
         </dl>
 
         {editing ? (
-          <form onSubmit={onSave} className="space-y-4 border-t border-border pt-4">
+          <form onSubmit={onSave} noValidate className="space-y-4 border-t border-border pt-4">
             <p className="text-sm font-semibold">{complete ? a.editProfile : a.completeProfileTitle}</p>
             {!complete ? <p className="text-sm text-muted-foreground">{a.incompleteProfile}</p> : null}
             <ProfileFields
               idPrefix="account"
               values={form}
+              errors={fieldErrors}
               disabled={status === "saving"}
+              onBlurField={() => setTouched(true)}
               onChange={(patch) => {
                 setForm((current) => ({ ...current, ...patch }));
                 setError(null);
@@ -249,6 +238,7 @@ export function AccountView() {
                   onClick={() => {
                     setEditing(false);
                     setError(null);
+                    setTouched(false);
                     setForm(
                       toFormValues(
                         profile ? recordToFields(profile) : fieldsFromUserMetadata(user.user_metadata),
@@ -269,32 +259,10 @@ export function AccountView() {
                 <dt className="text-xs uppercase tracking-wide text-muted-foreground">{a.fullNameLabel}</dt>
                 <dd className="text-base font-medium">{form.fullName || "—"}</dd>
               </div>
-              <div className="space-y-1">
-                <dt className="text-xs uppercase tracking-wide text-muted-foreground">{a.genderLabel}</dt>
-                <dd className="text-base font-medium">{genderLabel}</dd>
-              </div>
-              <div className="space-y-1">
+              <div className="space-y-1 sm:col-span-2">
                 <dt className="text-xs uppercase tracking-wide text-muted-foreground">{a.countryLabel}</dt>
                 <dd className="text-base font-medium">
                   {form.country ? countryDisplayName(form.country, locale) : "—"}
-                </dd>
-              </div>
-              <div className="space-y-1">
-                <dt className="text-xs uppercase tracking-wide text-muted-foreground">{a.dobLabel}</dt>
-                <dd className="text-base font-medium">
-                  {form.dateOfBirth
-                    ? new Date(`${form.dateOfBirth}T00:00:00Z`).toLocaleDateString(locale === "ar" ? "ar" : undefined, {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })
-                    : "—"}
-                </dd>
-              </div>
-              <div className="space-y-1">
-                <dt className="text-xs uppercase tracking-wide text-muted-foreground">{a.phoneLabel}</dt>
-                <dd className="text-base font-medium" dir="ltr">
-                  {toE164(form.country, form.nationalPhone) || form.nationalPhone || "—"}
                 </dd>
               </div>
             </dl>

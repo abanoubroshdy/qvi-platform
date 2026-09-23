@@ -76,7 +76,7 @@ export function ProductSpotlight({
             ))}
           </ul>
         ) : null}
-        <Button asChild size="lg" className="qvi-btn" variant={tone === "cyan" ? "default" : "secondary"}>
+        <Button asChild size="lg" className="qvi-btn" variant={tone === "sand" ? "secondary" : "default"}>
           <Link href={href}>
             {cta}
             <ArrowRight className="rtl:rotate-180" />

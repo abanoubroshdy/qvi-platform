@@ -1,41 +1,28 @@
 import { describe, expect, it } from "vitest";
-import { callingCodeForCountry, isCountryCode } from "@/lib/geo/countries";
+import { isCountryCode } from "@/lib/geo/countries";
 import {
   MIN_ACCOUNT_AGE,
-  ageOnDate,
   isProfileComplete,
-  isValidE164,
   isValidEmail,
   isValidFullName,
-  parseIsoDate,
   passwordStrength,
-  toE164,
+  toAuthMetadata,
+  toProfileRow,
   validateProfile,
   validateSignIn,
   validateSignUpInput,
 } from "@/lib/auth/profile";
 
-function isoYearsAgo(years: number, extraDays = 0): string {
-  const now = new Date();
-  const date = new Date(Date.UTC(now.getUTCFullYear() - years, now.getUTCMonth(), now.getUTCDate() - extraDays));
-  const y = date.getUTCFullYear();
-  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const d = String(date.getUTCDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
-
 const validProfile = {
   fullName: "سارة علي",
-  gender: "female",
   country: "EG",
-  dateOfBirth: isoYearsAgo(25),
-  phone: "+201001234567",
 };
 
 describe("profile validation", () => {
-  it("accepts a complete Arabic name, gender, Egypt phone, and adult DOB", () => {
+  it("accepts a name and country without gender, date of birth, or phone", () => {
     expect(validateProfile(validProfile)).toBeNull();
     expect(isProfileComplete(validProfile)).toBe(true);
+    expect(MIN_ACCOUNT_AGE).toBe(13);
   });
 
   it("requires a real name with letters", () => {
@@ -45,27 +32,44 @@ describe("profile validation", () => {
     expect(validateProfile({ ...validProfile, fullName: "1" })).toBe("fullName");
   });
 
-  it("rejects unknown gender and country values", () => {
-    expect(validateProfile({ ...validProfile, gender: "other" })).toBe("gender");
+  it("rejects an unknown country and does not require legacy demographic fields", () => {
     expect(validateProfile({ ...validProfile, country: "Egypt" })).toBe("country");
     expect(isCountryCode("EG")).toBe(true);
+    expect(validateProfile(validProfile)).toBeNull();
   });
 
-  it("rejects underage and invalid dates of birth", () => {
-    expect(parseIsoDate("2020-13-40")).toBeNull();
-    expect(validateProfile({ ...validProfile, dateOfBirth: "not-a-date" })).toBe("dateOfBirth");
-    expect(validateProfile({ ...validProfile, dateOfBirth: isoYearsAgo(MIN_ACCOUNT_AGE - 1) })).toBe("tooYoung");
-    expect(validateProfile({ ...validProfile, dateOfBirth: isoYearsAgo(130) })).toBe("tooOld");
-    expect(ageOnDate(parseIsoDate(isoYearsAgo(20)) as Date)).toBeGreaterThanOrEqual(19);
+  it("requires an explicit 13+ confirmation at signup", () => {
+    const base = {
+      ...validProfile,
+      email: "you@studio.com",
+      password: "secret1",
+      confirmPassword: "secret1",
+      privacyConsent: true,
+      ageConfirmed: false,
+    };
+    expect(validateSignUpInput(base)).toBe("ageConfirm");
+    expect(validateSignUpInput({ ...base, ageConfirmed: true })).toBeNull();
   });
 
-  it("builds and validates E.164 numbers, stripping a leading trunk zero", () => {
-    expect(callingCodeForCountry("EG")).toBe("20");
-    expect(toE164("EG", "01001234567")).toBe("+201001234567");
-    expect(toE164("US", "4155552671")).toBe("+14155552671");
-    expect(isValidE164("+201001234567")).toBe(true);
-    expect(isValidE164("01001234567")).toBe(false);
-    expect(validateProfile({ ...validProfile, phone: "123" })).toBe("phone");
+  it("writes name, country, and age confirmation without demographic columns", () => {
+    const row = toProfileRow("user-1", {
+      ...validProfile,
+      ageConfirmed: true,
+      privacyConsent: true,
+      marketingConsent: false,
+    });
+    expect(row).toMatchObject({
+      id: "user-1",
+      full_name: "سارة علي",
+      country: "EG",
+      age_confirmed: true,
+      privacy_consent: true,
+      marketing_consent: false,
+    });
+    expect(row).not.toHaveProperty("gender");
+    expect(row).not.toHaveProperty("date_of_birth");
+    expect(row).not.toHaveProperty("phone");
+    expect(toAuthMetadata({ ...validProfile, ageConfirmed: true }).age_confirmed).toBe(true);
   });
 
   it("validates signup credentials together with profile fields", () => {
@@ -77,6 +81,7 @@ describe("profile validation", () => {
         password: "secret1",
         confirmPassword: "secret1",
         privacyConsent: true,
+        ageConfirmed: true,
       }),
     ).toBe("email");
     expect(
@@ -86,6 +91,7 @@ describe("profile validation", () => {
         password: "123",
         confirmPassword: "123",
         privacyConsent: true,
+        ageConfirmed: true,
       }),
     ).toBe("password");
     expect(
@@ -95,6 +101,7 @@ describe("profile validation", () => {
         password: "secret1",
         confirmPassword: "secret2",
         privacyConsent: true,
+        ageConfirmed: true,
       }),
     ).toBe("passwordMismatch");
     expect(
@@ -104,18 +111,9 @@ describe("profile validation", () => {
         password: "secret1",
         confirmPassword: "secret1",
         privacyConsent: false,
+        ageConfirmed: true,
       }),
     ).toBe("privacyConsent");
-    expect(
-      validateSignUpInput({
-        ...validProfile,
-        email: "you@studio.com",
-        password: "secret1",
-        confirmPassword: "secret1",
-        privacyConsent: true,
-        marketingConsent: false,
-      }),
-    ).toBeNull();
     expect(validateSignIn("you@studio.com", "secret1")).toBeNull();
     expect(validateSignIn("bad", "secret1")).toBe("email");
     expect(validateSignIn("you@studio.com", "12")).toBe("password");

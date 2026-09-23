@@ -25,6 +25,9 @@ export function HomeClosingCta() {
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="qvi-btn qvi-btn-outline">
+              <Link href="/products/neyora">{copy.home.neyoraCta}</Link>
+            </Button>
+            <Button asChild size="lg" variant="outline" className="qvi-btn qvi-btn-outline">
               <Link href="/contact">
                 <Mail />
                 {copy.home.closingContact}

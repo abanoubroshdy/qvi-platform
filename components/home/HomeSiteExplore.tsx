@@ -31,12 +31,6 @@ export function HomeSiteExplore() {
 
   const links: ExploreLink[] = [
     {
-      href: products.studio.href,
-      label: copy.products.studio.name,
-      description: copy.products.studio.title,
-      icon: SlidersHorizontal,
-    },
-    {
       href: "/products/qv1",
       label: copy.products.qv1.name,
       description: copy.products.qv1.title,
@@ -47,6 +41,12 @@ export function HomeSiteExplore() {
       label: copy.products.neyora.name,
       description: copy.products.neyora.title,
       icon: Sparkles,
+    },
+    {
+      href: products.studio.href,
+      label: copy.products.studio.name,
+      description: copy.products.studio.title,
+      icon: SlidersHorizontal,
     },
     {
       href: "/lab",

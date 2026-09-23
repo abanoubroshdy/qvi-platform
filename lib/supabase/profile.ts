@@ -1,11 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import {
-  recordToFields,
-  toAuthMetadata,
-  toProfileRow,
-  type ProfileFields,
-  type ProfileRecord,
-} from "@/lib/auth/profile";
+import { recordToFields, toAuthMetadata, toProfileRow, type ProfileFields, type ProfileRecord } from "@/lib/auth/profile";
 
 export async function fetchProfile(
   supabase: SupabaseClient,
@@ -28,11 +22,9 @@ export async function saveProfile(
   const meta = toAuthMetadata(fields);
   const data: Record<string, unknown> = {
     full_name: meta.full_name,
-    gender: meta.gender,
     country: meta.country,
-    date_of_birth: meta.date_of_birth,
-    phone: meta.phone,
   };
+  if (fields.ageConfirmed !== undefined) data.age_confirmed = meta.age_confirmed;
   if (fields.privacyConsent !== undefined) data.privacy_consent = meta.privacy_consent;
   if (fields.marketingConsent !== undefined) data.marketing_consent = meta.marketing_consent;
 
@@ -45,9 +37,7 @@ export function fieldsFromUserMetadata(metadata: Record<string, unknown> | undef
   return recordToFields({
     id: "",
     full_name: typeof metadata?.full_name === "string" ? metadata.full_name : null,
-    gender: typeof metadata?.gender === "string" ? metadata.gender : null,
     country: typeof metadata?.country === "string" ? metadata.country : null,
-    date_of_birth: typeof metadata?.date_of_birth === "string" ? metadata.date_of_birth : null,
-    phone: typeof metadata?.phone === "string" ? metadata.phone : null,
+    age_confirmed: metadata?.age_confirmed === true,
   });
 }
