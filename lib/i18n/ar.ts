@@ -840,7 +840,11 @@ export const ar: Messages = {
   tempoPitch: {
     action: "تطبيق التيمبو والطبقة",
     exportAgain: "تصدير مرة أخرى",
-    autoPreviewHint: "تُحدَّث المعاينة تلقائيًا بعد لحظة من تغيير التيمبو أو الطبقة (SoundTouch على جهازك — وليس playbackRate).",
+    autoPreviewHint: "تُحدَّث المعاينة القابلة للتنزيل بعد لحظة من تغيير التيمبو أو الطبقة. التشغيل المباشر يتبع المنزلقات فورًا.",
+    livePlay: "تشغيل مباشر",
+    liveStop: "إيقاف المباشر",
+    liveHint:
+      "المعاينة المباشرة تتبع المنزلقات عبر SoundTouch في الوقت الحقيقي (WSOLA). التنزيل ما زال يستخدم التمديد الأعلى جودة.",
     downloadFormat: "تنزيل {format}",
     dropTitle: "أسقط ملفًا صوتيًا هنا أو اضغط للاختيار",
     dropHint: "MP3 أو WAV أو M4A أو OGG أو FLAC. اضغط Tap للـ BPM، اضبط التيمبو والطبقة، ثم صدّر محليًا عبر FFmpeg.",
@@ -1649,6 +1653,7 @@ export const ar: Messages = {
     emptyTitle: "أفلت ملفًا صوتيًا لبدء تراك",
     emptyBody: "MP3 أو WAV أو M4A أو OGG أو AAC أو FLAC. لا يُرفع أي ملف.",
     rendering: "جارٍ تحديث السرعة والطبقة…",
+    livePreview: "التمديد المباشر يتبع المنزلقات. التصدير ما زال يرسم صوت SoundTouch الأعلى جودة.",
     reading: "جارٍ قراءة الصوت…",
     largeFile: "هذا الملف كبير وقد يتعذر تشغيله على الهاتف.",
     trackCap: "هذه الشاشة تتوقف عند {count} تراكات.",

@@ -83,7 +83,9 @@ describe("QVI Studio phase 0 contract", () => {
     expect(qviStudioEngines.playback.runtime).toBe("web-audio");
     expect(qviStudioEngines.export.runtime).toBe("ffmpeg-wasm");
     expect(qviStudioEngines.playback.runtime).not.toBe(qviStudioEngines.export.runtime);
-    expect(qviStudioEngines.tempoPitchPreview.strategy).toBe("offline-render");
+    expect(qviStudioEngines.tempoPitchPreview.strategy).toBe("audio-worklet");
+    expect(qviStudioEngines.tempoPitchPreview.fallback).toBe("offline-render");
+    expect(qviStudioEngines.tempoPitchPreview.liveStretch).toBe("wsola");
     expect(qviStudioEngines.tempoPitchPreview.engine).toBe("soundtouch");
     expect(qviStudioEngines.tempoPitchPreview.stretch).toBe("phase-vocoder");
     expect(qviStudioEngines.tempoPitchPreview.forbiddenStrategies).toContain("playback-rate-only");

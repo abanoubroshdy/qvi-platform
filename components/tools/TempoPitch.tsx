@@ -25,11 +25,13 @@ import {
   type AudioSourceInfo,
 } from "@/lib/audio-inspect";
 import { stretchAudioBufferOffThread } from "@/lib/audio-stretch-task";
+import { liveStretchParams } from "@/lib/audio-stretch-live";
 import {
   parseStretchPreset,
   tempoPitchComfort,
   type StretchPresetId,
 } from "@/lib/audio-stretch-preset";
+import { useLiveStretchPreview } from "@/components/tools/useLiveStretchPreview";
 import { downloadBlob } from "@/lib/download";
 import { formatBytes } from "@/lib/format";
 import { FFMPEG_LARGE_FILE_BYTES, runFFmpeg } from "@/lib/ffmpeg";
@@ -200,6 +202,8 @@ export function TempoPitch() {
   const previewGenRef = useRef(0);
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stretchAbortRef = useRef<AbortController | null>(null);
+  const live = useLiveStretchPreview(audio?.buffer ?? null);
+  const applyLive = live.apply;
 
   useEffect(() => {
     setPreset(parseStretchPreset(window.localStorage.getItem(PRESET_STORAGE_KEY)));
@@ -227,6 +231,9 @@ export function TempoPitch() {
     () => tempoPitchComfort({ tempoRate, semitones, cents }),
     [tempoRate, semitones, cents],
   );
+  useEffect(() => {
+    applyLive(liveStretchParams({ tempoRate, semitones, cents, preset }));
+  }, [applyLive, tempoRate, semitones, cents, preset]);
   const presetLabel: Record<StretchPresetId, string> = {
     music: t.presetMusic,
     speech: t.presetSpeech,
@@ -564,6 +571,22 @@ export function TempoPitch() {
             <p className="truncate text-sm text-muted-foreground" dir="ltr" title={audio.file.name}>
               {audio.file.name}
             </p>
+            {live.ready ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={live.playing ? "default" : "outline"}
+                  onClick={() => {
+                    if (live.playing) live.stop();
+                    else void live.play();
+                  }}
+                >
+                  {live.playing ? t.liveStop : t.livePlay}
+                </Button>
+                <p className="text-xs text-muted-foreground">{t.liveHint}</p>
+              </div>
+            ) : null}
             {hear === "after" && resultUrl ? (
               resultPeaks.length ? (
                 <WaveformPlayer

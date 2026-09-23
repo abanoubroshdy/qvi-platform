@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { stretchAudioBufferOffThread } from "@/lib/audio-stretch-task";
+import { createLiveStretchNode, enableLiveStretch } from "@/lib/audio-stretch-worklet";
 import { createBrowserTempoPitchPreview, connectTempoPreview } from "@/lib/studio/tempo-preview";
 import { loadStudioFile } from "@/lib/studio/load-clip";
 import { studioPeakBarCount } from "@/lib/studio/peaks";
@@ -85,6 +86,7 @@ export function useStudioSession() {
   const [mixerOpen, setMixerOpen] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [liveReady, setLiveReady] = useState(false);
   const engineRef = useRef<QviStudioPlaybackEngine | null>(null);
   const schedulerRef = useRef<ReturnType<typeof connectTempoPreview> | null>(null);
   const contextRef = useRef<AudioContext | null>(null);
@@ -103,8 +105,9 @@ export function useStudioSession() {
   useEffect(() => {
     const context = new AudioContext();
     contextRef.current = context;
+    const host = createStudioAudioHost(context);
     const engine = createStudioPlaybackEngine({
-      host: createStudioAudioHost(context),
+      host,
       onTransport: (snapshot) => {
         playheadRef.current = snapshot.playheadSec;
         setTransport(snapshot);
@@ -131,6 +134,11 @@ export function useStudioSession() {
     });
     schedulerRef.current = scheduler;
     let cancelled = false;
+    void enableLiveStretch(context).then((ok) => {
+      if (cancelled || !ok) return;
+      host.createLiveStretch = () => createLiveStretchNode(context);
+      setLiveReady(true);
+    });
     queueMicrotask(() => {
       if (cancelled || !contextRef.current || !engineRef.current) return;
       const waiters = engineWaitersRef.current.splice(0);
@@ -163,6 +171,12 @@ export function useStudioSession() {
     const scheduler = schedulerRef.current;
     const engine = engineRef.current;
     if (!scheduler || !engine) return;
+    if (liveReady) {
+      scheduler.cancel();
+      setRenderingIds([]);
+      engine.sync(projectRef.current);
+      return;
+    }
     const pending: string[] = [];
     for (const track of projectRef.current.tracks) {
       if (!trackTempoPitchIsIdentity(track)) {
@@ -172,7 +186,7 @@ export function useStudioSession() {
       scheduler.schedule(track);
     }
     setRenderingIds(pending);
-  }, [contentKey]);
+  }, [contentKey, liveReady]);
 
   useEffect(() => {
     const mobile = window.matchMedia("(max-width: 639px)");
@@ -366,6 +380,7 @@ export function useStudioSession() {
     setInspectorOpen,
     exportOpen,
     setExportOpen,
+    liveReady,
     fileInputRef,
     selectedTrack,
     selectedClip,

@@ -7,7 +7,9 @@ import {
   type StudioAudioNode,
   type StudioBufferSource,
   type StudioGainNode,
+  type StudioLiveStretch,
 } from "@/lib/studio/playback-engine";
+import type { LiveStretchParams } from "@/lib/audio-stretch-live";
 import { dbToGain, planPlayback } from "@/lib/studio/playback-schedule";
 import {
   addImportedFileAsTrack,
@@ -15,7 +17,9 @@ import {
   setMasterGain,
   setTrackGain,
   setTrackMuted,
+  setTrackPitch,
   setTrackSolo,
+  setTrackStretchPreset,
   setTrackTempo,
 } from "@/lib/studio/project";
 import { qviStudioLimits } from "@/lib/studio/definition";
@@ -68,6 +72,7 @@ class FakeGain implements StudioGainNode {
 
 class FakeSource implements StudioBufferSource {
   buffer: AudioBuffer | null = null;
+  playbackRate = { value: 1 };
   onended: (() => void) | null = null;
   started: { when: number; offset: number; duration: number } | null = null;
   stopped = false;
@@ -110,6 +115,24 @@ class FakeHost implements StudioAudioHost {
     const source = new FakeSource();
     this.sources.push(source);
     return source;
+  }
+}
+
+class FakeStretch implements StudioLiveStretch {
+  applied: LiveStretchParams | null = null;
+  connect() {}
+  disconnect() {}
+  apply(params: LiveStretchParams) {
+    this.applied = params;
+  }
+}
+
+class LiveHost extends FakeHost {
+  stretches: FakeStretch[] = [];
+  createLiveStretch() {
+    const node = new FakeStretch();
+    this.stretches.push(node);
+    return node;
   }
 }
 
@@ -191,6 +214,33 @@ describe("playback schedule", () => {
     expect(planPlayback({ project, playheadSec: 0, renderedTracks: new Map([[track.id, rendered]]) }).events[0]!.clipId).toBe(
       track.clips[0]!.id,
     );
+  });
+
+  it("plays a live tempo change from the source clip and keeps mute and solo", () => {
+    const { project, track } = projectWithClip({ seconds: 8 });
+    const sped = setTrackTempo(project, track.id, { targetBpm: 240 });
+    if (!sped.ok) throw new Error(sped.reason);
+    const speech = setTrackStretchPreset(sped.project, track.id, "speech");
+    if (!speech.ok) throw new Error("preset");
+    const live = planPlayback({ project: speech.project, playheadSec: 1, live: true });
+    expect(live.events).toHaveLength(1);
+    expect(live.events[0]).toMatchObject({
+      clipId: track.clips[0]!.id,
+      delaySec: 0,
+      offsetSec: 2,
+      durationSec: 6,
+      playbackRate: 2,
+    });
+    expect(live.events[0]!.stretch).toMatchObject({
+      playbackRate: 2,
+      pitch: 1,
+      stretch: { sequenceMs: 40, seekWindowMs: 15, overlapMs: 8, quickSeek: true },
+    });
+
+    const muted = setTrackMuted(speech.project, track.id, true);
+    if (!muted.ok) throw new Error(muted.reason);
+    expect(planPlayback({ project: muted.project, playheadSec: 0, live: true }).events).toEqual([]);
+    expect(planPlayback({ project: muted.project, playheadSec: 0, live: true }).trackGains[0]!.linear).toBe(0);
   });
 });
 
@@ -280,6 +330,27 @@ describe("playback engine", () => {
     expect(host.closed).toBe(true);
     engine.play(sped.project);
     expect(engine.currentStatus()).toBe("idle");
+  });
+
+  it("updates live pitch without restarting and still bakes nothing into the source rate by itself", () => {
+    const host = new LiveHost();
+    const engine = createStudioPlaybackEngine({ host });
+    const { project, track } = projectWithClip({ seconds: 8 });
+    const sped = setTrackTempo(project, track.id, { targetBpm: 240 });
+    if (!sped.ok) throw new Error(sped.reason);
+    engine.play(sped.project);
+    expect(host.sources).toHaveLength(1);
+    expect(host.sources[0]!.playbackRate.value).toBe(2);
+    expect(host.sources[0]!.stopped).toBe(false);
+    expect(host.stretches).toHaveLength(1);
+
+    const pitched = setTrackPitch(sped.project, track.id, { semitones: 3, cents: 0 });
+    if (!pitched.ok) throw new Error(pitched.reason);
+    engine.sync(pitched.project);
+    expect(host.sources.filter((source) => !source.stopped)).toHaveLength(1);
+    expect(host.sources).toHaveLength(1);
+    expect(host.stretches[0]!.applied?.pitchSemitones).toBe(3);
+    expect(host.stretches[0]!.applied?.playbackRate).toBe(2);
   });
 });
 

@@ -844,7 +844,11 @@ export const en = {
   tempoPitch: {
     action: "Apply tempo & pitch",
     exportAgain: "Export again",
-    autoPreviewHint: "Preview updates automatically a moment after you change tempo or pitch (SoundTouch on this device — not playbackRate).",
+    autoPreviewHint: "The downloadable preview updates a moment after you change tempo or pitch. Live playback follows the sliders immediately.",
+    livePlay: "Play live",
+    liveStop: "Stop live",
+    liveHint:
+      "Live preview follows the sliders through SoundTouch in real time (WSOLA). Download still uses the full-quality render.",
     downloadFormat: "Download {format}",
     dropTitle: "Drop an audio file here or click to choose",
     dropHint: "MP3, WAV, M4A, OGG, or FLAC. Tap BPM, set tempo and pitch, then export locally with FFmpeg.",
@@ -1660,6 +1664,7 @@ export const en = {
     emptyTitle: "Drop audio to start a track",
     emptyBody: "MP3, WAV, M4A, OGG, AAC, or FLAC. Nothing is uploaded.",
     rendering: "Updating tempo and pitch…",
+    livePreview: "Live stretch follows the sliders. Export still renders the full-quality SoundTouch buffer.",
     reading: "Reading audio…",
     largeFile: "This file is large and may fail to play on a phone.",
     trackCap: "This screen stops at {count} tracks.",

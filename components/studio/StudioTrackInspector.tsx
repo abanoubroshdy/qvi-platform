@@ -45,6 +45,7 @@ export function StudioTrackInspector({ copy }: { copy: Messages["studio"] }) {
         onChange={(event) => studio.setName(track.id, event.target.value)}
       />
       {rendering && <p className="text-xs text-primary">{copy.rendering}</p>}
+      {studio.liveReady ? <p className="text-xs text-muted-foreground">{copy.livePreview}</p> : null}
       <div className="flex gap-2">
         <Button type="button" size="sm" variant={track.tempo.mode === "bpm" ? "default" : "outline"} onClick={() => studio.setTempo(track.id, { mode: "bpm" })}>
           {copy.bpm}

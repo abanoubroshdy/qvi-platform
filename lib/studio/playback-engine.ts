@@ -1,10 +1,13 @@
 /**
- * Live QVI Studio playback (phase 2).
+ * Live QVI Studio playback.
  *
- * Web Audio schedules the plan from `playback-schedule`. Tempo and pitch are
- * not applied here; a rendered track buffer is, once the preview has one.
+ * Web Audio schedules the plan from `playback-schedule`. When the host can
+ * create a SoundTouch worklet, tempo and pitch run there while playing.
+ * Otherwise a rendered track buffer is used once the offline preview has one.
+ * Export does not use this graph.
  */
 
+import type { LiveStretchParams } from "@/lib/audio-stretch-live";
 import type { StudioEngineStatus, StudioPlaybackEngine } from "@/lib/studio/engine";
 import { loadStudioFile, type StudioDecodeResult } from "@/lib/studio/load-clip";
 import { planPlayback } from "@/lib/studio/playback-schedule";
@@ -22,9 +25,16 @@ export interface StudioGainNode extends StudioAudioNode {
 
 export interface StudioBufferSource extends StudioAudioNode {
   buffer: AudioBuffer | null;
+  /** Present on real buffer sources. Tempo sets this for the live worklet path. */
+  playbackRate?: { value: number };
   onended: (() => void) | null;
   start(when?: number, offset?: number, duration?: number): void;
   stop(when?: number): void;
+}
+
+/** Main-thread view of one SoundTouch worklet. `apply` must not run on the audio thread. */
+export interface StudioLiveStretch extends StudioAudioNode {
+  apply(params: LiveStretchParams): void;
 }
 
 export interface StudioAudioHost {
@@ -37,6 +47,8 @@ export interface StudioAudioHost {
   createBufferSource(): StudioBufferSource;
   createBuffer?(channels: number, length: number, sampleRate: number): AudioBuffer;
   decodeAudioData?(data: ArrayBuffer): Promise<AudioBuffer>;
+  /** When set, tempo and pitch play through the worklet instead of a baked buffer. */
+  createLiveStretch?: () => StudioLiveStretch | null;
 }
 
 export type StudioTransportSnapshot = {
@@ -51,6 +63,8 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
   private readonly trackGains = new Map<string, StudioGainNode>();
   private readonly rendered = new Map<string, AudioBuffer>();
   private sources: StudioBufferSource[] = [];
+  private readonly stretchByTrack = new Map<string, StudioLiveStretch>();
+  private armedKey = "";
   private activeProject: StudioProject | null = null;
   private status: StudioEngineStatus = "idle";
   private playheadSec = 0;
@@ -94,7 +108,7 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
   }
 
   setRenderedTrack(trackId: string, buffer: AudioBuffer | null): void {
-    if (this.disposed) return;
+    if (this.disposed || typeof this.host.createLiveStretch === "function") return;
     if (buffer) this.rendered.set(trackId, buffer);
     else this.rendered.delete(trackId);
     if (this.status === "playing" && this.activeProject) {
@@ -158,12 +172,21 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
   sync(project: StudioProject): void {
     if (this.disposed) return;
     this.activeProject = project;
-    if (this.status === "playing") {
-      this.arm(project, this.currentPlayhead());
-    } else {
+    if (this.status !== "playing") {
       this.playheadSec = clampTime(project.playheadSec, projectDuration(project));
       this.applyGains(project);
+      this.emit();
+      return;
     }
+    const playhead = this.currentPlayhead();
+    const plan = this.planFor(project, playhead);
+    if (this.scheduleKey(plan) === this.armedKey) {
+      this.applyGains(project);
+      this.applyStretch(plan);
+      this.emit();
+      return;
+    }
+    this.arm(project, playhead);
     this.emit();
   }
 
@@ -171,6 +194,7 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
     if (this.disposed) return;
     this.disposed = true;
     this.stopSources();
+    this.dropStretchNodes();
     this.status = "idle";
     this.trackGains.forEach((node) => {
       try {
@@ -188,23 +212,66 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
     void this.host.close().catch(() => undefined);
   }
 
+  private planFor(project: StudioProject, playhead: number) {
+    return planPlayback({
+      project,
+      playheadSec: playhead,
+      renderedTracks: this.rendered,
+      live: typeof this.host.createLiveStretch === "function",
+    });
+  }
+
+  private scheduleKey(plan: ReturnType<typeof planPlayback>): string {
+    return plan.events
+      .map((event) =>
+        [
+          event.trackId,
+          event.clipId ?? "",
+          event.delaySec,
+          event.offsetSec,
+          event.durationSec,
+          event.playbackRate,
+          event.buffer.length,
+          event.buffer.sampleRate,
+        ].join(":"),
+      )
+      .join("|");
+  }
+
   private arm(project: StudioProject, playhead: number): void {
     this.stopSources();
     this.anchorContextTime = this.host.currentTime;
     this.anchorPlayhead = playhead;
     this.playheadSec = playhead;
-    const plan = planPlayback({ project, playheadSec: playhead, renderedTracks: this.rendered });
+    const plan = this.planFor(project, playhead);
+    this.armedKey = this.scheduleKey(plan);
     this.master.gain.value = plan.masterGain;
     const whenBase = this.host.currentTime;
     const playingTracks = new Set<string>();
     for (const event of plan.events) {
       const source = this.host.createBufferSource();
       source.buffer = event.buffer;
-      source.connect(this.trackGain(event.trackId, gainFor(plan.trackGains, event.trackId)));
+      const gain = this.trackGain(event.trackId, gainFor(plan.trackGains, event.trackId));
+      const stretch = event.stretch ? this.ensureStretch(event.trackId, event.stretch, gain) : null;
+      if (stretch) {
+        if (source.playbackRate) source.playbackRate.value = event.playbackRate;
+        source.connect(stretch);
+      } else {
+        source.connect(gain);
+      }
       source.start(whenBase + event.delaySec, event.offsetSec, event.durationSec);
       this.sources.push(source);
       playingTracks.add(event.trackId);
     }
+    this.stretchByTrack.forEach((node, trackId) => {
+      if (playingTracks.has(trackId)) return;
+      try {
+        node.disconnect();
+      } catch {
+        /* already disconnected */
+      }
+      this.stretchByTrack.delete(trackId);
+    });
     for (const gain of plan.trackGains) {
       if (playingTracks.has(gain.trackId)) continue;
       const node = this.trackGains.get(gain.trackId);
@@ -212,8 +279,35 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
     }
   }
 
+  private ensureStretch(trackId: string, params: LiveStretchParams, gain: StudioGainNode): StudioLiveStretch | null {
+    let node = this.stretchByTrack.get(trackId);
+    if (!node) {
+      let created: StudioLiveStretch | null = null;
+      try {
+        created = this.host.createLiveStretch?.() ?? null;
+      } catch {
+        created = null;
+      }
+      if (!created) return null;
+      node = created;
+      node.connect(gain);
+      this.stretchByTrack.set(trackId, node);
+    }
+    node.apply(params);
+    return node;
+  }
+
+  private applyStretch(plan: ReturnType<typeof planPlayback>): void {
+    const seen = new Set<string>();
+    for (const event of plan.events) {
+      if (!event.stretch || seen.has(event.trackId)) continue;
+      seen.add(event.trackId);
+      this.stretchByTrack.get(event.trackId)?.apply(event.stretch);
+    }
+  }
+
   private applyGains(project: StudioProject): void {
-    const plan = planPlayback({ project, playheadSec: this.playheadSec, renderedTracks: this.rendered });
+    const plan = this.planFor(project, this.playheadSec);
     this.master.gain.value = plan.masterGain;
     for (const gain of plan.trackGains) {
       const node = this.trackGains.get(gain.trackId);
@@ -230,6 +324,17 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
     }
     node.gain.value = linear;
     return node;
+  }
+
+  private dropStretchNodes(): void {
+    this.stretchByTrack.forEach((node) => {
+      try {
+        node.disconnect();
+      } catch {
+        /* already disconnected */
+      }
+    });
+    this.stretchByTrack.clear();
   }
 
   private stopSources(): void {
@@ -303,6 +408,7 @@ function wrapBufferSource(source: AudioBufferSourceNode): StudioBufferSource {
     set onended(handler: (() => void) | null) {
       source.onended = handler;
     },
+    playbackRate: source.playbackRate,
     connect(destination) {
       source.connect(destination as AudioNode);
     },
