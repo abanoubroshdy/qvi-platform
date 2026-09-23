@@ -1,9 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { SoundTouchNode } from "@soundtouchjs/audio-worklet";
 import type { LiveStretchParams } from "@/lib/audio-stretch-live";
-import { applyLiveStretchNode, enableLiveStretch } from "@/lib/audio-stretch-worklet";
+import { createLiveStretchVoice, enableLiveStretch } from "@/lib/audio-stretch-worklet";
 
 /**
  * Plays one decoded buffer through the SoundTouch worklet.
@@ -14,7 +13,7 @@ export function useLiveStretchPreview(buffer: AudioBuffer | null) {
   const [playing, setPlaying] = useState(false);
   const contextRef = useRef<AudioContext | null>(null);
   const paramsRef = useRef<LiveStretchParams | null>(null);
-  const graphRef = useRef<{ node: SoundTouchNode; source: AudioBufferSourceNode } | null>(null);
+  const graphRef = useRef<{ voice: ReturnType<typeof createLiveStretchVoice>; source: AudioBufferSourceNode } | null>(null);
 
   const stop = useCallback(() => {
     const graph = graphRef.current;
@@ -32,7 +31,7 @@ export function useLiveStretchPreview(buffer: AudioBuffer | null) {
         /* already disconnected */
       }
       try {
-        graph.node.disconnect();
+        graph.voice.disconnect();
       } catch {
         /* already disconnected */
       }
@@ -63,7 +62,7 @@ export function useLiveStretchPreview(buffer: AudioBuffer | null) {
     paramsRef.current = params;
     const graph = graphRef.current;
     if (!graph) return;
-    applyLiveStretchNode(graph.node, graph.source.playbackRate, params);
+    graph.voice.apply(params, graph.source.playbackRate);
   }, []);
 
   const play = useCallback(async () => {
@@ -72,18 +71,18 @@ export function useLiveStretchPreview(buffer: AudioBuffer | null) {
     if (!context || !buffer || !params || !ready) return;
     stop();
     await context.resume();
-    const node = new SoundTouchNode({ context, outputChannelCount: 2 });
+    const voice = createLiveStretchVoice(context);
     const source = context.createBufferSource();
     source.buffer = buffer;
-    applyLiveStretchNode(node, source.playbackRate, params);
-    source.connect(node);
-    node.connect(context.destination);
+    voice.apply(params, source.playbackRate);
+    source.connect(voice.input);
+    voice.connect(context.destination);
     source.onended = () => {
       if (graphRef.current?.source !== source) return;
       graphRef.current = null;
       setPlaying(false);
     };
-    graphRef.current = { node, source };
+    graphRef.current = { voice, source };
     source.start();
     setPlaying(true);
   }, [buffer, ready, stop]);
