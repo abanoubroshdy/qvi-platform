@@ -20,8 +20,8 @@ export function peakFromTimeDomain(samples: ArrayLike<number>): number {
   return peak > 1 ? 1 : peak;
 }
 
-/** Instant attack, exponential fall. Values under the floor snap to silence. */
-export function decayMeter(previous: number, next: number, fall = 0.78): number {
+/** Instant attack, exponential fall (~300ms half-life at 32ms frames). */
+export function decayMeter(previous: number, next: number, fall = 0.92): number {
   const raw = Number.isFinite(next) ? Math.min(1, Math.max(0, next)) : 0;
   const prev = Number.isFinite(previous) ? Math.min(1, Math.max(0, previous)) : 0;
   const level = raw >= prev ? raw : prev * fall;

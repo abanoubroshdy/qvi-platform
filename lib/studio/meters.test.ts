@@ -12,7 +12,8 @@ describe("studio meters", () => {
 
   it("attacks immediately and falls without storing a react state update", () => {
     expect(decayMeter(0.2, 0.8)).toBeCloseTo(0.8);
-    expect(decayMeter(0.8, 0.1)).toBeCloseTo(0.8 * 0.78);
+    expect(decayMeter(0.8, 0.1, 0.78)).toBeCloseTo(0.8 * 0.78);
+    expect(decayMeter(0.8, 0.1)).toBeCloseTo(0.8 * 0.92);
     expect(decayMeter(0.004, 0)).toBe(0);
   });
 });

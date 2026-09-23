@@ -330,13 +330,13 @@ body:has(.studio-console) {
 }
 
 .studio-meter-y {
-  width: 6px;
-  height: 2.25rem;
+  width: 8px;
+  height: 2.6rem;
   flex: none;
 }
 
 .studio-meter-x {
-  height: 5px;
+  height: 8px;
   width: 100%;
 }
 
