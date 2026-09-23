@@ -76,6 +76,7 @@ describe("QVI Studio phase 0 contract", () => {
       "global-transport",
       "export-mix",
       "responsive-shell",
+      "local-session-restore",
     ]);
   });
 

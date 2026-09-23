@@ -99,6 +99,11 @@ export function QviStudioApp() {
               {studioCopy.reading}
             </p>
           )}
+          {session.restoring && (
+            <p className="px-4 pb-3 text-sm text-muted-foreground" role="status">
+              {studioCopy.restoring}
+            </p>
+          )}
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
@@ -172,10 +177,14 @@ function Sheet({
   );
 }
 
-function noticeKey(code: NonNullable<StudioSession["notice"]>): "largeFile" | "unsupported" | "decodeFailed" | "previewFailed" | "trackCap" {
+function noticeKey(
+  code: NonNullable<StudioSession["notice"]>,
+): "largeFile" | "unsupported" | "decodeFailed" | "previewFailed" | "trackCap" | "saveFailed" | "restoreFailed" {
   if (code === "large-file") return "largeFile";
   if (code === "unsupported-file") return "unsupported";
   if (code === "decode-failed") return "decodeFailed";
   if (code === "preview-failed") return "previewFailed";
+  if (code === "save-failed") return "saveFailed";
+  if (code === "restore-failed") return "restoreFailed";
   return "trackCap";
 }

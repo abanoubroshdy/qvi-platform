@@ -20,6 +20,7 @@ import {
   createStudioProject,
   projectDuration,
   removeClip,
+  STUDIO_DEFAULT_PROJECT_NAME,
   removeTrack,
   seekPlayhead,
   setClipOffset,
@@ -35,6 +36,13 @@ import {
   trackTempoPitchIsIdentity,
 } from "@/lib/studio/project";
 import { exceedsTrackWarning, type StudioTempoSetting } from "@/lib/studio/definition";
+import {
+  browserStudioSessionStore,
+  restoreStudioProject,
+  STUDIO_SESSION_SAVE_MS,
+  studioSessionRecord,
+  type StudioSessionAudio,
+} from "@/lib/studio/session-store";
 import type { StudioProject, StudioTrack } from "@/lib/studio/types";
 import { viewportFromWidth, type StudioSnapMode } from "@/lib/studio/timeline-geometry";
 
@@ -46,7 +54,9 @@ export type StudioNoticeCode =
   | "track-limit"
   | "unsupported-file"
   | "decode-failed"
-  | "preview-failed";
+  | "preview-failed"
+  | "save-failed"
+  | "restore-failed";
 
 function previewKey(project: StudioProject): string {
   return project.tracks
@@ -67,10 +77,38 @@ function previewKey(project: StudioProject): string {
     .join("||");
 }
 
+function rememberClipAudio(audio: StudioSessionAudio, before: StudioProject, after: StudioProject, bytes: ArrayBuffer) {
+  const known = new Set<string>();
+  for (const track of before.tracks) {
+    for (const clip of track.clips) known.add(clip.id);
+  }
+  for (const track of after.tracks) {
+    for (const clip of track.clips) {
+      if (!known.has(clip.id)) audio.set(clip.id, bytes);
+    }
+  }
+}
+
+function pruneClipAudio(audio: StudioSessionAudio, project: StudioProject) {
+  const live = new Set<string>();
+  for (const track of project.tracks) {
+    for (const clip of track.clips) live.add(clip.id);
+  }
+  const stale: string[] = [];
+  audio.forEach((_, id) => {
+    if (!live.has(id)) stale.push(id);
+  });
+  for (const id of stale) audio.delete(id);
+}
+
 export function useStudioSession() {
-  const [project, setProject] = useState<StudioProject>(() => createStudioProject("QVI Studio"));
+  const [project, setProject] = useState<StudioProject>(() => createStudioProject(STUDIO_DEFAULT_PROJECT_NAME));
   const projectRef = useRef(project);
   projectRef.current = project;
+  const audioRef = useRef<StudioSessionAudio>(new Map());
+  const saveEpochRef = useRef(0);
+  const [sessionReady, setSessionReady] = useState(false);
+  const [restoring, setRestoring] = useState(false);
   const [transport, setTransport] = useState<StudioTransportSnapshot>({ status: "idle", playheadSec: 0 });
   const [viewport, setViewport] = useState(() => viewportFromWidth(1024));
   const viewportRef = useRef(viewport);
@@ -96,6 +134,7 @@ export function useStudioSession() {
   const playheadRef = useRef(0);
 
   const commit = useCallback((next: StudioProject, sync = true) => {
+    pruneClipAudio(audioRef.current, next);
     projectRef.current = next;
     setProject(next);
     if (sync) engineRef.current?.sync(next);
@@ -218,6 +257,67 @@ export function useStudioSession() {
   }, []);
 
   const playheadNow = useCallback(() => playheadRef.current, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      try {
+        await whenEngineReady();
+        if (cancelled) return;
+        const context = contextRef.current;
+        const stored = await browserStudioSessionStore().read();
+        if (cancelled || !context) return;
+        const untouched =
+          projectRef.current.tracks.length === 0 &&
+          projectRef.current.name === STUDIO_DEFAULT_PROJECT_NAME &&
+          audioRef.current.size === 0;
+        if (stored && untouched) {
+          setRestoring(true);
+          const restored = await restoreStudioProject(stored, (data) => context.decodeAudioData(data));
+          if (cancelled || !restored) return;
+          const stillUntouched =
+            projectRef.current.tracks.length === 0 &&
+            projectRef.current.name === STUDIO_DEFAULT_PROJECT_NAME &&
+            audioRef.current.size === 0;
+          if (!stillUntouched) return;
+          audioRef.current = restored.audio;
+          commit(restored.project);
+          const first = restored.project.tracks[0];
+          setSelectedTrackId(first?.id ?? null);
+          setSelectedClipId(first?.clips[0]?.id ?? null);
+          setSelection(first?.clips[0] ? [{ trackId: first.id, clipId: first.clips[0].id }] : []);
+          publishPlayhead(restored.project.playheadSec);
+          setTransport({ status: "idle", playheadSec: restored.project.playheadSec });
+        }
+      } catch {
+        if (!cancelled) setNotice("restore-failed");
+      } finally {
+        if (!cancelled) {
+          setRestoring(false);
+          setSessionReady(true);
+        }
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [commit, publishPlayhead, whenEngineReady]);
+
+  useEffect(() => {
+    if (!sessionReady) return;
+    const token = saveEpochRef.current;
+    const timer = window.setTimeout(() => {
+      if (saveEpochRef.current !== token) return;
+      const writeCurrent = () => browserStudioSessionStore().write(studioSessionRecord(projectRef.current, audioRef.current));
+      void writeCurrent()
+        .then(() => {
+          if (saveEpochRef.current !== token) return writeCurrent();
+        })
+        .catch(() => setNotice("save-failed"));
+    }, STUDIO_SESSION_SAVE_MS);
+    return () => window.clearTimeout(timer);
+  }, [project, sessionReady]);
 
   useEffect(() => {
     if (transport.status !== "playing") return;
@@ -361,6 +461,7 @@ export function useStudioSession() {
           setNotice(result.reason === "track-cap-reached" ? "track-cap-reached" : "unsupported-file");
           break;
         }
+        rememberClipAudio(audioRef.current, current, result.project, decoded.sourceBytes);
         current = result.project;
         addedTrack = trackId ? (current.tracks.find((track) => track.id === trackId) ?? null) : (current.tracks.at(-1) ?? null);
         if (!decoded.warning && !trackId && exceedsTrackWarning(current.tracks.length, viewportRef.current)) {
@@ -422,6 +523,27 @@ export function useStudioSession() {
     setSnapMode,
     selectClip,
     moveClipGroup,
+    restoring,
+    setProjectName: (name: string) => {
+      const current = projectRef.current;
+      if (name === current.name) return;
+      commit({ ...current, name });
+    },
+    newProject: () => {
+      saveEpochRef.current += 1;
+      engineRef.current?.stop();
+      audioRef.current = new Map();
+      setSelectedTrackId(null);
+      setSelectedClipId(null);
+      setSelection([]);
+      setNotice(null);
+      commit(createStudioProject(STUDIO_DEFAULT_PROJECT_NAME));
+      setTransport({ status: "idle", playheadSec: 0 });
+      publishPlayhead(0);
+      void browserStudioSessionStore()
+        .clear()
+        .catch(() => setNotice("save-failed"));
+    },
     togglePlay,
     stop,
     seek,

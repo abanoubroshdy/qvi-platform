@@ -98,6 +98,13 @@ export function defaultTempo(): StudioTempoSetting {
   return { mode: "bpm", originalBpm: bpm, targetBpm: bpm, percent: 0 };
 }
 
+export const STUDIO_DEFAULT_PROJECT_NAME = "QVI Studio";
+
+export function finishedProjectName(name: string, fallback = STUDIO_DEFAULT_PROJECT_NAME): string {
+  const trimmed = name.trim();
+  return trimmed || fallback;
+}
+
 export function createStudioProject(name = "Untitled", id = createStudioId("project")): StudioProject {
   return {
     id,
@@ -433,6 +440,42 @@ export function snapshotStudioProject(project: StudioProject): StudioProjectSnap
       pitchSemitones: track.pitchSemitones,
       pitchCents: track.pitchCents,
       clips: track.clips.map((clip) => clipState(clip)),
+    })),
+  };
+}
+
+export function projectFromSnapshot(
+  snapshot: StudioProjectSnapshot,
+  buffers: ReadonlyMap<string, AudioBuffer | null> = new Map(),
+): StudioProject {
+  return {
+    id: snapshot.id,
+    name: snapshot.name,
+    masterGainDb: snapshot.masterGainDb,
+    playheadSec: snapshot.playheadSec,
+    tracks: snapshot.tracks.map((track) => ({
+      id: track.id,
+      name: track.name,
+      color: track.color,
+      gainDb: track.gainDb,
+      muted: track.muted,
+      solo: track.solo,
+      tempo: { ...track.tempo },
+      pitchSemitones: track.pitchSemitones,
+      pitchCents: track.pitchCents,
+      clips: track.clips.map((clip) => ({
+        id: clip.id,
+        fileName: clip.fileName,
+        byteLength: clip.byteLength,
+        sourceDurationSec: clip.sourceDurationSec,
+        offsetSec: clip.offsetSec,
+        trimStartSec: clip.trimStartSec,
+        trimEndSec: clip.trimEndSec,
+        sampleRate: clip.sampleRate,
+        channels: clip.channels,
+        peaks: [...clip.peaks],
+        buffer: buffers.get(clip.id) ?? null,
+      })),
     })),
   };
 }

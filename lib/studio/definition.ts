@@ -37,7 +37,8 @@ export const qviStudioProduct = {
 
 /**
  * `/` is the product home and links to the studio.
- * The in-memory session lives only at `/studio`. Refresh clears it.
+ * The session lives at `/studio` and is restored from IndexedDB on this device after refresh.
+ * It is not shared with the homepage. Nothing is uploaded.
  * QV1, Neyora, and the free tools stay linked from home. Studio is not a `/tools` utility.
  */
 export const qviStudioSurfaces = {
@@ -230,6 +231,17 @@ export const qviStudioV1Capabilities = [
       "Desktop uses a top transport, leading track headers, a center timeline, a trailing mixer, and an inspector drawer.",
     ],
   },
+  {
+    id: "local-session-restore",
+    summary:
+      "IndexedDB keeps the /studio session on this device. This replaces the earlier non-goal that said refresh cleared the project and that IndexedDB was out of scope.",
+    acceptance: [
+      "A debounced save writes the project snapshot and each clip's audio bytes to IndexedDB.",
+      "Refreshing /studio restores tracks, clips, trims, mix, playhead, and decoded buffers.",
+      "The project name can be edited. New project clears the stored session.",
+      "Nothing is uploaded. Cloud sync stays out of scope.",
+    ],
+  },
 ] as const;
 
 export type StudioCapabilityId = (typeof qviStudioV1Capabilities)[number]["id"];
@@ -241,7 +253,10 @@ export const qviStudioV1NonGoals = [
   { id: "midi", reason: "Studio v1 arranges audio files, not MIDI." },
   { id: "effects-and-plugins", reason: "No insert effects or plugin host in v1." },
   { id: "collaboration", reason: "No shared sessions in v1." },
-  { id: "persistence", reason: "The project lives in the session. Refresh clears it. No cloud save and no IndexedDB." },
+  {
+    id: "cloud-sync",
+    reason: "IndexedDB restores the local /studio session after refresh. There is no cloud save, account sync, or upload.",
+  },
   { id: "live-recording", reason: "Clips come from files, not the microphone." },
   { id: "video-import", reason: "Video extraction stays on the MP4 to MP3 tool." },
   { id: "per-clip-gain-or-fades", reason: "Gain, mute, and solo are track-level. Clip fades stay on the audio cutter." },

@@ -1,8 +1,9 @@
 /**
  * QVI Studio session model (phase 1).
  *
- * Audio buffers stay on the clip for the current session only.
- * Snapshots in `project.ts` omit them. Persistence is out of v1 scope.
+ * Snapshots in `project.ts` omit AudioBuffers.
+ * IndexedDB stores that snapshot plus the original audio bytes so refresh can decode them again.
+ * There is no cloud copy.
  */
 
 import type { StudioClipSpan, StudioTempoSetting } from "@/lib/studio/definition";

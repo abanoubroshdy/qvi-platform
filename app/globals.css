@@ -242,6 +242,26 @@ body:has(.studio-console) {
   color: hsl(var(--muted-foreground));
 }
 
+.studio-project-name {
+  display: block;
+  width: 9rem;
+  max-width: 34vw;
+  border: 0;
+  background: transparent;
+  color: hsl(var(--foreground));
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 0.05rem 0.2rem;
+  border-radius: 0.3rem;
+}
+
+.studio-project-name:focus {
+  outline: none;
+  background: hsl(var(--studio-well));
+  box-shadow: inset 0 0 0 1px hsl(var(--studio-line));
+}
+
 .studio-bpm {
   display: inline-flex;
   align-items: baseline;

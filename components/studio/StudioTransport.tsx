@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Minus, Pause, Play, Plus, Square, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatStudioTimecode, sessionDisplayBpm } from "@/lib/studio/chrome";
+import { finishedProjectName } from "@/lib/studio/project";
 import { nextPixelsPerSecond, type StudioSnapMode } from "@/lib/studio/timeline-geometry";
 import type { Messages } from "@/lib/i18n";
 import { useStudio } from "@/components/studio/studio-context";
@@ -15,10 +16,7 @@ export function StudioTransport({ copy }: { copy: Messages["studio"] }) {
 
   return (
     <div className="studio-transport flex flex-wrap items-center gap-x-2 gap-y-2 px-2 py-2 sm:px-3">
-      <div className="min-w-0 pe-1">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[hsl(var(--studio-teal))]">{copy.title}</p>
-        <p className="hidden max-w-[14rem] truncate text-[11px] text-muted-foreground xl:block">{copy.lead}</p>
-      </div>
+      <ProjectName copy={copy} />
       <div className="flex items-center gap-1">
         <Button
           type="button"
@@ -96,6 +94,47 @@ export function StudioTransport({ copy }: { copy: Messages["studio"] }) {
       </div>
       <p className="sr-only">{copy.keys}</p>
       <p className="sr-only">{copy.shiftSelect}</p>
+    </div>
+  );
+}
+
+function ProjectName({ copy }: { copy: Messages["studio"] }) {
+  const studio = useStudio();
+  const [armed, setArmed] = useState(false);
+  return (
+    <div className="flex min-w-0 items-center gap-1 pe-1">
+      <div className="min-w-0">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[hsl(var(--studio-teal))]">{copy.title}</p>
+        <input
+          className="studio-project-name"
+          aria-label={copy.projectName}
+          value={studio.project.name}
+          maxLength={80}
+          spellCheck={false}
+          onChange={(event) => studio.setProjectName(event.target.value)}
+          onBlur={(event) => studio.setProjectName(finishedProjectName(event.target.value))}
+        />
+      </div>
+      <Button
+        type="button"
+        variant={armed ? "secondary" : "outline"}
+        size="sm"
+        aria-label={armed ? copy.confirmNew : copy.newProject}
+        onBlur={() => {
+          window.setTimeout(() => setArmed(false), 400);
+        }}
+        onClick={() => {
+          if (!armed) {
+            setArmed(true);
+            return;
+          }
+          setArmed(false);
+          studio.newProject();
+        }}
+      >
+        {armed ? copy.confirmNew : copy.newProject}
+      </Button>
+      <p className="sr-only">{copy.newProjectHint}</p>
     </div>
   );
 }
