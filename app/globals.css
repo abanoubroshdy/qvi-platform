@@ -153,20 +153,28 @@ body:has(.studio-console) {
   background-image: none;
 }
 
-.studio-site-header {
+.qvi-header.studio-site-header {
   --background: 213 46% 8%;
   --foreground: 40 22% 94%;
   --muted: 213 28% 14%;
   --muted-foreground: 213 12% 72%;
   --border: 213 24% 18%;
   --card: 213 36% 12%;
+  --card-foreground: 40 22% 94%;
   --primary: 187 42% 48%;
   --primary-foreground: 213 46% 8%;
   --secondary: 213 28% 16%;
   --secondary-foreground: 40 18% 92%;
   --accent: 246 28% 28%;
   --accent-foreground: 40 22% 94%;
-  color: hsl(var(--foreground));
+  background: hsl(213 46% 8%);
+  color: hsl(40 22% 94%);
+  border-bottom-color: hsl(213 24% 18%);
+}
+
+.qvi-header.studio-site-header .qvi-nav-desktop a,
+.qvi-header.studio-site-header .qvi-nav-mobile a {
+  color: hsl(213 14% 74%);
 }
 
 .studio-console {
@@ -283,12 +291,16 @@ body:has(.studio-console) {
   box-shadow: inset 0 0 0 1px hsl(var(--studio-line));
 }
 
-.studio-drop {
-  border-color: hsl(var(--studio-teal) / 0.45);
+.studio-console .studio-drop {
+  border-style: dashed;
+  border-width: 2px;
+  border-color: hsl(var(--studio-teal) / 0.9);
   background:
-    linear-gradient(180deg, hsl(var(--studio-violet) / 0.06), transparent 40%),
+    linear-gradient(180deg, hsl(var(--studio-violet) / 0.08), transparent 42%),
     hsl(var(--studio-well));
-  box-shadow: inset 0 0 0 1px hsl(var(--studio-violet) / 0.12);
+  box-shadow:
+    inset 0 0 0 1px hsl(var(--studio-violet) / 0.2),
+    0 0 0 1px hsl(var(--studio-navy));
 }
 
 .studio-console[data-dropping="true"] .studio-drop,
