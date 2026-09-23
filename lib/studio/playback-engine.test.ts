@@ -1,6 +1,4 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { defaultAudioExportSettings } from "@/lib/audio-export";
-import { buildTempoPitchExportPlan } from "@/lib/audio-tempo";
 import { FFMPEG_LARGE_FILE_BYTES } from "@/lib/ffmpeg";
 import { loadStudioFile } from "@/lib/studio/load-clip";
 import {
@@ -24,13 +22,13 @@ import { qviStudioLimits } from "@/lib/studio/definition";
 import type { StudioProject, StudioTrack } from "@/lib/studio/types";
 import {
   connectTempoPreview,
-  createFfmpegClipProcessor,
+  createSoundTouchClipProcessor,
   createTempoPitchPreview,
   createTempoPreviewScheduler,
   mixHeardBuffers,
   type StudioBufferFactory,
 } from "@/lib/studio/tempo-preview";
-import { encodeWavPcm16, wavArrayBuffer } from "@/lib/studio/wav";
+import { encodeWavPcm16 } from "@/lib/studio/wav";
 
 afterEach(() => {
   vi.useRealTimers();
@@ -322,42 +320,17 @@ describe("tempo preview", () => {
     expect(mixed?.getChannelData(0)[5]).toBeCloseTo(1.25, 5);
   });
 
-  it("asks ffmpeg for a tempo filter and decodes the wav it returns", async () => {
-    const source = makeBuffer(10, 10, 0.5);
-    const decoded = makeBuffer(5, 10, 0.5);
+  it("stretches a clip with SoundTouch and keeps the heard length", async () => {
+    const source = makeBuffer(8000, 16000, 0.5);
     const { project, track } = projectWithClip();
     const sped = setTrackTempo(project, track.id, { targetBpm: 240 });
     if (!sped.ok) throw new Error(sped.reason);
     const changed = sped.project.tracks[0]!;
-    let args: string[] = [];
-    const process = createFfmpegClipProcessor({
-      decodeAudioData: async () => decoded,
-      run: async (options) => {
-        args = options.args;
-        return new Blob([wavArrayBuffer(encodeWavPcm16(source))]);
-      },
-    });
+    const process = createSoundTouchClipProcessor({ createBuffer });
     const result = await process({ buffer: source, track: changed, signal: new AbortController().signal });
-    expect(result).toBe(decoded);
-    const plan = buildTempoPitchExportPlan({
-      inputName: "clip.wav",
-      sourceDuration: source.duration,
-      sampleRate: source.sampleRate || 44100,
-      mode: changed.tempo.mode,
-      originalBpm: changed.tempo.originalBpm,
-      targetBpm: changed.tempo.targetBpm,
-      percent: changed.tempo.percent,
-      semitones: changed.pitchSemitones,
-      cents: changed.pitchCents,
-      format: "wav",
-      settings: {
-        ...defaultAudioExportSettings,
-        sampleRate: source.sampleRate || defaultAudioExportSettings.sampleRate,
-        channels: 1,
-        wavBitDepth: 16,
-      },
-    });
-    expect(args).toEqual(plan.args);
+    expect(result.sampleRate).toBe(16000);
+    expect(result.length).toBe(4000);
+    expect(result.duration).toBeCloseTo(0.25, 5);
   });
 
   it("waits out the debounce and lets an unchanged track skip it", async () => {

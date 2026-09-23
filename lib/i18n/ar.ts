@@ -840,7 +840,7 @@ export const ar: Messages = {
   tempoPitch: {
     action: "تطبيق التيمبو والطبقة",
     exportAgain: "تصدير مرة أخرى",
-    autoPreviewHint: "تُحدَّث المعاينة تلقائيًا بعد لحظة من تغيير التيمبو أو الطبقة (FFmpeg محلي — وليس playbackRate).",
+    autoPreviewHint: "تُحدَّث المعاينة تلقائيًا بعد لحظة من تغيير التيمبو أو الطبقة (SoundTouch على جهازك — وليس playbackRate).",
     downloadFormat: "تنزيل {format}",
     dropTitle: "أسقط ملفًا صوتيًا هنا أو اضغط للاختيار",
     dropHint: "MP3 أو WAV أو M4A أو OGG أو FLAC. اضغط Tap للـ BPM، اضبط التيمبو والطبقة، ثم صدّر محليًا عبر FFmpeg.",
@@ -853,7 +853,7 @@ export const ar: Messages = {
     resetTap: "إعادة الضربات",
     tapCount: "{count} ضربات",
     tempoSection: "تغيير التيمبو",
-    tempoHint: "سرّع أو أبطئ مع الحفاظ على الطبقة (atempo في FFmpeg — بدون asetrate). اترك الطبقة على 0.",
+    tempoHint: "سرّع أو أبطئ مع الحفاظ على الطبقة (تمديد SoundTouch). اترك الطبقة على 0.",
     tempoMode: "وضع التيمبو",
     modeBpm: "بالـ BPM",
     modePercent: "بالنسبة المئوية",
@@ -1399,7 +1399,7 @@ export const ar: Messages = {
         "اضغط Tap لتقريب الـ BPM، غيّر التيمبو بالـ BPM أو النسبة، وحرّك الطبقة بأنصاف التون والسنت بلا رفع. المعالجة تبقى على جهازك.",
       howToTitle: "كيف أغيّر التيمبو أو الطبقة؟",
       howToNote:
-        "التيمبو يستخدم atempo فقط في FFmpeg (الطبقة محفوظة — بلا asetrate). الطبقة مرحلة منفصلة: asetrate + aresample + atempo لإعادة المدة، ثم atempo للتيمبو إن لزم.",
+        "التيمبو والطبقة يستخدمان SoundTouch. التيمبو يحفظ الطبقة ويغيّر المدة. الطبقة تحفظ المدة. FFmpeg يرمّز الملف فقط.",
       howToSteps: [
         "أسقط ملفًا صوتيًا وانتظر الموجة.",
         "اضغط مع الإيقاع، أو اكتب الـ BPM الأصلي والمطلوب (أو استخدم وضع النسبة).",
@@ -1409,7 +1409,7 @@ export const ar: Messages = {
       faqs: [
         {
           q: "هل يُرفع الصوت؟",
-          a: "لا. الاكتشاف والمعالجة يعملان في المتصفح عبر Web Audio API وFFmpeg.",
+          a: "لا. التيمبو والطبقة يعملان في المتصفح عبر SoundTouch. FFmpeg يرمّز ملف التنزيل.",
         },
         {
           q: "كيف يعمل وضع الـ BPM؟",

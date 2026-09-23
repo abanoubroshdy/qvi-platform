@@ -24,9 +24,11 @@ import {
   inspectAudioBuffer,
   type AudioSourceInfo,
 } from "@/lib/audio-inspect";
+import { stretchAudioBufferOffThread } from "@/lib/audio-stretch-task";
 import { downloadBlob } from "@/lib/download";
 import { formatBytes } from "@/lib/format";
-import { FFMPEG_LARGE_FILE_BYTES, inputNameFor, runFFmpeg } from "@/lib/ffmpeg";
+import { FFMPEG_LARGE_FILE_BYTES, runFFmpeg } from "@/lib/ffmpeg";
+import { encodeWavPcm16, wavArrayBuffer } from "@/lib/studio/wav";
 import { interpolate } from "@/lib/i18n";
 import { peaksFromBuffer } from "@/lib/time";
 import {
@@ -67,6 +69,7 @@ type LoadedAudio = {
   channels: number;
   peaks: number[];
   source: AudioSourceInfo;
+  buffer: AudioBuffer | null;
   decodeFailed: boolean;
 };
 
@@ -109,6 +112,7 @@ async function decodeAudio(file: File): Promise<LoadedAudio> {
       channels: buffer.numberOfChannels,
       peaks: peaksFromBuffer(buffer, 600),
       source,
+      buffer,
       decodeFailed: false,
     };
   } catch {
@@ -127,6 +131,7 @@ async function decodeAudio(file: File): Promise<LoadedAudio> {
         bytes: file.size,
         estimatedKbps: null,
       },
+      buffer: null,
       decodeFailed: true,
     };
   }
@@ -184,12 +189,14 @@ export function TempoPitch() {
   const resultUrlRef = useRef<string | null>(null);
   const previewGenRef = useRef(0);
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stretchAbortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     return () => {
       if (audioUrlRef.current) URL.revokeObjectURL(audioUrlRef.current);
       if (resultUrlRef.current) URL.revokeObjectURL(resultUrlRef.current);
       if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+      stretchAbortRef.current?.abort();
       previewGenRef.current += 1;
     };
   }, []);
@@ -225,15 +232,38 @@ export function TempoPitch() {
       settings: AudioExportSettings;
     }) => {
       const gen = ++previewGenRef.current;
+      stretchAbortRef.current?.abort();
+      const stretchAbort = new AbortController();
+      stretchAbortRef.current = stretchAbort;
       setError(null);
       clearResult();
       setPhase("loading");
       setProgress(0);
 
       try {
-        const inputName = inputNameFor(options.file.file);
+        const source = options.file.buffer;
+        if (!source) throw new Error("missing audio");
+        const tempoRate = resolveTempoRate({
+          mode: options.mode,
+          originalBpm: options.originalBpm,
+          targetBpm: options.targetBpm,
+          percent: options.percent,
+        });
+        const stretched = await stretchAudioBufferOffThread(source, {
+          tempoRate,
+          semitones: options.semitones,
+          cents: options.cents,
+          signal: stretchAbort.signal,
+          onProgress: (ratioValue) => {
+            if (gen !== previewGenRef.current) return;
+            setPhase("loading");
+            setProgress(ratioValue);
+          },
+        });
+        if (gen !== previewGenRef.current) return;
+
         const plan = buildTempoPitchExportPlan({
-          inputName,
+          inputName: "stretched.wav",
           sourceDuration: options.file.duration,
           sampleRate: options.file.sampleRate || options.settings.sampleRate,
           mode: options.mode,
@@ -245,10 +275,10 @@ export function TempoPitch() {
           format: options.format,
           settings: options.settings,
         });
-
+        const wav = new File([wavArrayBuffer(encodeWavPcm16(stretched))], "stretched.wav", { type: "audio/wav" });
         const blob = await runFFmpeg({
-          file: options.file.file,
-          inputName,
+          file: wav,
+          inputName: "stretched.wav",
           outputName: plan.outputName,
           mimeType: plan.mimeType,
           args: plan.args,
@@ -271,7 +301,7 @@ export function TempoPitch() {
         resultUrlRef.current = url;
         setResult(blob);
         setResultUrl(url);
-        setResultDuration(plan.estimatedDuration);
+        setResultDuration(stretched.duration || plan.estimatedDuration);
         setResultPeaks(await peaksFromBlob(blob));
         setProgress(1);
       } catch {
@@ -289,6 +319,7 @@ export function TempoPitch() {
       clearTimeout(previewTimerRef.current);
       previewTimerRef.current = null;
     }
+    stretchAbortRef.current?.abort();
     previewGenRef.current += 1;
   }
 

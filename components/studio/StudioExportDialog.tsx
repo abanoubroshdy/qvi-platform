@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { AudioExportSettingsPanel } from "@/components/tools/AudioExportSettings";
 import { useStudio } from "@/components/studio/studio-context";
 import { Button } from "@/components/ui/button";
+import { stretchAudioBufferOffThread } from "@/lib/audio-stretch-task";
 import { defaultAudioExportSettings, type AudioExportSettings } from "@/lib/audio-export";
 import { downloadBlob } from "@/lib/download";
 import type { Messages } from "@/lib/i18n";
@@ -23,7 +24,10 @@ export function StudioExportDialog({
   const [settings, setSettings] = useState<AudioExportSettings>(defaultAudioExportSettings);
   const [exporting, setExporting] = useState(false);
   const [failed, setFailed] = useState(false);
-  const engine = useMemo(() => createStudioExportEngine(), []);
+  const engine = useMemo(
+    () => createStudioExportEngine({ stretchClip: (buffer, options) => stretchAudioBufferOffThread(buffer, options) }),
+    [],
+  );
   const block = projectExportBlockReason(studio.project);
   const blockCopy = block === "empty-project" ? copy.exportEmpty : block === "nothing-audible" ? copy.exportSilent : null;
 

@@ -844,7 +844,7 @@ export const en = {
   tempoPitch: {
     action: "Apply tempo & pitch",
     exportAgain: "Export again",
-    autoPreviewHint: "Preview updates automatically a moment after you change tempo or pitch (local FFmpeg — not playbackRate).",
+    autoPreviewHint: "Preview updates automatically a moment after you change tempo or pitch (SoundTouch on this device — not playbackRate).",
     downloadFormat: "Download {format}",
     dropTitle: "Drop an audio file here or click to choose",
     dropHint: "MP3, WAV, M4A, OGG, or FLAC. Tap BPM, set tempo and pitch, then export locally with FFmpeg.",
@@ -857,7 +857,7 @@ export const en = {
     resetTap: "Reset taps",
     tapCount: "{count} taps",
     tempoSection: "Change tempo",
-    tempoHint: "Speed up or slow down while keeping pitch (FFmpeg atempo — no asetrate). Pitch controls stay at 0.",
+    tempoHint: "Speed up or slow down while keeping pitch (SoundTouch time-stretch). Pitch controls stay at 0.",
     tempoMode: "Tempo mode",
     modeBpm: "By BPM",
     modePercent: "By percent",
@@ -1408,7 +1408,7 @@ export const en = {
         "Tap an approximate BPM, retarget tempo by BPM or percent, and shift pitch in semitones and cents without uploading. Processing stays on your device.",
       howToTitle: "How do I change tempo or pitch?",
       howToNote:
-        "Tempo uses FFmpeg atempo only (pitch preserved — no asetrate). Pitch is a separate stage: asetrate + aresample + atempo to restore duration, then tempo atempo if needed.",
+        "Tempo and pitch use SoundTouch. Tempo keeps pitch and changes length. Pitch keeps length. FFmpeg only encodes the file.",
       howToSteps: [
         "Drop an audio file and wait for the waveform.",
         "Tap along with the beat, or type the original and target BPM (or use percent mode).",
@@ -1418,7 +1418,7 @@ export const en = {
       faqs: [
         {
           q: "Is my audio uploaded?",
-          a: "No. Detection and processing run in the browser with the Web Audio API and FFmpeg.",
+          a: "No. Tempo and pitch run in the browser with SoundTouch. FFmpeg encodes the download.",
         },
         {
           q: "How does BPM mode work?",

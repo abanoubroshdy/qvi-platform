@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { stretchAudioBufferOffThread } from "@/lib/audio-stretch-task";
 import { createBrowserTempoPitchPreview, connectTempoPreview } from "@/lib/studio/tempo-preview";
 import { loadStudioFile } from "@/lib/studio/load-clip";
 import { studioPeakBarCount } from "@/lib/studio/peaks";
@@ -109,8 +110,12 @@ export function useStudioSession() {
     engineRef.current = engine;
     const scheduler = connectTempoPreview({
       preview: createBrowserTempoPitchPreview({
-        decodeAudioData: (data) => context.decodeAudioData(data),
         createBuffer: (channels, length, sampleRate) => context.createBuffer(channels, length, sampleRate),
+        stretchClip: (buffer, options) =>
+          stretchAudioBufferOffThread(buffer, {
+            ...options,
+            createBuffer: (channels, length, sampleRate) => context.createBuffer(channels, length, sampleRate),
+          }),
       }),
       setRenderedTrack: (trackId, buffer) => {
         engine.setRenderedTrack(trackId, buffer);
