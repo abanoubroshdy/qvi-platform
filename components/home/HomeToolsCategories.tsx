@@ -63,7 +63,7 @@ export function HomeToolsCategories() {
         </div>
 
         <div className="qvi-actions mt-10 flex flex-wrap gap-3">
-          <Button asChild size="lg" className="qvi-btn">
+          <Button asChild size="lg" variant="outline" className="qvi-btn qvi-btn-outline">
             <Link href="/tools">{copy.home.viewAllTools}</Link>
           </Button>
           <Button asChild size="lg" variant="outline" className="qvi-btn qvi-btn-outline">

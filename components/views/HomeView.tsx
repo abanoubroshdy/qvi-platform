@@ -10,7 +10,6 @@ import { ProductSpotlight } from "@/components/ProductSpotlight";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { Button } from "@/components/ui/button";
 import { products } from "@/lib/products";
-import { toolCategoryOrder } from "@/lib/tools";
 
 export function HomeView() {
   const { copy } = useI18n();
@@ -26,18 +25,21 @@ export function HomeView() {
           <p className="qvi-lead mt-5 max-w-2xl text-base leading-8 text-muted-foreground sm:text-lg">{copy.home.lead}</p>
           <div className="qvi-actions mt-8 flex flex-wrap gap-3">
             <Button asChild size="lg" className="qvi-btn">
-              <Link href={products.studio.href}>
-                {copy.home.studioCta}
+              <Link href={products.qv1.href}>
+                {copy.home.qv1Cta}
                 <ArrowRight />
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="qvi-btn qvi-btn-outline">
-              <Link href={products.qv1.href}>{copy.home.exploreQv1}</Link>
-            </Button>
-            <Button asChild size="lg" variant="outline" className="qvi-btn qvi-btn-outline">
-              <Link href="/tools">{copy.home.tryTools}</Link>
+              <Link href={products.neyora.href}>{copy.home.neyoraCta}</Link>
             </Button>
           </div>
+          <p className="mt-4 text-sm text-muted-foreground">
+            {copy.home.toolsAside}{" "}
+            <Link href="/tools" className="font-semibold text-primary underline-offset-4 hover:underline">
+              {copy.home.tryTools}
+            </Link>
+          </p>
         </div>
       </section>
 
@@ -49,17 +51,7 @@ export function HomeView() {
           <h2 className="mt-2 text-3xl font-semibold sm:text-4xl">{copy.home.productsTitle}</h2>
           <p className="qvi-lead mt-3 text-muted-foreground">{copy.home.productsLead}</p>
         </div>
-        <div className="qvi-product-grid grid gap-6 lg:grid-cols-3">
-          <ProductSpotlight
-            name={copy.products.studio.name}
-            title={copy.products.studio.title}
-            description={copy.products.studio.description}
-            status={copy.products.studio.status}
-            features={[...copy.products.studio.features]}
-            href={products.studio.href}
-            cta={copy.home.studioCta}
-            tone="cyan"
-          />
+        <div className="qvi-product-grid grid gap-6 lg:grid-cols-2">
           <ProductSpotlight
             name={copy.products.qv1.name}
             title={copy.products.qv1.title}
@@ -71,16 +63,26 @@ export function HomeView() {
             tone="violet"
           />
           <ProductSpotlight
-            name={copy.home.toolsName}
-            title={copy.home.toolsCardTitle}
-            description={copy.home.toolsCardDescription}
-            status={copy.home.toolsStatus}
-            features={toolCategoryOrder.map((category) => copy.toolGroups[category].title)}
-            href="/tools"
-            cta={copy.home.toolsCta}
-            tone="sand"
+            name={copy.products.neyora.name}
+            title={copy.products.neyora.title}
+            description={copy.products.neyora.description}
+            status={copy.products.neyora.status}
+            features={[...copy.products.neyora.features]}
+            href={products.neyora.href}
+            cta={copy.home.neyoraCta}
+            tone="cyan"
           />
         </div>
+        <p className="mt-8 max-w-3xl text-sm leading-7 text-muted-foreground">
+          {copy.home.extrasNote}{" "}
+          <Link href={products.studio.href} className="font-semibold text-primary underline-offset-4 hover:underline">
+            {copy.products.studio.name}
+          </Link>
+          {" · "}
+          <Link href="/tools" className="font-semibold text-primary underline-offset-4 hover:underline">
+            {copy.home.tryTools}
+          </Link>
+        </p>
       </section>
 
       <HomeLabSection />

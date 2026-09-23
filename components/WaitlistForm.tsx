@@ -5,6 +5,12 @@ import { CheckCircle2, Loader2 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import {
+  normalizeWaitlistEmail,
+  validateWaitlistEmail,
+  waitlistSubmitResult,
+  type WaitlistEmailIssue,
+} from "@/lib/waitlist";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,31 +21,18 @@ type WaitlistFormProps = {
   heading?: string;
 };
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function saveLocally(product: ProductKey, value: string) {
-  const key = `qvi-waitlist-${product}`;
-  let parsed: string[] = [];
-  try {
-    const current = window.localStorage.getItem(key);
-    parsed = current ? (JSON.parse(current) as string[]) : [];
-    if (!Array.isArray(parsed)) parsed = [];
-  } catch {
-    parsed = [];
-  }
-  if (!parsed.includes(value)) {
-    parsed.push(value);
-    window.localStorage.setItem(key, JSON.stringify(parsed));
-  }
-}
+type WaitlistStatus = "idle" | "saving" | "invalid" | "failed" | "done";
 
 export function WaitlistForm({ product, heading }: WaitlistFormProps) {
   const { copy, t } = useI18n();
   const { user } = useAuth();
   const [email, setEmail] = useState("");
   const [savedEmail, setSavedEmail] = useState<string | null>(null);
-  const [status, setStatus] = useState<"idle" | "saving" | "error" | "done">("idle");
+  const [issue, setIssue] = useState<WaitlistEmailIssue | null>(null);
+  const [status, setStatus] = useState<WaitlistStatus>("idle");
   const productName = product === "qv1" ? copy.products.qv1.name : copy.products.neyora.name;
+  const inputId = `${product}-email`;
+  const errorId = `${product}-email-error`;
 
   useEffect(() => {
     if (user?.email) setEmail((current) => current || (user.email as string));
@@ -48,28 +41,26 @@ export function WaitlistForm({ product, heading }: WaitlistFormProps) {
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     event.stopPropagation();
-    const value = email.trim().toLowerCase();
-    if (!EMAIL_RE.test(value)) {
-      setStatus("error");
+    const fieldIssue = validateWaitlistEmail(email);
+    if (fieldIssue) {
+      setIssue(fieldIssue);
+      setStatus("invalid");
       return;
     }
 
+    const value = normalizeWaitlistEmail(email);
+    setIssue(null);
     setStatus("saving");
 
     const supabase = getSupabaseClient();
-    if (supabase) {
-      const { error } = await supabase
-        .from("waitlist_signups")
-        .insert({ product, email: value, user_id: user?.id ?? null });
+    const { error } = supabase
+      ? await supabase.from("waitlist_signups").insert({ product, email: value, user_id: user?.id ?? null })
+      : { error: null };
 
-      // 23505 = unique violation → the email is already on the list, treat as success.
-      if (error && error.code !== "23505") {
-        // Backend not reachable or table missing: keep a local copy so the
-        // user is never blocked, and still confirm their spot.
-        saveLocally(product, value);
-      }
-    } else {
-      saveLocally(product, value);
+    // 23505 = unique violation → the email is already on the list, which is a real success.
+    if (waitlistSubmitResult({ configured: Boolean(supabase), errorCode: error?.code }) === "failed") {
+      setStatus("failed");
+      return;
     }
 
     setSavedEmail(value);
@@ -97,22 +88,29 @@ export function WaitlistForm({ product, heading }: WaitlistFormProps) {
     );
   }
 
+  const fieldMessage =
+    issue === "required" ? copy.waitlist.required : issue === "invalid" ? copy.waitlist.error : undefined;
+
   return (
-    <form onSubmit={onSubmit} action="#" className="space-y-3 rounded-2xl border border-border bg-card p-5">
-      <Label htmlFor={`${product}-email`} className="text-base font-semibold">
+    <form onSubmit={onSubmit} noValidate className="space-y-3 rounded-2xl border border-border bg-card p-5">
+      <Label htmlFor={inputId} className="text-base font-semibold">
         {heading ?? copy.common.joinWaitlist}
       </Label>
       <p className="text-sm text-muted-foreground">{copy.waitlist.hint}</p>
       <div className="flex flex-col gap-3 sm:flex-row">
         <Input
-          id={`${product}-email`}
+          id={inputId}
           type="email"
+          autoComplete="email"
           required
+          aria-invalid={Boolean(fieldMessage)}
+          aria-describedby={fieldMessage ? errorId : undefined}
           placeholder={copy.waitlist.placeholder}
           value={email}
           onChange={(event) => {
             setEmail(event.target.value);
-            if (status === "error") setStatus("idle");
+            if (issue) setIssue(null);
+            if (status === "invalid" || status === "failed") setStatus("idle");
           }}
           className="bg-background/60"
         />
@@ -127,9 +125,14 @@ export function WaitlistForm({ product, heading }: WaitlistFormProps) {
           )}
         </Button>
       </div>
-      {status === "error" ? (
+      {fieldMessage ? (
+        <p id={errorId} className="text-sm text-destructive" role="alert">
+          {fieldMessage}
+        </p>
+      ) : null}
+      {status === "failed" ? (
         <p className="text-sm text-destructive" role="alert">
-          {copy.waitlist.error}
+          {copy.waitlist.failed}
         </p>
       ) : null}
     </form>

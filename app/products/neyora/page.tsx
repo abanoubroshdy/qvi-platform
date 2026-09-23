@@ -4,7 +4,7 @@ import { siteConfig } from "@/lib/site";
 
 const pageTitle = "Neyora - DDSP Instrument Synthesis";
 const pageDescription =
-  "Neyora is QVI's DDSP instrument lab: transform text, voice, or MIDI into realistic instrumental performance that runs toward on-device synthesis.";
+  "Neyora is QVI’s desktop DDSP instrument for text, voice, or MIDI. A core product, still in the lab — not a free browser utility.";
 
 export const metadata: Metadata = {
   title: pageTitle,
