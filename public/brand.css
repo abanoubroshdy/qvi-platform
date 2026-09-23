@@ -95,17 +95,22 @@ a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   width: 2.5rem;
   height: 2.5rem;
   border: 0;
   border-radius: 0.6rem;
   background: color-mix(in srgb, var(--qvi-fg) 8%, var(--qvi-bg));
   color: var(--qvi-fg);
+  cursor: pointer;
 }
 
 .qvi-nav-mobile {
   display: none;
   border-top: 1px solid var(--qvi-line);
+  max-height: calc(100dvh - 4rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .qvi-nav-mobile[data-open="true"] {
@@ -244,6 +249,30 @@ a {
 
 .qvi-footer li {
   margin: 0.4rem 0;
+}
+
+@media (max-width: 639px) {
+  .qvi-header-auth {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .qvi-header-theme {
+    display: none;
+  }
+}
+
+@media (min-width: 640px) {
+  .qvi-header-auth-mobile {
+    display: none;
+  }
+}
+
+@media (min-width: 768px) {
+  .qvi-header-theme-mobile {
+    display: none;
+  }
 }
 
 @media (min-width: 768px) {

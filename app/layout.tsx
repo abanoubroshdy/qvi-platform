@@ -84,7 +84,7 @@ export default function RootLayout({
       <body className="min-h-screen font-sans">
         <script dangerouslySetInnerHTML={{ __html: localeBootScript }} />
         {/* eslint-disable-next-line @next/next/no-css-tags */}
-        <link rel="stylesheet" href="/brand.css?v=8" />
+        <link rel="stylesheet" href="/brand.css?v=9" />
         <AppProviders>
           <div className="qvi-shell flex min-h-screen flex-col">
             <Header />
