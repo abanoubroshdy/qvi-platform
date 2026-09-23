@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { AdPlaceholder } from "@/components/AdPlaceholder";
+import { AdSenseScript, ToolAd } from "@/components/ToolAd";
 import { ToolArt } from "@/components/ToolArt";
 import { ToolCard } from "@/components/ToolCard";
 import { useI18n } from "@/components/i18n/I18nProvider";
@@ -21,7 +21,8 @@ export function UpcomingToolView({ slug }: { slug: string }) {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:py-12">
-      <AdPlaceholder position="top" className="mb-6" />
+      <AdSenseScript />
+      <ToolAd position="top" className="mb-6" />
       <div className="rounded-xl border border-border bg-card p-6 text-center shadow-sm sm:p-10">
         <div
           className="mx-auto mb-5 h-32 w-full max-w-sm overflow-hidden rounded-2xl border border-border"
@@ -40,7 +41,6 @@ export function UpcomingToolView({ slug }: { slug: string }) {
           </Button>
         </div>
       </div>
-      <AdPlaceholder position="middle" className="my-6" />
       {related.length ? (
         <>
           <h2 className="mb-4 text-xl font-semibold">{t(copy.upcoming.other, { group: group.title })}</h2>
@@ -51,7 +51,7 @@ export function UpcomingToolView({ slug }: { slug: string }) {
           </div>
         </>
       ) : null}
-      <AdPlaceholder position="bottom" className="mt-6" />
+      <ToolAd position="bottom" className="mt-6" />
     </div>
   );
 }

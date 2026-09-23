@@ -3,6 +3,7 @@ import { Cairo, Outfit } from "next/font/google";
 import { AppProviders } from "@/components/AppProviders";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
+import { adsenseVerificationClient } from "@/lib/adsense";
 import { siteConfig } from "@/lib/site";
 import "./globals.css";
 
@@ -57,6 +58,9 @@ export const metadata: Metadata = {
       "max-snippet": -1,
       "max-video-preview": -1,
     },
+  },
+  other: {
+    "google-adsense-account": adsenseVerificationClient(),
   },
 };
 
