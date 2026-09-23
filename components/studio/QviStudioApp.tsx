@@ -105,16 +105,15 @@ export function QviStudioApp() {
           <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             <StudioTimeline copy={studioCopy} />
           </div>
+          {session.viewport === "desktop" && session.inspectorOpen && (
+            <aside className="studio-inspector hidden w-72 shrink-0 overflow-y-auto border-s border-border lg:flex lg:flex-col" aria-label={studioCopy.inspector}>
+              <StudioTrackInspector copy={studioCopy} />
+            </aside>
+          )}
           <aside className="studio-mixer hidden w-72 shrink-0 overflow-y-auto border-s border-border lg:block">
             <StudioMixer copy={studioCopy} />
           </aside>
         </div>
-
-        {session.viewport === "desktop" && session.inspectorOpen && (
-          <Sheet label={studioCopy.close} onClose={() => session.setInspectorOpen(false)} side="end">
-            <StudioTrackInspector copy={studioCopy} />
-          </Sheet>
-        )}
 
         {session.viewport === "tablet" && session.mixerOpen && (
           <Sheet label={studioCopy.close} onClose={() => session.setMixerOpen(false)} side="bottom">

@@ -3,7 +3,14 @@ import {
   clipHeardSeconds,
   clipRect,
   moveClipOffset,
+  musicalBarMarks,
   nextPixelsPerSecond,
+  secondsPerBar,
+  secondsPerBeat,
+  snapClipMove,
+  snapHeardTime,
+  snapTrimEnd,
+  snapTrimStart,
   timeAtPixel,
   rulerMarks,
   timelineWidthPx,
@@ -48,6 +55,29 @@ describe("studio timeline geometry", () => {
     expect(timeAtPixel(100, 10, 4)).toBe(4);
     expect(nextPixelsPerSecond(16, "out")).toBe(16);
     expect(nextPixelsPerSecond(160, "in")).toBe(160);
+  });
+
+  it("counts bars from the track bpm and snaps moves onto that grid", () => {
+    expect(secondsPerBeat(120)).toBe(0.5);
+    expect(secondsPerBar(120)).toBe(2);
+    expect(secondsPerBeat(0)).toBe(0.5);
+    const marks = musicalBarMarks(4, 48, 120);
+    expect(marks[0]).toEqual({ timeSec: 0, bar: 1 });
+    expect(marks[1]).toEqual({ timeSec: 2, bar: 2 });
+    expect(marks.at(-1)?.timeSec).toBeGreaterThanOrEqual(4);
+    expect(snapHeardTime(0.49, 120, "beat")).toBe(0.5);
+    expect(snapHeardTime(0.24, 120, "beat")).toBe(0);
+    expect(snapHeardTime(1.1, 120, "bar")).toBe(2);
+    expect(snapHeardTime(1.6, 120, "off")).toBe(1.6);
+    expect(snapHeardTime(-2, 120, "beat")).toBe(0);
+    expect(snapClipMove(1, 0.4, 120, "beat")).toBe(1.5);
+  });
+
+  it("snaps a trim edge without moving the other edge off the grid math", () => {
+    const clip = { offsetSec: 0, trimStartSec: 0, trimEndSec: 4, sourceDurationSec: 8 };
+    expect(snapTrimStart(clip, unity, 0.6, 120, "beat")).toEqual({ offsetSec: 0.5, trimStartSec: 0.5 });
+    expect(snapTrimEnd(clip, unity, 0.6, 120, "beat")).toBe(4.5);
+    expect(snapTrimStart(clip, unity, 0.6, 120, "off")).toEqual(trimClipStart(clip, unity, 0.6));
   });
 
   it("draws fewer waveform bars than the phone has device pixels", () => {

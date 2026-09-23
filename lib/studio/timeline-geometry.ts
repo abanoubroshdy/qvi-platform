@@ -10,7 +10,84 @@ import {
 
 export const STUDIO_MIN_PIXELS_PER_SECOND = 16;
 export const STUDIO_MAX_PIXELS_PER_SECOND = 160;
+export const STUDIO_BEATS_PER_BAR = 4;
 const MIN_TRIM_SEC = 0.05;
+const DEFAULT_RULER_BPM = 120;
+
+export type StudioSnapMode = "bar" | "beat" | "off";
+
+export type StudioBarMark = {
+  timeSec: number;
+  /** 1-based bar number. */
+  bar: number;
+};
+
+/** Heard seconds of one beat. Invalid tempos fall back to 120 BPM. */
+export function secondsPerBeat(bpm: number): number {
+  const safe = Number.isFinite(bpm) && bpm > 0 ? bpm : DEFAULT_RULER_BPM;
+  return 60 / safe;
+}
+
+export function secondsPerBar(bpm: number, beatsPerBar = STUDIO_BEATS_PER_BAR): number {
+  const beats = Number.isFinite(beatsPerBar) && beatsPerBar > 0 ? beatsPerBar : STUDIO_BEATS_PER_BAR;
+  return secondsPerBeat(bpm) * beats;
+}
+
+/** Bar labels for the ruler. Dense zooms skip beats in the caller; very wide bars keep every bar. */
+export function musicalBarMarks(
+  durationSec: number,
+  pixelsPerSecond: number,
+  bpm: number,
+  beatsPerBar = STUDIO_BEATS_PER_BAR,
+): StudioBarMark[] {
+  const rate = pixelsPerSecond > 0 ? pixelsPerSecond : 1;
+  const barSec = secondsPerBar(bpm, beatsPerBar);
+  if (!(barSec > 0)) return [{ timeSec: 0, bar: 1 }];
+  const seconds = timelineWidthPx(durationSec, rate) / rate;
+  const barPx = barSec * rate;
+  const stride = barPx >= 36 ? 1 : barPx >= 18 ? 2 : 4;
+  const marks: StudioBarMark[] = [];
+  const last = Math.floor(seconds / barSec + 1e-6);
+  for (let index = 0; index <= last; index += stride) {
+    marks.push({ timeSec: index * barSec, bar: index + 1 });
+  }
+  return marks;
+}
+
+export function snapHeardTime(seconds: number, bpm: number, mode: StudioSnapMode, beatsPerBar = STUDIO_BEATS_PER_BAR): number {
+  const safe = Number.isFinite(seconds) ? seconds : 0;
+  if (mode === "off") return Math.max(0, safe);
+  const quantum = mode === "bar" ? secondsPerBar(bpm, beatsPerBar) : secondsPerBeat(bpm);
+  if (!(quantum > 0)) return Math.max(0, safe);
+  return Math.max(0, Math.round(safe / quantum) * quantum);
+}
+
+export function snapClipMove(originSec: number, deltaSec: number, bpm: number, mode: StudioSnapMode): number {
+  return snapHeardTime(moveClipOffset(originSec, deltaSec), bpm, mode);
+}
+
+export function snapTrimStart(
+  clip: StudioClipSpan,
+  tempo: StudioTempoSetting,
+  deltaHeardSec: number,
+  bpm: number,
+  mode: StudioSnapMode,
+): { offsetSec: number; trimStartSec: number } {
+  const target = snapHeardTime(clip.offsetSec + (Number.isFinite(deltaHeardSec) ? deltaHeardSec : 0), bpm, mode);
+  return trimClipStart(clip, tempo, target - clip.offsetSec);
+}
+
+export function snapTrimEnd(
+  clip: StudioClipSpan & { sourceDurationSec: number },
+  tempo: StudioTempoSetting,
+  deltaHeardSec: number,
+  bpm: number,
+  mode: StudioSnapMode,
+): number {
+  const heardEnd = clip.offsetSec + clipHeardSeconds(clip, tempo);
+  const target = snapHeardTime(heardEnd + (Number.isFinite(deltaHeardSec) ? deltaHeardSec : 0), bpm, mode);
+  return trimClipEnd(clip, tempo, target - heardEnd);
+}
 
 export function viewportFromWidth(widthPx: number): StudioViewport {
   if (!Number.isFinite(widthPx) || widthPx <= qviStudioBreakpoints.mobileMaxPx) return "mobile";

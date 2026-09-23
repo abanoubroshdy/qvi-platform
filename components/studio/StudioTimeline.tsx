@@ -2,8 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import { AudioLines } from "lucide-react";
-import { formatClock } from "@/lib/time";
-import { rulerMarks, timelineWidthPx } from "@/lib/studio/timeline-geometry";
+import { sessionDisplayBpm } from "@/lib/studio/chrome";
+import { musicalBarMarks, secondsPerBar, secondsPerBeat, timelineWidthPx } from "@/lib/studio/timeline-geometry";
 import type { Messages } from "@/lib/i18n";
 import { StudioTrackHeader } from "@/components/studio/StudioTrackHeader";
 import { StudioTrackLane } from "@/components/studio/StudioTrackLane";
@@ -12,7 +12,17 @@ import { useStudio } from "@/components/studio/studio-context";
 export function StudioTimeline({ copy }: { copy: Messages["studio"] }) {
   const studio = useStudio();
   const width = timelineWidthPx(studio.duration, studio.pixelsPerSecond);
-  const marks = rulerMarks(studio.duration, studio.pixelsPerSecond);
+  const bpm = sessionDisplayBpm(studio.project.tracks, studio.selectedTrack?.id ?? null) ?? 120;
+  const beatPx = secondsPerBeat(bpm) * studio.pixelsPerSecond;
+  const barPx = secondsPerBar(bpm) * studio.pixelsPerSecond;
+  const marks = musicalBarMarks(studio.duration, studio.pixelsPerSecond, bpm);
+  const selectedOnTrack = (trackId: string) => {
+    const ids = new Set<string>();
+    for (const item of studio.selection) {
+      if (item.trackId === trackId) ids.add(item.clipId);
+    }
+    return ids;
+  };
 
   return (
     <section aria-label={copy.timeline} className="flex min-h-0 flex-1 flex-col" dir="ltr">
@@ -26,6 +36,7 @@ export function StudioTimeline({ copy }: { copy: Messages["studio"] }) {
           <span className="text-base font-semibold tracking-tight">{copy.emptyTitle}</span>
           <span className="mt-2 max-w-md text-sm text-muted-foreground">{copy.emptyBody}</span>
           <span className="mt-4 text-[10px] font-semibold uppercase tracking-[0.16em] text-[hsl(var(--studio-sand))]">{copy.dropHint}</span>
+          <span className="mt-2 max-w-md text-xs text-muted-foreground">{copy.gridHint}</span>
         </button>
       ) : (
         <div className="flex min-h-0 flex-1 overflow-y-auto">
@@ -46,12 +57,13 @@ export function StudioTimeline({ copy }: { copy: Messages["studio"] }) {
           <div className="studio-lanes min-w-0 flex-1 overflow-x-auto">
             <div className="relative" style={{ width }}>
               <div
-                className="studio-ruler relative h-7 border-b border-border text-[10px] text-muted-foreground"
-                style={{ ["--studio-tick" as string]: `${studio.pixelsPerSecond}px` }}
+                className="studio-ruler relative h-7 border-b border-border text-[10px] text-[hsl(var(--studio-sand))]"
+                data-grid={beatPx >= 8 ? "beats" : "bars"}
+                style={{ ["--beat-px" as string]: `${beatPx}px`, ["--bar-px" as string]: `${barPx}px` }}
               >
-                {marks.map((second) => (
-                  <span key={second} className="absolute top-1 font-mono tabular-nums" style={{ left: second * studio.pixelsPerSecond }}>
-                    {formatClock(second)}
+                {marks.map((mark) => (
+                  <span key={mark.bar} className="absolute top-1 translate-x-1 font-mono tabular-nums" style={{ left: mark.timeSec * studio.pixelsPerSecond }}>
+                    {mark.bar}
                   </span>
                 ))}
               </div>
@@ -60,13 +72,19 @@ export function StudioTimeline({ copy }: { copy: Messages["studio"] }) {
                   key={track.id}
                   track={track}
                   pixelsPerSecond={studio.pixelsPerSecond}
-                  selectedClipId={studio.selectedTrack?.id === track.id ? (studio.selectedClip?.id ?? null) : null}
-                  onSelectClip={(clipId) => studio.selectTrack(track.id, clipId)}
+                  selectedClipIds={selectedOnTrack(track.id)}
+                  primaryClipId={studio.selectedTrack?.id === track.id ? (studio.selectedClip?.id ?? null) : null}
+                  selection={studio.selection}
+                  snapMode={studio.snapMode}
+                  bpm={bpm}
+                  beatPx={beatPx}
+                  barPx={barPx}
+                  onSelectClip={(clipId, mode) => studio.selectClip(track.id, clipId, mode)}
                   onTapClip={() => {
                     if (studio.viewport === "mobile") studio.setInspectorOpen(true);
                   }}
                   onSeek={studio.seek}
-                  onOffset={(clipId, offsetSec) => studio.setOffset(track.id, clipId, offsetSec)}
+                  onMoveGroup={studio.moveClipGroup}
                   onTrim={(clipId, patch) => studio.setTrim(track.id, clipId, patch)}
                 />
               ))}

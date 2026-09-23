@@ -268,15 +268,84 @@ body:has(.studio-console) {
   background: hsl(var(--studio-well));
 }
 
-.studio-ruler {
+.studio-ruler,
+.studio-lane {
+  --beat-px: 24px;
+  --bar-px: 96px;
   background-image: repeating-linear-gradient(
     to right,
-    hsl(var(--studio-line)) 0,
-    hsl(var(--studio-line)) 1px,
+    hsl(var(--studio-sand) / 0.42) 0,
+    hsl(var(--studio-sand) / 0.42) 1px,
     transparent 1px,
-    transparent var(--studio-tick, 48px)
+    transparent var(--bar-px)
   );
-  background-repeat: repeat-x;
+}
+
+.studio-ruler[data-grid="beats"],
+.studio-lane[data-grid="beats"] {
+  background-image:
+    repeating-linear-gradient(
+      to right,
+      hsl(var(--studio-sand) / 0.72) 0,
+      hsl(var(--studio-sand) / 0.72) 1px,
+      transparent 1px,
+      transparent var(--bar-px)
+    ),
+    repeating-linear-gradient(
+      to right,
+      hsl(var(--studio-line) / 0.9) 0,
+      hsl(var(--studio-line) / 0.9) 1px,
+      transparent 1px,
+      transparent var(--beat-px)
+    );
+}
+
+.studio-snap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0.12rem;
+  border-radius: 999px;
+  background: hsl(var(--studio-well));
+  box-shadow: inset 0 0 0 1px hsl(var(--studio-line));
+}
+
+.studio-snap-label {
+  padding-inline: 0.45rem;
+  font-size: 0.62rem;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+}
+
+.studio-snap-option {
+  border: 0;
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.68rem;
+  font-weight: 650;
+  line-height: 1.2;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.studio-snap-option[aria-pressed="true"] {
+  background: hsl(var(--studio-teal) / 0.22);
+  color: hsl(var(--studio-teal));
+}
+
+.studio-inspector {
+  background: hsl(var(--studio-panel));
+}
+
+[data-studio-clip] {
+  cursor: grab;
+}
+
+[data-studio-clip][data-selected="true"] {
+  box-shadow: inset 0 0 0 1px hsl(var(--studio-teal) / 0.9);
 }
 
 .studio-track-head.is-selected {

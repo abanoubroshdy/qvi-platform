@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { Minus, Pause, Play, Plus, Square, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatStudioTimecode, sessionDisplayBpm } from "@/lib/studio/chrome";
-import { nextPixelsPerSecond } from "@/lib/studio/timeline-geometry";
+import { nextPixelsPerSecond, type StudioSnapMode } from "@/lib/studio/timeline-geometry";
 import type { Messages } from "@/lib/i18n";
 import { useStudio } from "@/components/studio/studio-context";
 
@@ -49,6 +49,16 @@ export function StudioTransport({ copy }: { copy: Messages["studio"] }) {
           <span className="font-medium tracking-wide">{copy.bpm}</span>
         </span>
       )}
+      <SnapControl
+        label={copy.snap}
+        mode={studio.snapMode}
+        options={[
+          { id: "bar", label: copy.snapBar },
+          { id: "beat", label: copy.snapBeat },
+          { id: "off", label: copy.snapOff },
+        ]}
+        onChange={studio.setSnapMode}
+      />
       <div className="ms-auto flex flex-wrap items-center gap-1">
         <Button
           type="button"
@@ -85,6 +95,36 @@ export function StudioTransport({ copy }: { copy: Messages["studio"] }) {
         </Button>
       </div>
       <p className="sr-only">{copy.keys}</p>
+      <p className="sr-only">{copy.shiftSelect}</p>
+    </div>
+  );
+}
+
+function SnapControl({
+  label,
+  mode,
+  options,
+  onChange,
+}: {
+  label: string;
+  mode: StudioSnapMode;
+  options: { id: StudioSnapMode; label: string }[];
+  onChange: (mode: StudioSnapMode) => void;
+}) {
+  return (
+    <div className="studio-snap" role="group" aria-label={label}>
+      <span className="studio-snap-label">{label}</span>
+      {options.map((option) => (
+        <button
+          key={option.id}
+          type="button"
+          className="studio-snap-option"
+          aria-pressed={mode === option.id}
+          onClick={() => onChange(option.id)}
+        >
+          {option.label}
+        </button>
+      ))}
     </div>
   );
 }

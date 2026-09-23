@@ -36,7 +36,9 @@ import {
 } from "@/lib/studio/project";
 import { exceedsTrackWarning, type StudioTempoSetting } from "@/lib/studio/definition";
 import type { StudioProject, StudioTrack } from "@/lib/studio/types";
-import { viewportFromWidth } from "@/lib/studio/timeline-geometry";
+import { viewportFromWidth, type StudioSnapMode } from "@/lib/studio/timeline-geometry";
+
+export type StudioClipRef = { trackId: string; clipId: string };
 
 export type StudioNoticeCode =
   | "large-file"
@@ -75,6 +77,8 @@ export function useStudioSession() {
   viewportRef.current = viewport;
   const [selectedTrackId, setSelectedTrackId] = useState<string | null>(null);
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
+  const [selection, setSelection] = useState<StudioClipRef[]>([]);
+  const [snapMode, setSnapMode] = useState<StudioSnapMode>("beat");
   const [pixelsPerSecond, setPixelsPerSecond] = useState(48);
   const [notice, setNotice] = useState<StudioNoticeCode | null>(null);
   const [renderingIds, setRenderingIds] = useState<string[]>([]);
@@ -289,9 +293,41 @@ export function useStudioSession() {
   const selectTrack = useCallback((trackId: string, clipId?: string | null, sheet = false) => {
     setSelectedTrackId(trackId);
     const track = projectRef.current.tracks.find((item) => item.id === trackId);
-    setSelectedClipId(clipId === undefined ? (track?.clips[0]?.id ?? null) : clipId);
+    const nextClipId = clipId === undefined ? (track?.clips[0]?.id ?? null) : clipId;
+    setSelectedClipId(nextClipId);
+    setSelection(nextClipId ? [{ trackId, clipId: nextClipId }] : []);
     if (sheet && viewportRef.current === "mobile") setInspectorOpen(true);
   }, []);
+
+  const selectClip = useCallback((trackId: string, clipId: string, mode: "replace" | "add") => {
+    setSelectedTrackId(trackId);
+    setSelectedClipId(clipId);
+    setSelection((current) => {
+      if (mode === "replace") return [{ trackId, clipId }];
+      if (current.some((item) => item.trackId === trackId && item.clipId === clipId)) return current;
+      return [...current, { trackId, clipId }];
+    });
+  }, []);
+
+  const moveClipGroup = useCallback(
+    (group: readonly StudioClipRef[], anchor: StudioClipRef, nextOffsetSec: number) => {
+      const anchorClip = projectRef.current.tracks
+        .find((track) => track.id === anchor.trackId)
+        ?.clips.find((clip) => clip.id === anchor.clipId);
+      if (!anchorClip) return;
+      const delta = nextOffsetSec - anchorClip.offsetSec;
+      if (Math.abs(delta) < 1e-4) return;
+      let current = projectRef.current;
+      for (const item of group) {
+        const clip = current.tracks.find((track) => track.id === item.trackId)?.clips.find((entry) => entry.id === item.clipId);
+        if (!clip) continue;
+        const result = setClipOffset(current, item.trackId, item.clipId, clip.offsetSec + delta);
+        if (result.ok) current = result.project;
+      }
+      commit(current);
+    },
+    [commit],
+  );
 
   const importFiles = useCallback(
     async (files: File[], trackId?: string) => {
@@ -381,6 +417,11 @@ export function useStudioSession() {
     fileInputRef,
     selectedTrack,
     selectedClip,
+    selection,
+    snapMode,
+    setSnapMode,
+    selectClip,
+    moveClipGroup,
     togglePlay,
     stop,
     seek,
