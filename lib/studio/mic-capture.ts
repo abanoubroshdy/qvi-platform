@@ -110,7 +110,7 @@ export class StudioMicCapture {
 
   private release(): void {
     this.capturing = false;
-    this.processor && (this.processor.onaudioprocess = null);
+    if (this.processor) this.processor.onaudioprocess = null;
     disconnect(this.processor);
     disconnect(this.source);
     disconnect(this.sink);
