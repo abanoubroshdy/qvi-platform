@@ -4,11 +4,11 @@
  */
 
 import { inspectAudioBuffer } from "@/lib/audio-inspect";
-import { studioPeaksFromBuffer } from "@/lib/studio/peaks";
+import { studioPeakBarCount, studioPeaksFromBuffer } from "@/lib/studio/peaks";
 import { isStudioImportFileName, largeFileWarning, type StudioFileWarning, type StudioImportedFile } from "@/lib/studio/project";
 
 export type StudioDecodeResult =
-  | { ok: true; file: StudioImportedFile; warning: StudioFileWarning | null }
+  | { ok: true; file: StudioImportedFile; sourceBytes: ArrayBuffer; warning: StudioFileWarning | null }
   | { ok: false; reason: "unsupported-file" | "decode-failed" };
 
 export async function loadStudioFile(
@@ -18,7 +18,8 @@ export async function loadStudioFile(
 ): Promise<StudioDecodeResult> {
   if (!isStudioImportFileName(file.name)) return { ok: false, reason: "unsupported-file" };
   try {
-    const buffer = await decodeAudioData(await file.arrayBuffer());
+    const sourceBytes = await file.arrayBuffer();
+    const buffer = await decodeAudioData(sourceBytes.slice(0));
     const info = inspectAudioBuffer(file, buffer);
     return {
       ok: true,
@@ -29,9 +30,10 @@ export async function loadStudioFile(
         sourceDurationSec: info.duration,
         sampleRate: info.sampleRate,
         channels: info.channels,
-        peaks: studioPeaksFromBuffer(buffer, options?.peakBars ?? 180),
+        peaks: studioPeaksFromBuffer(buffer, options?.peakBars ?? studioPeakBarCount("desktop")),
         buffer,
       },
+      sourceBytes,
     };
   } catch {
     return { ok: false, reason: "decode-failed" };

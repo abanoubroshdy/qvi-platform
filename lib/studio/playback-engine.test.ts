@@ -5,6 +5,7 @@ import { FFMPEG_LARGE_FILE_BYTES } from "@/lib/ffmpeg";
 import { loadStudioFile } from "@/lib/studio/load-clip";
 import {
   createStudioPlaybackEngine,
+  type StudioAnalyserNode,
   type StudioAudioHost,
   type StudioAudioNode,
   type StudioBufferSource,
@@ -283,7 +284,158 @@ describe("playback engine", () => {
     engine.play(sped.project);
     expect(engine.currentStatus()).toBe("idle");
   });
+
+  it("reads peaks from analysers tapped after the track and master gains", () => {
+    const host = new MeterHost();
+    const engine = createStudioPlaybackEngine({ host });
+    expect(engine.readMeters()).toEqual({ master: 0, tracks: {} });
+    const { project, track } = projectWithClip();
+    engine.play(project);
+    expect(host.gains[0]!.links[0]).toBe(host.analysers[0]);
+    expect(host.analysers[0]!.links[0]).toBe(host.destination);
+    expect(host.gains[1]!.links[0]).toBe(host.analysers[1]);
+    expect(host.analysers[1]!.links[0]).toBe(host.gains[0]);
+    host.analysers[0]!.samples.fill(0.25);
+    host.analysers[1]!.samples.fill(-0.5);
+    expect(engine.readMeters()).toEqual({ master: 0.25, tracks: { [track.id]: 0.5 } });
+  });
+
+  it("runs each source through eq, a compressor, and a panner before the track gain", () => {
+    const host = new StripHost();
+    const engine = createStudioPlaybackEngine({ host });
+    const { project, track } = projectWithClip();
+    engine.play(project);
+    const source = host.sources[0]!;
+    expect(source.links[0]).toBe(host.biquads[0]);
+    expect(host.biquads[0]!.links[0]).toBe(host.biquads[1]);
+    expect(host.biquads[1]!.links[0]).toBe(host.biquads[2]);
+    expect(host.biquads[2]!.links[0]).toBe(host.compressors[0]);
+    expect(host.compressors[0]!.links[0]).toBe(host.panners[0]);
+    expect(host.panners[0]!.links[0]).toBe(host.gains[1]);
+    expect(host.gains[1]!.links[0]).toBe(host.analysers[1]);
+    const next = {
+      ...project,
+      tracks: [{ ...track, pan: -0.5, eq: { lowDb: 3, midDb: -1, highDb: 2 }, compressor: 1 }],
+    };
+    engine.sync(next);
+    expect(host.panners[0]!.pan.value).toBe(-0.5);
+    expect(host.biquads[0]!.gain.value).toBe(3);
+    expect(host.biquads[1]!.gain.value).toBe(-1);
+    expect(host.biquads[2]!.gain.value).toBe(2);
+    expect(host.compressors[0]!.threshold.value).toBe(-24);
+    expect(host.compressors[0]!.ratio.value).toBe(4);
+  });
 });
+
+class LinkedNode implements StudioAudioNode {
+  links: StudioAudioNode[] = [];
+  connect(destination: StudioAudioNode) {
+    this.links.push(destination);
+  }
+  disconnect() {
+    this.links = [];
+  }
+}
+
+class MeterGain extends LinkedNode implements StudioGainNode {
+  gain = { value: 1 };
+}
+
+class MeterAnalyser extends LinkedNode implements StudioAnalyserNode {
+  fftSize = 8;
+  smoothingTimeConstant = 0;
+  samples = new Float32Array(8);
+  getFloatTimeDomainData(array: Float32Array) {
+    array.set(this.samples.subarray(0, array.length));
+  }
+}
+
+class MeterSource extends LinkedNode implements StudioBufferSource {
+  buffer: AudioBuffer | null = null;
+  onended: (() => void) | null = null;
+  start() {}
+  stop() {}
+}
+
+class StripParam extends LinkedNode {
+  type: BiquadFilterType = "lowshelf";
+  pan = { value: 0 };
+  frequency = { value: 0 };
+  gain = { value: 0 };
+  Q = { value: 1 };
+  threshold = { value: 0 };
+  knee = { value: 0 };
+  ratio = { value: 1 };
+  attack = { value: 0 };
+  release = { value: 0 };
+}
+
+class StripHost implements StudioAudioHost {
+  currentTime = 0;
+  state: AudioContextState = "running";
+  destination: StudioAudioNode = new LinkedNode();
+  gains: MeterGain[] = [];
+  analysers: MeterAnalyser[] = [];
+  biquads: StripParam[] = [];
+  compressors: StripParam[] = [];
+  panners: StripParam[] = [];
+  sources: MeterSource[] = [];
+  async resume() {}
+  async close() {}
+  createGain() {
+    const gain = new MeterGain();
+    this.gains.push(gain);
+    return gain;
+  }
+  createAnalyser() {
+    const analyser = new MeterAnalyser();
+    this.analysers.push(analyser);
+    return analyser;
+  }
+  createBiquadFilter() {
+    const node = new StripParam();
+    this.biquads.push(node);
+    return node;
+  }
+  createDynamicsCompressor() {
+    const node = new StripParam();
+    this.compressors.push(node);
+    return node;
+  }
+  createStereoPanner() {
+    const node = new StripParam();
+    this.panners.push(node);
+    return node;
+  }
+  createBufferSource() {
+    const source = new MeterSource();
+    this.sources.push(source);
+    return source;
+  }
+}
+
+class MeterHost implements StudioAudioHost {
+  currentTime = 0;
+  state: AudioContextState = "running";
+  destination: StudioAudioNode = new LinkedNode();
+  gains: MeterGain[] = [];
+  analysers: MeterAnalyser[] = [];
+  async resume() {}
+  async close() {}
+  createGain() {
+    const gain = new MeterGain();
+    this.gains.push(gain);
+    return gain;
+  }
+  createAnalyser() {
+    const analyser = new MeterAnalyser();
+    this.analysers.push(analyser);
+    return analyser;
+  }
+  createBufferSource() {
+    return new MeterSource();
+  }
+}
 
 describe("tempo preview", () => {
   it("skips an unchanged track and trims before processing", async () => {
@@ -435,7 +587,7 @@ describe("load studio file", () => {
     expect(loaded.ok).toBe(true);
     if (!loaded.ok) return;
     expect(loaded.file.sourceDurationSec).toBe(2);
-    expect(loaded.file.peaks).toHaveLength(180);
+    expect(loaded.file.peaks).toHaveLength(320);
     expect(loaded.warning).toBeNull();
 
     const refused = await loadStudioFile(new File(["x"], "notes.txt"), async () => {

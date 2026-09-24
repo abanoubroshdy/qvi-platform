@@ -1,14 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Logo } from "@/components/Logo";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { products } from "@/lib/products";
 import { siteConfig } from "@/lib/site";
 
 export function Footer() {
+  const pathname = usePathname();
   const { copy } = useI18n();
   const year = new Date().getFullYear();
+  if (pathname === "/studio") return null;
 
   const productLinks = [
     { href: products.studio.href, label: copy.products.studio.name },

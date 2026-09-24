@@ -37,7 +37,8 @@ export const qviStudioProduct = {
 
 /**
  * `/` is the product home and links to the studio.
- * The in-memory session lives only at `/studio`. Refresh clears it.
+ * The session lives at `/studio` and is restored from IndexedDB on this device after refresh.
+ * It is not shared with the homepage. Nothing is uploaded.
  * QV1, Neyora, and the free tools stay linked from home. Studio is not a `/tools` utility.
  */
 export const qviStudioSurfaces = {
@@ -118,7 +119,7 @@ export const qviStudioLimits = {
 export const qviStudioEngines = {
   playback: {
     runtime: "web-audio",
-    nodes: ["AudioContext", "AudioBufferSourceNode", "GainNode"],
+    nodes: ["AudioContext", "AudioBufferSourceNode", "GainNode", "AnalyserNode", "BiquadFilterNode", "DynamicsCompressorNode", "StereoPannerNode"],
     startPolicy: "resume-after-user-gesture",
   },
   tempoPitchPreview: {
@@ -230,19 +231,67 @@ export const qviStudioV1Capabilities = [
       "Desktop uses a top transport, leading track headers, a center timeline, a trailing mixer, and an inspector drawer.",
     ],
   },
+  {
+    id: "local-session-restore",
+    summary:
+      "IndexedDB keeps the /studio session on this device. This replaces the earlier non-goal that said refresh cleared the project and that IndexedDB was out of scope.",
+    acceptance: [
+      "A debounced save writes the project snapshot and each clip's audio bytes to IndexedDB.",
+      "Refreshing /studio restores tracks, clips, trims, mix, playhead, and decoded buffers.",
+      "The project name can be edited. New project clears the stored session.",
+      "Nothing is uploaded. Cloud sync stays out of scope.",
+    ],
+  },
+  {
+    id: "track-pan",
+    summary: "Each track has a stereo pan on the playback graph.",
+    acceptance: [
+      "Pan is from full left to full right, center at 0.",
+      "The mixer shows the pan and the playback graph applies it.",
+      "Pan is stored with the session snapshot.",
+    ],
+  },
+  {
+    id: "track-eq-compressor",
+    summary: "Each track has a fixed 3-band EQ and a light compressor on playback.",
+    acceptance: [
+      "Low, mid, and high gains are static inserts, not automation.",
+      "Compressor amount 0 is bypass. Amount 1 is a light squeeze.",
+      "The settings are stored with the session snapshot.",
+      "There is no plugin host.",
+    ],
+  },
+  {
+    id: "live-recording",
+    summary: "The microphone can record a new clip onto an armed track.",
+    acceptance: [
+      "Record starts only after a microphone permission gesture.",
+      "A denied or missing microphone is explained in the console.",
+      "Stopping the take writes a clip at the playhead on the armed track.",
+      "The recording is stored with the session so refresh can play it.",
+    ],
+  },
 ] as const;
 
 export type StudioCapabilityId = (typeof qviStudioV1Capabilities)[number]["id"];
 
 export const qviStudioV1NonGoals = [
-  { id: "automation", reason: "No volume or effect automation lanes in v1." },
+  {
+    id: "automation",
+    reason: "No volume or effect automation lanes. EQ and the compressor are static. Volume automation is a follow-up.",
+  },
   { id: "buses-and-sends", reason: "No buses, groups, or sends in v1." },
   { id: "sidechain", reason: "No sidechain routing in v1." },
   { id: "midi", reason: "Studio v1 arranges audio files, not MIDI." },
-  { id: "effects-and-plugins", reason: "No insert effects or plugin host in v1." },
+  {
+    id: "plugin-host",
+    reason: "No plugin host. Playback inserts are only the fixed 3-band EQ and the light compressor.",
+  },
   { id: "collaboration", reason: "No shared sessions in v1." },
-  { id: "persistence", reason: "The project lives in the session. Refresh clears it. No cloud save and no IndexedDB." },
-  { id: "live-recording", reason: "Clips come from files, not the microphone." },
+  {
+    id: "cloud-sync",
+    reason: "IndexedDB restores the local /studio session after refresh. There is no cloud save, account sync, or upload.",
+  },
   { id: "video-import", reason: "Video extraction stays on the MP4 to MP3 tool." },
   { id: "per-clip-gain-or-fades", reason: "Gain, mute, and solo are track-level. Clip fades stay on the audio cutter." },
   { id: "realtime-pitch-stretch", reason: "Tempo and pitch preview is an offline render, not a live stretcher." },

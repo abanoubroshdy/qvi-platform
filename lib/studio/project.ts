@@ -27,6 +27,7 @@ import {
   type StudioTempoSetting,
   type StudioViewport,
 } from "@/lib/studio/definition";
+import { clampEqDb, clampPan, clampUnit, defaultTrackEq, normalizeTrackMix, type StudioTrackEq } from "@/lib/studio/mix";
 import {
   createStudioId,
   trackColorForIndex,
@@ -98,6 +99,13 @@ export function defaultTempo(): StudioTempoSetting {
   return { mode: "bpm", originalBpm: bpm, targetBpm: bpm, percent: 0 };
 }
 
+export const STUDIO_DEFAULT_PROJECT_NAME = "QVI Studio";
+
+export function finishedProjectName(name: string, fallback = STUDIO_DEFAULT_PROJECT_NAME): string {
+  const trimmed = name.trim();
+  return trimmed || fallback;
+}
+
 export function createStudioProject(name = "Untitled", id = createStudioId("project")): StudioProject {
   return {
     id,
@@ -145,6 +153,9 @@ export function createStudioTrack(input: {
     tempo: defaultTempo(),
     pitchSemitones: 0,
     pitchCents: 0,
+    pan: 0,
+    eq: defaultTrackEq(),
+    compressor: 0,
   };
 }
 
@@ -349,6 +360,25 @@ export function setTrackTempo(
   });
 }
 
+export function setTrackPan(project: StudioProject, trackId: string, pan: number): StudioWriteResult {
+  return editTrack(project, trackId, (track) => ({ ...track, pan: clampPan(pan) }));
+}
+
+export function setTrackEq(project: StudioProject, trackId: string, patch: Partial<StudioTrackEq>): StudioWriteResult {
+  return editTrack(project, trackId, (track) => ({
+    ...track,
+    eq: {
+      lowDb: patch.lowDb === undefined ? track.eq.lowDb : clampEqDb(patch.lowDb),
+      midDb: patch.midDb === undefined ? track.eq.midDb : clampEqDb(patch.midDb),
+      highDb: patch.highDb === undefined ? track.eq.highDb : clampEqDb(patch.highDb),
+    },
+  }));
+}
+
+export function setTrackCompressor(project: StudioProject, trackId: string, amount: number): StudioWriteResult {
+  return editTrack(project, trackId, (track) => ({ ...track, compressor: clampUnit(amount) }));
+}
+
 export function setTrackPitch(
   project: StudioProject,
   trackId: string,
@@ -432,7 +462,47 @@ export function snapshotStudioProject(project: StudioProject): StudioProjectSnap
       tempo: { ...track.tempo },
       pitchSemitones: track.pitchSemitones,
       pitchCents: track.pitchCents,
+      pan: track.pan,
+      eq: { ...track.eq },
+      compressor: track.compressor,
       clips: track.clips.map((clip) => clipState(clip)),
+    })),
+  };
+}
+
+export function projectFromSnapshot(
+  snapshot: StudioProjectSnapshot,
+  buffers: ReadonlyMap<string, AudioBuffer | null> = new Map(),
+): StudioProject {
+  return {
+    id: snapshot.id,
+    name: snapshot.name,
+    masterGainDb: snapshot.masterGainDb,
+    playheadSec: snapshot.playheadSec,
+    tracks: snapshot.tracks.map((track) => ({
+      id: track.id,
+      name: track.name,
+      color: track.color,
+      gainDb: track.gainDb,
+      muted: track.muted,
+      solo: track.solo,
+      tempo: { ...track.tempo },
+      pitchSemitones: track.pitchSemitones,
+      pitchCents: track.pitchCents,
+      ...normalizeTrackMix(track),
+      clips: track.clips.map((clip) => ({
+        id: clip.id,
+        fileName: clip.fileName,
+        byteLength: clip.byteLength,
+        sourceDurationSec: clip.sourceDurationSec,
+        offsetSec: clip.offsetSec,
+        trimStartSec: clip.trimStartSec,
+        trimEndSec: clip.trimEndSec,
+        sampleRate: clip.sampleRate,
+        channels: clip.channels,
+        peaks: [...clip.peaks],
+        buffer: buffers.get(clip.id) ?? null,
+      })),
     })),
   };
 }

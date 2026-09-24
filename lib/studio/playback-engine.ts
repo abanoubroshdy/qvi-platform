@@ -3,13 +3,18 @@
  *
  * Web Audio schedules the plan from `playback-schedule`. Tempo and pitch are
  * not applied here; a rendered track buffer is, once the preview has one.
+ * AnalyserNodes sit after the track and master gains so the console can read
+ * peaks. They do not change the mix.
+ * When the host can build them, each track is source → EQ → compressor → pan → gain.
  */
 
 import type { StudioEngineStatus, StudioPlaybackEngine } from "@/lib/studio/engine";
 import { loadStudioFile, type StudioDecodeResult } from "@/lib/studio/load-clip";
+import { peakFromTimeDomain, type StudioMeterReading } from "@/lib/studio/meters";
 import { planPlayback } from "@/lib/studio/playback-schedule";
+import { compressorFromAmount, STUDIO_EQ_FREQUENCIES } from "@/lib/studio/mix";
 import { canPlayStudioProject, projectDuration } from "@/lib/studio/project";
-import type { StudioProject } from "@/lib/studio/types";
+import type { StudioProject, StudioTrack } from "@/lib/studio/types";
 
 export interface StudioAudioNode {
   connect(destination: StudioAudioNode): void;
@@ -18,6 +23,32 @@ export interface StudioAudioNode {
 
 export interface StudioGainNode extends StudioAudioNode {
   gain: { value: number };
+}
+
+/** Pass-through tap. Peak meters read this; it does not change the mix. */
+export interface StudioAnalyserNode extends StudioAudioNode {
+  fftSize: number;
+  smoothingTimeConstant: number;
+  getFloatTimeDomainData(array: Float32Array): void;
+}
+
+export interface StudioPannerNode extends StudioAudioNode {
+  pan: { value: number };
+}
+
+export interface StudioBiquadNode extends StudioAudioNode {
+  type: BiquadFilterType;
+  frequency: { value: number };
+  gain: { value: number };
+  Q: { value: number };
+}
+
+export interface StudioCompressorNode extends StudioAudioNode {
+  threshold: { value: number };
+  knee: { value: number };
+  ratio: { value: number };
+  attack: { value: number };
+  release: { value: number };
 }
 
 export interface StudioBufferSource extends StudioAudioNode {
@@ -35,6 +66,10 @@ export interface StudioAudioHost {
   close(): Promise<void>;
   createGain(): StudioGainNode;
   createBufferSource(): StudioBufferSource;
+  createAnalyser?(): StudioAnalyserNode;
+  createStereoPanner?(): StudioPannerNode;
+  createBiquadFilter?(): StudioBiquadNode;
+  createDynamicsCompressor?(): StudioCompressorNode;
   createBuffer?(channels: number, length: number, sampleRate: number): AudioBuffer;
   decodeAudioData?(data: ArrayBuffer): Promise<AudioBuffer>;
 }
@@ -44,11 +79,26 @@ export type StudioTransportSnapshot = {
   playheadSec: number;
 };
 
+type TrackStrip = {
+  input: StudioAudioNode;
+  gain: StudioGainNode;
+  low?: StudioBiquadNode;
+  mid?: StudioBiquadNode;
+  high?: StudioBiquadNode;
+  compressor?: StudioCompressorNode;
+  pan?: StudioPannerNode;
+  nodes: StudioAudioNode[];
+};
+
 export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
   private readonly host: StudioAudioHost;
   private readonly onTransport?: (snapshot: StudioTransportSnapshot) => void;
   private readonly master: StudioGainNode;
   private readonly trackGains = new Map<string, StudioGainNode>();
+  private readonly strips = new Map<string, TrackStrip>();
+  private readonly trackAnalysers = new Map<string, StudioAnalyserNode>();
+  private masterAnalyser: StudioAnalyserNode | null = null;
+  private meterScratch = new Float32Array(256);
   private readonly rendered = new Map<string, AudioBuffer>();
   private sources: StudioBufferSource[] = [];
   private activeProject: StudioProject | null = null;
@@ -63,7 +113,18 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
     this.onTransport = onTransport;
     this.master = host.createGain();
     this.master.gain.value = 1;
-    this.master.connect(host.destination);
+    this.connectTap(this.master, host.destination, null);
+  }
+
+  readMeters(): StudioMeterReading {
+    const tracks: Record<string, number> = {};
+    this.trackAnalysers.forEach((analyser, trackId) => {
+      tracks[trackId] = this.levelOf(analyser);
+    });
+    return {
+      master: this.masterAnalyser ? this.levelOf(this.masterAnalyser) : 0,
+      tracks,
+    };
   }
 
   currentStatus(): StudioEngineStatus {
@@ -172,19 +233,14 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
     this.disposed = true;
     this.stopSources();
     this.status = "idle";
-    this.trackGains.forEach((node) => {
-      try {
-        node.disconnect();
-      } catch {
-        /* already disconnected */
-      }
-    });
+    this.strips.forEach((strip) => this.disconnectStrip(strip));
+    this.strips.clear();
     this.trackGains.clear();
-    try {
-      this.master.disconnect();
-    } catch {
-      /* already disconnected */
-    }
+    this.trackAnalysers.forEach((node) => disconnectQuiet(node));
+    this.trackAnalysers.clear();
+    if (this.masterAnalyser) disconnectQuiet(this.masterAnalyser);
+    this.masterAnalyser = null;
+    disconnectQuiet(this.master);
     void this.host.close().catch(() => undefined);
   }
 
@@ -195,41 +251,112 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
     this.playheadSec = playhead;
     const plan = planPlayback({ project, playheadSec: playhead, renderedTracks: this.rendered });
     this.master.gain.value = plan.masterGain;
+    this.retainStrips(new Set(project.tracks.map((track) => track.id)));
     const whenBase = this.host.currentTime;
     const playingTracks = new Set<string>();
     for (const event of plan.events) {
+      const track = project.tracks.find((item) => item.id === event.trackId);
       const source = this.host.createBufferSource();
       source.buffer = event.buffer;
-      source.connect(this.trackGain(event.trackId, gainFor(plan.trackGains, event.trackId)));
+      source.connect(this.trackInput(track ?? { id: event.trackId }, gainFor(plan.trackGains, event.trackId)));
       source.start(whenBase + event.delaySec, event.offsetSec, event.durationSec);
       this.sources.push(source);
       playingTracks.add(event.trackId);
     }
-    for (const gain of plan.trackGains) {
-      if (playingTracks.has(gain.trackId)) continue;
-      const node = this.trackGains.get(gain.trackId);
-      if (node) node.gain.value = gain.linear;
+    for (const track of project.tracks) {
+      if (playingTracks.has(track.id)) continue;
+      this.trackInput(track, gainFor(plan.trackGains, track.id));
     }
   }
 
   private applyGains(project: StudioProject): void {
     const plan = planPlayback({ project, playheadSec: this.playheadSec, renderedTracks: this.rendered });
     this.master.gain.value = plan.masterGain;
-    for (const gain of plan.trackGains) {
-      const node = this.trackGains.get(gain.trackId);
-      if (node) node.gain.value = gain.linear;
+    this.retainStrips(new Set(project.tracks.map((track) => track.id)));
+    for (const track of project.tracks) {
+      this.trackInput(track, gainFor(plan.trackGains, track.id));
     }
   }
 
-  private trackGain(trackId: string, linear: number): StudioGainNode {
-    let node = this.trackGains.get(trackId);
-    if (!node) {
-      node = this.host.createGain();
-      node.connect(this.master);
-      this.trackGains.set(trackId, node);
+  private trackInput(track: Pick<StudioTrack, "id"> & Partial<Pick<StudioTrack, "pan" | "eq" | "compressor">>, linear: number): StudioAudioNode {
+    let strip = this.strips.get(track.id);
+    if (!strip) strip = this.createStrip(track.id);
+    strip.gain.gain.value = linear;
+    this.applyStrip(strip, track);
+    return strip.input;
+  }
+
+  private createStrip(trackId: string): TrackStrip {
+    const gain = this.host.createGain();
+    const createEq = this.host.createBiquadFilter;
+    const createCompressor = this.host.createDynamicsCompressor;
+    const createPanner = this.host.createStereoPanner;
+    if (!createEq || !createCompressor || !createPanner) {
+      this.connectTap(gain, this.master, trackId);
+      this.trackGains.set(trackId, gain);
+      const plain: TrackStrip = { input: gain, gain, nodes: [gain] };
+      this.strips.set(trackId, plain);
+      return plain;
     }
-    node.gain.value = linear;
-    return node;
+    const low = createEq.call(this.host);
+    low.type = "lowshelf";
+    low.frequency.value = STUDIO_EQ_FREQUENCIES.low;
+    const mid = createEq.call(this.host);
+    mid.type = "peaking";
+    mid.frequency.value = STUDIO_EQ_FREQUENCIES.mid;
+    mid.Q.value = 1;
+    const high = createEq.call(this.host);
+    high.type = "highshelf";
+    high.frequency.value = STUDIO_EQ_FREQUENCIES.high;
+    const compressor = createCompressor.call(this.host);
+    const pan = createPanner.call(this.host);
+    low.connect(mid);
+    mid.connect(high);
+    high.connect(compressor);
+    compressor.connect(pan);
+    pan.connect(gain);
+    this.connectTap(gain, this.master, trackId);
+    this.trackGains.set(trackId, gain);
+    const strip: TrackStrip = { input: low, gain, low, mid, high, compressor, pan, nodes: [low, mid, high, compressor, pan, gain] };
+    this.strips.set(trackId, strip);
+    return strip;
+  }
+
+  private applyStrip(strip: TrackStrip, track: Partial<Pick<StudioTrack, "pan" | "eq" | "compressor">>): void {
+    if (strip.low && strip.mid && strip.high) {
+      strip.low.gain.value = track.eq?.lowDb ?? 0;
+      strip.mid.gain.value = track.eq?.midDb ?? 0;
+      strip.high.gain.value = track.eq?.highDb ?? 0;
+    }
+    if (strip.compressor) {
+      const settings = compressorFromAmount(track.compressor ?? 0);
+      strip.compressor.threshold.value = settings.threshold;
+      strip.compressor.ratio.value = settings.ratio;
+      strip.compressor.knee.value = settings.knee;
+      strip.compressor.attack.value = settings.attack;
+      strip.compressor.release.value = settings.release;
+    }
+    if (strip.pan) strip.pan.pan.value = track.pan ?? 0;
+  }
+
+  private retainStrips(ids: Set<string>): void {
+    const stale: string[] = [];
+    this.strips.forEach((_strip, id) => {
+      if (!ids.has(id)) stale.push(id);
+    });
+    for (const id of stale) {
+      const strip = this.strips.get(id);
+      if (strip) this.disconnectStrip(strip);
+      this.strips.delete(id);
+      this.trackGains.delete(id);
+      const analyser = this.trackAnalysers.get(id);
+      if (analyser) disconnectQuiet(analyser);
+      this.trackAnalysers.delete(id);
+    }
+  }
+
+  private disconnectStrip(strip: TrackStrip): void {
+    for (const node of strip.nodes) disconnectQuiet(node);
   }
 
   private stopSources(): void {
@@ -250,8 +377,39 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
     }
   }
 
+  private connectTap(from: StudioAudioNode, to: StudioAudioNode, trackId: string | null): void {
+    const create = this.host.createAnalyser;
+    if (!create) {
+      from.connect(to);
+      return;
+    }
+    const analyser = create.call(this.host);
+    analyser.fftSize = 256;
+    analyser.smoothingTimeConstant = 0;
+    from.connect(analyser);
+    analyser.connect(to);
+    if (trackId) this.trackAnalysers.set(trackId, analyser);
+    else this.masterAnalyser = analyser;
+  }
+
+  private levelOf(analyser: StudioAnalyserNode): number {
+    const size = analyser.fftSize > 0 ? analyser.fftSize : 256;
+    if (this.meterScratch.length < size) this.meterScratch = new Float32Array(size);
+    const view = this.meterScratch.subarray(0, size);
+    analyser.getFloatTimeDomainData(view);
+    return peakFromTimeDomain(view);
+  }
+
   private emit(): void {
     this.onTransport?.({ status: this.status, playheadSec: this.currentPlayhead() });
+  }
+}
+
+function disconnectQuiet(node: StudioAudioNode): void {
+  try {
+    node.disconnect();
+  } catch {
+    /* already disconnected */
   }
 }
 
@@ -277,6 +435,15 @@ export function createStudioAudioHost(existing?: AudioContext): StudioAudioHost 
     resume: () => context.resume(),
     close: () => context.close(),
     createGain: () => context.createGain(),
+    createAnalyser: () => {
+      const analyser = context.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0;
+      return analyser;
+    },
+    createStereoPanner: () => context.createStereoPanner(),
+    createBiquadFilter: () => context.createBiquadFilter(),
+    createDynamicsCompressor: () => context.createDynamicsCompressor(),
     createBufferSource: () => wrapBufferSource(context.createBufferSource()),
     createBuffer: (channels, length, sampleRate) => context.createBuffer(channels, length, sampleRate),
     decodeAudioData: (data) => context.decodeAudioData(data),
