@@ -24,6 +24,7 @@ const RANGE_DRAG_THRESHOLD_PX = 3;
 export function StudioTimeline({ copy }: { copy: Messages["studio"] }) {
   const studio = useStudio();
   const width = timelineWidthPx(studio.duration, studio.pixelsPerSecond);
+  const timelineSec = width / studio.pixelsPerSecond;
   const bpm = sessionDisplayBpm(studio.project.tracks, studio.selectedTrack?.id ?? null) ?? 120;
   const beatPx = secondsPerBeat(bpm) * studio.pixelsPerSecond;
   const barPx = secondsPerBar(bpm) * studio.pixelsPerSecond;
@@ -76,7 +77,7 @@ export function StudioTimeline({ copy }: { copy: Messages["studio"] }) {
                 beatPx={beatPx}
                 barPx={barPx}
                 pixelsPerSecond={studio.pixelsPerSecond}
-                duration={studio.duration}
+                duration={timelineSec}
                 bpm={bpm}
                 snapMode={studio.snapMode}
                 label={copy.timeRange}
