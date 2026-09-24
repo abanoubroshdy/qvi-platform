@@ -1710,6 +1710,7 @@ export const en = {
     confirmNew: "Clear project",
     confirmClear: "Confirm clear",
     newProjectHint: "Clear project when a session is open, then New starts a blank session. Clears the saved session on this device.",
+    resetDefaultHint: "Double-click the slider or value to reset to default.",
     restoring: "Restoring project…",
     saveFailed: "Could not save this project on this device.",
     restoreFailed: "Could not restore the saved project.",

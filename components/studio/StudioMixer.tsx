@@ -1,35 +1,38 @@
 "use client";
 
-import { Slider } from "@/components/ui/slider";
 import { StudioLevelMeter } from "@/components/studio/StudioLevelMeter";
+import { StudioSliderField } from "@/components/studio/StudioControlField";
+import { Button } from "@/components/ui/button";
 import { qviStudioLimits } from "@/lib/studio/definition";
 import { formatPan } from "@/lib/studio/mix";
-import { Button } from "@/components/ui/button";
 import type { Messages } from "@/lib/i18n";
 import { useStudio } from "@/components/studio/studio-context";
 
 export function StudioMixer({ copy }: { copy: Messages["studio"] }) {
   const studio = useStudio();
-  const { min, max } = qviStudioLimits.gainDb;
+  const { min, max, unity } = qviStudioLimits.gainDb;
 
   return (
     <div className="flex flex-col gap-3 p-3" aria-label={copy.mixer}>
       <div className="studio-mix-strip">
         <div className="mb-1.5 flex items-center justify-between gap-2 text-xs">
           <span className="font-semibold uppercase tracking-[0.14em] text-[hsl(var(--studio-sand))]">{copy.master}</span>
-          <span dir="ltr" className="font-mono tabular-nums text-muted-foreground">
-            {studio.project.masterGainDb.toFixed(1)} dB
-          </span>
         </div>
         <StudioLevelMeter id="master" axis="x" />
-        <Slider
+        <StudioSliderField
           className="mt-2"
+          compact
+          showLabel={false}
+          label={copy.master}
+          value={studio.project.masterGainDb}
+          defaultValue={unity}
           min={min}
           max={max}
           step={0.1}
-          value={[studio.project.masterGainDb]}
-          aria-label={copy.master}
-          onValueChange={([value]) => studio.setMasterGain(value ?? 0)}
+          digits={1}
+          unit="dB"
+          resetHint={copy.resetDefaultHint}
+          onChange={(value) => studio.setMasterGain(value)}
         />
       </div>
       {studio.project.tracks.map((track) => (
@@ -39,19 +42,22 @@ export function StudioMixer({ copy }: { copy: Messages["studio"] }) {
               <span className="h-2 w-2 rounded-full" style={{ backgroundColor: track.color }} />
               <span className="truncate">{track.name}</span>
             </button>
-            <span dir="ltr" className="font-mono tabular-nums text-muted-foreground">
-              {track.gainDb.toFixed(1)} dB
-            </span>
           </div>
           <StudioLevelMeter id={track.id} axis="x" />
-          <Slider
+          <StudioSliderField
             className="mt-2"
+            compact
+            label={copy.gain}
+            ariaLabel={`${copy.gain} ${track.name}`}
+            value={track.gainDb}
+            defaultValue={unity}
             min={min}
             max={max}
             step={0.1}
-            value={[track.gainDb]}
-            aria-label={`${copy.gain} ${track.name}`}
-            onValueChange={([value]) => studio.setGain(track.id, value ?? 0)}
+            digits={1}
+            unit="dB"
+            resetHint={copy.resetDefaultHint}
+            onChange={(value) => studio.setGain(track.id, value)}
           />
           <div className="mt-2 flex items-center gap-2">
             <Button
@@ -65,19 +71,22 @@ export function StudioMixer({ copy }: { copy: Messages["studio"] }) {
             >
               {copy.arm}
             </Button>
-            <span className="w-8 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{copy.pan}</span>
-            <Slider
+            <StudioSliderField
               className="min-w-0 flex-1"
+              compact
+              label={copy.pan}
+              ariaLabel={`${copy.pan} ${track.name}`}
+              value={track.pan}
+              defaultValue={0}
               min={-1}
               max={1}
               step={0.01}
-              value={[track.pan]}
-              aria-label={`${copy.pan} ${track.name}`}
-              onValueChange={([value]) => studio.setPan(track.id, value ?? 0)}
+              digits={2}
+              displayValue={formatPan(track.pan)}
+              parse="pan"
+              resetHint={copy.resetDefaultHint}
+              onChange={(value) => studio.setPan(track.id, value)}
             />
-            <span dir="ltr" className="w-8 shrink-0 text-end font-mono text-[10px] tabular-nums text-muted-foreground">
-              {formatPan(track.pan)}
-            </span>
           </div>
         </div>
       ))}
