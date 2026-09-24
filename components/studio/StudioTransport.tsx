@@ -32,7 +32,7 @@ export function StudioTransport({ copy }: { copy: Messages["studio"] }) {
   );
 }
 
-/** Bottom dock: transport centered, tempo/clock leading, zoom trailing. */
+/** Bottom dock: transport + timecode centered, tempo leading, zoom trailing. */
 export function StudioTransportDock({ copy }: { copy: Messages["studio"] }) {
   const studio = useStudio();
   const playing = studio.transport.status === "playing";
@@ -41,7 +41,6 @@ export function StudioTransportDock({ copy }: { copy: Messages["studio"] }) {
   return (
     <div className="studio-transport studio-transport-dock grid grid-cols-[1fr_auto_1fr] items-center gap-x-2 gap-y-2 px-2 py-2 sm:px-3">
       <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-        <TransportClock label={copy.timecode} duration={studio.duration} />
         <SeekControl label={copy.seek} />
         {bpm !== null ? (
           <span className="studio-bpm" dir="ltr" title={studio.selectedTrack?.name}>
@@ -54,7 +53,7 @@ export function StudioTransportDock({ copy }: { copy: Messages["studio"] }) {
           </span>
         )}
       </div>
-      <div className="flex items-center justify-center gap-1" role="group" aria-label={copy.play}>
+      <div className="flex items-center justify-center gap-2" role="group" aria-label={copy.play}>
         <Button
           type="button"
           size="icon"
@@ -86,6 +85,7 @@ export function StudioTransportDock({ copy }: { copy: Messages["studio"] }) {
         >
           <Circle className={studio.recording ? "fill-current" : ""} />
         </Button>
+        <TransportClock label={copy.timecode} duration={studio.duration} />
       </div>
       <div className="flex items-center justify-end gap-1">
         <Button
