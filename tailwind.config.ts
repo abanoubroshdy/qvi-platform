@@ -11,8 +11,8 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-outfit)", "var(--font-cairo)", "ui-sans-serif", "system-ui", "sans-serif"],
-        cairo: ["var(--font-cairo)", "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ["var(--font-inter)", "var(--font-ibm-plex-sans-arabic)", "system-ui", "sans-serif"],
+        arabic: ["var(--font-ibm-plex-sans-arabic)", "var(--font-inter)", "system-ui", "sans-serif"],
       },
       colors: {
         background: "hsl(var(--background))",

@@ -13,15 +13,15 @@ import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "qvi-recent-colors";
 const PALETTE = [
-  "#0F2744",
-  "#1A7F96",
-  "#5EB6C6",
-  "#6B6BB8",
-  "#F6F4EF",
-  "#E8C36A",
-  "#C45C5C",
-  "#3F8F6B",
-  "#111827",
+  "#0B1220",
+  "#4338CA",
+  "#0891B2",
+  "#0284C8",
+  "#F8FAFC",
+  "#1E293B",
+  "#64748B",
+  "#059669",
+  "#DC2626",
   "#FFFFFF",
 ];
 
@@ -51,7 +51,7 @@ function swatchPng(hex: string): Promise<Blob> {
 
 export function ColorPicker() {
   const { copy } = useI18n();
-  const [hexInput, setHexInput] = useState("#1A7F96");
+  const [hexInput, setHexInput] = useState("#4338CA");
   const [recent, setRecent] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 

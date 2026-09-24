@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Cairo, Outfit } from "next/font/google";
+import { IBM_Plex_Sans_Arabic, Inter } from "next/font/google";
 import { AppProviders } from "@/components/AppProviders";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
@@ -7,16 +7,23 @@ import { adsenseVerificationClient } from "@/lib/adsense";
 import { siteConfig } from "@/lib/site";
 import "./globals.css";
 
-const outfit = Outfit({
+/**
+ * Type scale: 12 / 14 / 16 / 20 / 24 / 32 / 48, with comfortable line-heights.
+ * Headings 600–700, body 400–500.
+ * Latin uses Inter. Arabic glyphs fall through to IBM Plex Sans Arabic.
+ */
+const inter = Inter({
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
-  variable: "--font-outfit",
+  variable: "--font-inter",
 });
 
-const cairo = Cairo({
-  subsets: ["arabic", "latin"],
+const ibmPlexSansArabic = IBM_Plex_Sans_Arabic({
+  subsets: ["arabic"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
-  variable: "--font-cairo",
+  variable: "--font-ibm-plex-sans-arabic",
 });
 
 export const metadata: Metadata = {
@@ -66,8 +73,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#F6F4EF" },
-    { media: "(prefers-color-scheme: dark)", color: "#121C28" },
+    { media: "(prefers-color-scheme: light)", color: "#F8FAFC" },
+    { media: "(prefers-color-scheme: dark)", color: "#0B1220" },
   ],
   width: "device-width",
   initialScale: 1,
@@ -81,11 +88,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${outfit.variable} ${cairo.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${ibmPlexSansArabic.variable}`}>
       <body className="min-h-screen font-sans">
         <script dangerouslySetInnerHTML={{ __html: localeBootScript }} />
         {/* eslint-disable-next-line @next/next/no-css-tags */}
-        <link rel="stylesheet" href="/brand.css?v=9" />
+        <link rel="stylesheet" href="/brand.css?v=10" />
         <AppProviders>
           <div className="qvi-shell flex min-h-screen flex-col">
             <Header />

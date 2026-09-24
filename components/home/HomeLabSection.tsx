@@ -17,7 +17,7 @@ export function HomeLabSection() {
           <p className="qvi-kicker text-xs font-semibold uppercase tracking-[0.24em] text-primary">
             {copy.home.labSectionKicker}
           </p>
-          <p className="mt-3 text-xs font-semibold uppercase tracking-[0.2em] text-accent">{neyora.kicker}</p>
+          <p className="mt-3 text-xs font-semibold uppercase tracking-[0.2em] text-primary">{neyora.kicker}</p>
           <h2 className="mt-2 text-3xl font-semibold sm:text-4xl">{neyora.title}</h2>
           <p className="qvi-lead mt-4 text-muted-foreground">{neyora.description}</p>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">{neyora.extra}</p>

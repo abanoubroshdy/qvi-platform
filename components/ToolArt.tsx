@@ -60,7 +60,7 @@ function PdfDoc({
           fontSize={fontSize}
           fontWeight="800"
           fill="#E1251B"
-          fontFamily="Outfit, ui-sans-serif, system-ui"
+          fontFamily="Inter, ui-sans-serif, system-ui"
         >
           {label}
         </text>
@@ -88,7 +88,7 @@ function Photo({
 }) {
   return (
     <g transform={`translate(${x} ${y}) rotate(${rotate} ${width / 2} ${height / 2})`}>
-      <rect x="4" y="6" width={width} height={height} rx="12" fill="#0f2744" opacity="0.18" />
+      <rect x="4" y="6" width={width} height={height} rx="12" fill="#0B1220" opacity="0.18" />
       <rect width={width} height={height} rx="12" fill="#fff" />
       <rect x="6" y="6" width={width - 12} height={height - 18} rx="8" fill={sky} />
       <circle cx={width * 0.72} cy={height * 0.28} r="9" fill="#ffe08a" />
@@ -96,7 +96,7 @@ function Photo({
         d={`M6 ${height * 0.58} L${width * 0.38} ${height * 0.34} L${width * 0.58} ${height * 0.5} L${width - 6} ${height * 0.4} V${height - 18} H6 z`}
         fill={ground}
       />
-      <rect x="6" y={height - 16} width={width - 12} height="10" fill="#f4f0ea" />
+      <rect x="6" y={height - 16} width={width - 12} height="10" fill="#E2E8F0" />
     </g>
   );
 }
@@ -104,7 +104,7 @@ function Photo({
 function WaveBars({
   x,
   y,
-  color = "#7ee0d2",
+  color = "#0891B2",
   heights = [18, 34, 22, 42, 16, 30, 20],
 }: {
   x: number;
@@ -152,35 +152,35 @@ function Mp4ToMp3Scene({ uid }: SceneProps) {
     <>
       <defs>
         <linearGradient id={`${uid}-screen`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#ffb14a" />
-          <stop offset="55%" stopColor="#e35d6a" />
-          <stop offset="100%" stopColor="#6b4dff" />
+          <stop offset="0%" stopColor="#4338CA" />
+          <stop offset="55%" stopColor="#4F46E5" />
+          <stop offset="100%" stopColor="#0891B2" />
         </linearGradient>
         <linearGradient id={`${uid}-orb`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#2ec4b6" />
-          <stop offset="100%" stopColor="#7b5cff" />
+          <stop offset="0%" stopColor="#0891B2" />
+          <stop offset="100%" stopColor="#4338CA" />
         </linearGradient>
       </defs>
       <g transform="translate(18 28)">
         {[0, 1, 2, 3, 4, 5].map((row) => (
           <g key={row}>
-            <rect x="0" y={row * 16} width="7" height="8" rx="2" fill="#f3c56b" />
-            <rect x="118" y={row * 16} width="7" height="8" rx="2" fill="#f3c56b" />
+            <rect x="0" y={row * 16} width="7" height="8" rx="2" fill="#64748B" />
+            <rect x="118" y={row * 16} width="7" height="8" rx="2" fill="#64748B" />
           </g>
         ))}
         <rect x="10" y="0" width="108" height="96" rx="10" fill="#0b1524" />
         <rect x="16" y="8" width="96" height="62" rx="7" fill={`url(#${uid}-screen)`} />
         <circle cx="64" cy="39" r="13" fill="#fff" fillOpacity="0.92" />
-        <path d="M60 32.5v13l12-6.5z" fill="#ff7a18" />
+        <path d="M60 32.5v13l12-6.5z" fill="#4338CA" />
         <rect x="22" y="78" width="38" height="6" rx="3" fill="#fff" opacity="0.28" />
-        <rect x="64" y="78" width="18" height="6" rx="3" fill="#ff7a18" opacity="0.8" />
+        <rect x="64" y="78" width="18" height="6" rx="3" fill="#4338CA" opacity="0.8" />
       </g>
       <ConvertOrb x={158} y={80} uid={uid} />
       <g transform="translate(188 46)">
         <rect width="72" height="72" rx="18" fill="#ffffff" opacity="0.14" />
         <WaveBars x={10} y={36} heights={[16, 28, 22, 40, 18, 32]} />
-        <path d="M54 22v28c0 6 8 6 8 0V30" fill="none" stroke="#ffe08a" strokeWidth="3.2" strokeLinecap="round" />
-        <circle cx="50" cy="50" r="6.5" fill="#ffe08a" />
+        <path d="M54 22v28c0 6 8 6 8 0V30" fill="none" stroke="#0891B2" strokeWidth="3.2" strokeLinecap="round" />
+        <circle cx="50" cy="50" r="6.5" fill="#0891B2" />
       </g>
     </>
   );
@@ -191,24 +191,24 @@ function Mp3ToWavScene({ uid }: SceneProps) {
     <>
       <defs>
         <linearGradient id={`${uid}-orb`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#ffb14a" />
-          <stop offset="100%" stopColor="#2ec4b6" />
+          <stop offset="0%" stopColor="#4338CA" />
+          <stop offset="100%" stopColor="#0891B2" />
         </linearGradient>
       </defs>
       <g transform="translate(28 34)">
-        <rect width="86" height="92" rx="16" fill="#ff8a3d" />
-        <text x="43" y="40" textAnchor="middle" fontSize="15" fontWeight="800" fill="#fff" fontFamily="Outfit, ui-sans-serif">
+        <rect width="86" height="92" rx="16" fill="#4338CA" />
+        <text x="43" y="40" textAnchor="middle" fontSize="15" fontWeight="800" fill="#fff" fontFamily="Inter, ui-sans-serif">
           ANY
         </text>
         <WaveBars x={14} y={64} color="#fff" heights={[10, 22, 14, 28, 12, 20]} />
       </g>
       <ConvertOrb x={140} y={80} uid={uid} />
       <g transform="translate(166 34)">
-        <rect width="86" height="92" rx="16" fill="#1a9b88" />
-        <text x="43" y="40" textAnchor="middle" fontSize="14" fontWeight="800" fill="#fff" fontFamily="Outfit, ui-sans-serif">
+        <rect width="86" height="92" rx="16" fill="#0891B2" />
+        <text x="43" y="40" textAnchor="middle" fontSize="14" fontWeight="800" fill="#0B1220" fontFamily="Inter, ui-sans-serif">
           OUT
         </text>
-        <WaveBars x={14} y={64} color="#d9fff6" heights={[18, 12, 26, 14, 30, 16]} />
+        <WaveBars x={14} y={64} color="#0B1220" heights={[18, 12, 26, 14, 30, 16]} />
       </g>
     </>
   );
@@ -218,11 +218,11 @@ function AudioCutterScene() {
   return (
     <g transform="translate(24 48)">
       <rect width="232" height="64" rx="18" fill="#120f24" opacity="0.55" />
-      <WaveBars x={18} y={32} color="#c4b5ff" heights={[18, 34, 22, 40, 16, 36, 20, 42, 18, 30, 22, 38, 16, 28, 20, 34, 18, 26]} />
-      <rect x="78" y="8" width="76" height="48" rx="10" fill="#7b5cff" opacity="0.28" stroke="#c4b5ff" strokeWidth="2" />
+      <WaveBars x={18} y={32} color="#0891B2" heights={[18, 34, 22, 40, 16, 36, 20, 42, 18, 30, 22, 38, 16, 28, 20, 34, 18, 26]} />
+      <rect x="78" y="8" width="76" height="48" rx="10" fill="#4338CA" opacity="0.28" stroke="#0891B2" strokeWidth="2" />
       <g transform="translate(104  -18)">
-        <circle cx="12" cy="8" r="8" fill="#ff7a18" />
-        <circle cx="36" cy="8" r="8" fill="#ffd166" />
+        <circle cx="12" cy="8" r="8" fill="#4338CA" />
+        <circle cx="36" cy="8" r="8" fill="#0891B2" />
         <path d="M16 12l8 22 8-22" fill="none" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" />
       </g>
     </g>
@@ -232,18 +232,18 @@ function AudioCutterScene() {
 function TempoPitchScene() {
   return (
     <g transform="translate(28 36)">
-      <rect width="224" height="88" rx="18" fill="#0f1c22" opacity="0.7" />
-      <WaveBars x={16} y={44} color="#7ee0d2" heights={[14, 28, 18, 36, 12, 30, 20, 38, 16, 26, 22, 34, 14, 28]} />
+      <rect width="224" height="88" rx="18" fill="#0B1220" opacity="0.7" />
+      <WaveBars x={16} y={44} color="#0891B2" heights={[14, 28, 18, 36, 12, 30, 20, 38, 16, 26, 22, 34, 14, 28]} />
       <g transform="translate(150 10)">
-        <circle cx="28" cy="28" r="26" fill="#2a9d8f" />
-        <text x="28" y="24" textAnchor="middle" fontSize="9" fontWeight="700" fill="#d9fff6" fontFamily="Outfit, ui-sans-serif">
+        <circle cx="28" cy="28" r="26" fill="#0891B2" />
+        <text x="28" y="24" textAnchor="middle" fontSize="9" fontWeight="700" fill="#0B1220" fontFamily="Inter, ui-sans-serif">
           TAP
         </text>
-        <text x="28" y="40" textAnchor="middle" fontSize="14" fontWeight="800" fill="#fff" fontFamily="Outfit, ui-sans-serif">
+        <text x="28" y="40" textAnchor="middle" fontSize="14" fontWeight="800" fill="#0B1220" fontFamily="Inter, ui-sans-serif">
           BPM
         </text>
       </g>
-      <text x="20" y="78" fontSize="11" fontWeight="700" fill="#9ad7ce" fontFamily="Outfit, ui-sans-serif">
+      <text x="20" y="78" fontSize="11" fontWeight="700" fill="#F1F5F9" fontFamily="Inter, ui-sans-serif">
         ±12 st · ±50¢
       </text>
     </g>
@@ -255,8 +255,8 @@ function ImageCompressorScene() {
     <>
       <Photo x={28} y={34} width={118} height={92} />
       <g transform="translate(164 52)">
-        <path d="M18 0v18H0" fill="none" stroke="#1a7f96" strokeWidth="5" strokeLinecap="round" />
-        <path d="M8 8l10 10" stroke="#1a7f96" strokeWidth="5" strokeLinecap="round" />
+        <path d="M18 0v18H0" fill="none" stroke="#4338CA" strokeWidth="5" strokeLinecap="round" />
+        <path d="M8 8l10 10" stroke="#4338CA" strokeWidth="5" strokeLinecap="round" />
         <Photo x={8} y={16} width={78} height={58} sky="#9ad2f0" ground="#62b57d" />
       </g>
     </>
@@ -268,14 +268,14 @@ function WebpToJpgScene({ uid }: SceneProps) {
     <>
       <defs>
         <linearGradient id={`${uid}-orb`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#ff8a3d" />
-          <stop offset="100%" stopColor="#e1251b" />
+          <stop offset="0%" stopColor="#4338CA" />
+          <stop offset="100%" stopColor="#0891B2" />
         </linearGradient>
       </defs>
       <g transform="translate(22 30)">
         <Photo x={0} y={8} width={96} height={74} rotate={-8} sky="#8fd3c0" />
-        <rect x="18" y="86" width="58" height="20" rx="8" fill="#0f2744" />
-        <text x="47" y="100" textAnchor="middle" fontSize="11" fontWeight="800" fill="#fff" fontFamily="Outfit, ui-sans-serif">
+        <rect x="18" y="86" width="58" height="20" rx="8" fill="#0B1220" />
+        <text x="47" y="100" textAnchor="middle" fontSize="11" fontWeight="800" fill="#fff" fontFamily="Inter, ui-sans-serif">
           WEBP
         </text>
       </g>
@@ -283,7 +283,7 @@ function WebpToJpgScene({ uid }: SceneProps) {
       <g transform="translate(164 30)">
         <Photo x={0} y={8} width={96} height={74} rotate={8} sky="#f4b267" ground="#d9763b" />
         <rect x="18" y="86" width="58" height="20" rx="8" fill="#e1251b" />
-        <text x="47" y="100" textAnchor="middle" fontSize="11" fontWeight="800" fill="#fff" fontFamily="Outfit, ui-sans-serif">
+        <text x="47" y="100" textAnchor="middle" fontSize="11" fontWeight="800" fill="#fff" fontFamily="Inter, ui-sans-serif">
           JPG
         </text>
       </g>
@@ -295,14 +295,14 @@ function ImageResizerScene() {
   return (
     <g transform="translate(58 28)">
       <Photo x={16} y={16} width={132} height={96} />
-      <rect x="4" y="4" width="156" height="120" rx="10" fill="none" stroke="#1a7f96" strokeWidth="3" strokeDasharray="7 6" />
+      <rect x="4" y="4" width="156" height="120" rx="10" fill="none" stroke="#4338CA" strokeWidth="3" strokeDasharray="7 6" />
       {[
         [4, 4],
         [148, 4],
         [4, 112],
         [148, 112],
       ].map(([x, y]) => (
-        <rect key={`${x}-${y}`} x={x - 5} y={y - 5} width="12" height="12" rx="2" fill="#fff" stroke="#1a7f96" strokeWidth="2.4" />
+        <rect key={`${x}-${y}`} x={x - 5} y={y - 5} width="12" height="12" rx="2" fill="#fff" stroke="#4338CA" strokeWidth="2.4" />
       ))}
     </g>
   );
@@ -324,11 +324,11 @@ function ColorPickerScene({ uid }: SceneProps) {
       <circle cx="92" cy="80" r="20" fill="#fff" />
       <g transform="translate(148 42) rotate(28)">
         <rect x="12" y="0" width="14" height="54" rx="7" fill="#d7dee8" />
-        <rect x="8" y="46" width="22" height="28" rx="8" fill="#1a7f96" />
+        <rect x="8" y="46" width="22" height="28" rx="8" fill="#4338CA" />
         <circle cx="19" cy="18" r="9" fill="#ff5d73" stroke="#fff" strokeWidth="3" />
       </g>
       <g transform="translate(196 92)">
-        {["#E1251B", "#1A7F96", "#FFD166", "#6D5BFF"].map((color, index) => (
+        {["#E1251B", "#4338CA", "#FFD166", "#6D5BFF"].map((color, index) => (
           <rect key={color} x={index * 18} width="16" height="16" rx="4" fill={color} />
         ))}
       </g>
@@ -412,7 +412,7 @@ function WordDoc({
         fontSize={Math.max(8, Math.min(13, width * 0.17))}
         fontWeight="800"
         fill="#2B579A"
-        fontFamily="Outfit, ui-sans-serif, system-ui"
+        fontFamily="Inter, ui-sans-serif, system-ui"
       >
         DOC
       </text>
@@ -436,15 +436,15 @@ function PdfToWordScene() {
 function WordCounterScene() {
   return (
     <g transform="translate(58 24)">
-      <rect x="8" y="8" width="164" height="112" rx="14" fill="#c9b89a" opacity="0.35" />
-      <rect width="164" height="112" rx="14" fill="#fffaf2" />
-      <rect x="18" y="22" width="92" height="8" rx="4" fill="#cfc3aa" />
-      <rect x="18" y="40" width="118" height="7" rx="3.5" fill="#e4d9c4" />
-      <rect x="18" y="54" width="108" height="7" rx="3.5" fill="#e4d9c4" />
-      <rect x="18" y="68" width="96" height="7" rx="3.5" fill="#e4d9c4" />
+      <rect x="8" y="8" width="164" height="112" rx="14" fill="#E2E8F0" opacity="0.9" />
+      <rect width="164" height="112" rx="14" fill="#F8FAFC" />
+      <rect x="18" y="22" width="92" height="8" rx="4" fill="#CBD5E1" />
+      <rect x="18" y="40" width="118" height="7" rx="3.5" fill="#E2E8F0" />
+      <rect x="18" y="54" width="108" height="7" rx="3.5" fill="#E2E8F0" />
+      <rect x="18" y="68" width="96" height="7" rx="3.5" fill="#E2E8F0" />
       <g transform="translate(96 78)">
-        <rect width="54" height="22" rx="11" fill="#1a7f96" />
-        <text x="27" y="15" textAnchor="middle" fontSize="11" fontWeight="800" fill="#fff" fontFamily="Outfit, ui-sans-serif">
+        <rect width="54" height="22" rx="11" fill="#4338CA" />
+        <text x="27" y="15" textAnchor="middle" fontSize="11" fontWeight="800" fill="#fff" fontFamily="Inter, ui-sans-serif">
           248
         </text>
       </g>
@@ -457,20 +457,20 @@ function Base64Scene({ uid }: SceneProps) {
     <>
       <defs>
         <linearGradient id={`${uid}-orb`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#4d7cff" />
-          <stop offset="100%" stopColor="#6d5bff" />
+          <stop offset="0%" stopColor="#4338CA" />
+          <stop offset="100%" stopColor="#0891B2" />
         </linearGradient>
       </defs>
       <g transform="translate(24 42)">
-        <rect width="96" height="76" rx="16" fill="#2b3558" />
-        <text x="48" y="46" textAnchor="middle" fontSize="22" fontWeight="800" fill="#fff" fontFamily="Outfit, ui-sans-serif">
+        <rect width="96" height="76" rx="16" fill="#1E293B" />
+        <text x="48" y="46" textAnchor="middle" fontSize="22" fontWeight="800" fill="#fff" fontFamily="Inter, ui-sans-serif">
           ABC
         </text>
       </g>
       <ConvertOrb x={140} y={80} uid={uid} />
       <g transform="translate(162 42)">
-        <rect width="96" height="76" rx="16" fill="#4d7cff" />
-        <text x="48" y="46" textAnchor="middle" fontSize="18" fontWeight="800" fill="#fff" fontFamily="Outfit, ui-sans-serif">
+        <rect width="96" height="76" rx="16" fill="#0891B2" />
+        <text x="48" y="46" textAnchor="middle" fontSize="18" fontWeight="800" fill="#fff" fontFamily="Inter, ui-sans-serif">
           QUJD
         </text>
       </g>
@@ -537,8 +537,8 @@ function QrGeneratorScene() {
   return (
     <>
       <QrMark x={86} y={28} size={108} />
-      <circle cx="214" cy="46" r="10" fill="#2ec4b6" />
-      <circle cx="58" cy="118" r="7" fill="#1a7f96" />
+      <circle cx="214" cy="46" r="10" fill="#0891B2" />
+      <circle cx="58" cy="118" r="7" fill="#4338CA" />
     </>
   );
 }
@@ -546,13 +546,13 @@ function QrGeneratorScene() {
 function QrReaderScene() {
   return (
     <>
-      <QrMark x={78} y={34} size={96} color="#16324a" />
-      <rect x="62" y="22" width="128" height="116" rx="18" fill="none" stroke="#1a7f96" strokeWidth="5" />
-      <path d="M62 50h128" stroke="#ff7a18" strokeWidth="4" opacity="0.9" />
-      <rect x="54" y="14" width="22" height="22" rx="5" fill="none" stroke="#1a7f96" strokeWidth="5" />
-      <rect x="176" y="14" width="22" height="22" rx="5" fill="none" stroke="#1a7f96" strokeWidth="5" />
-      <rect x="54" y="124" width="22" height="22" rx="5" fill="none" stroke="#1a7f96" strokeWidth="5" />
-      <rect x="176" y="124" width="22" height="22" rx="5" fill="none" stroke="#1a7f96" strokeWidth="5" />
+      <QrMark x={78} y={34} size={96} color="#0B1220" />
+      <rect x="62" y="22" width="128" height="116" rx="18" fill="none" stroke="#4338CA" strokeWidth="5" />
+      <path d="M62 50h128" stroke="#4338CA" strokeWidth="4" opacity="0.9" />
+      <rect x="54" y="14" width="22" height="22" rx="5" fill="none" stroke="#4338CA" strokeWidth="5" />
+      <rect x="176" y="14" width="22" height="22" rx="5" fill="none" stroke="#4338CA" strokeWidth="5" />
+      <rect x="54" y="124" width="22" height="22" rx="5" fill="none" stroke="#4338CA" strokeWidth="5" />
+      <rect x="176" y="124" width="22" height="22" rx="5" fill="none" stroke="#4338CA" strokeWidth="5" />
     </>
   );
 }
@@ -560,13 +560,13 @@ function QrReaderScene() {
 function PasswordScene() {
   return (
     <g transform="translate(78 22)">
-      <path d="M62 18c0-18 18-30 38-30s38 12 38 30v18H62z" fill="#f0c14b" />
-      <rect y="34" width="124" height="92" rx="22" fill="#2a210e" />
-      <circle cx="62" cy="74" r="16" fill="#f0c14b" />
-      <rect x="56" y="74" width="12" height="22" rx="6" fill="#2a210e" />
+      <path d="M62 18c0-18 18-30 38-30s38 12 38 30v18H62z" fill="#4338CA" />
+      <rect y="34" width="124" height="92" rx="22" fill="#0B1220" />
+      <circle cx="62" cy="74" r="16" fill="#0891B2" />
+      <rect x="56" y="74" width="12" height="22" rx="6" fill="#0B1220" />
       <g transform="translate(28 108)">
         {[0, 1, 2, 3, 4, 5].map((index) => (
-          <circle key={index} cx={index * 14} cy="0" r="4.5" fill="#f6e2a2" />
+          <circle key={index} cx={index * 14} cy="0" r="4.5" fill="#0891B2" />
         ))}
       </g>
     </g>
@@ -618,11 +618,11 @@ export function CategoryMark({ category, className }: { category: ToolGroupSlug;
       {category === "audio" ? (
         <>
           <rect x="6" y="12" width="18" height="24" rx="4" fill="#fff" opacity="0.92" />
-          <path d="M12 21v6l5-3z" fill="#ff7a18" />
+          <path d="M12 21v6l5-3z" fill="#4338CA" />
           <g transform="translate(28 16)">
-            <rect x="0" y="8" width="3" height="10" rx="1.5" fill="#7ee0d2" />
-            <rect x="5" y="4" width="3" height="18" rx="1.5" fill="#7ee0d2" />
-            <rect x="10" y="7" width="3" height="12" rx="1.5" fill="#c4b5ff" />
+            <rect x="0" y="8" width="3" height="10" rx="1.5" fill="#0891B2" />
+            <rect x="5" y="4" width="3" height="18" rx="1.5" fill="#0891B2" />
+            <rect x="10" y="7" width="3" height="12" rx="1.5" fill="#0891B2" />
           </g>
         </>
       ) : null}
@@ -631,7 +631,7 @@ export function CategoryMark({ category, className }: { category: ToolGroupSlug;
       {category === "text" ? (
         <>
           <rect x="10" y="8" width="28" height="32" rx="6" fill="#fff" />
-          <rect x="15" y="15" width="18" height="3" rx="1.5" fill="#1a7f96" />
+          <rect x="15" y="15" width="18" height="3" rx="1.5" fill="#4338CA" />
           <rect x="15" y="22" width="14" height="2.5" rx="1.2" fill="#cfc3aa" />
           <rect x="15" y="28" width="16" height="2.5" rx="1.2" fill="#cfc3aa" />
         </>
