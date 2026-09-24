@@ -68,10 +68,25 @@ a {
   flex-shrink: 0;
 }
 
-.qvi-logo img {
+/* Source PNGs are 1600 squares. The wordmark occupies x 213–1383, y 601–1066.
+   Crop in CSS so the lockup is 2rem tall without re-encoding the file. */
+.qvi-logo-frame {
+  position: relative;
   display: block;
-  width: auto;
+  overflow: hidden;
+  flex: none;
   height: 2rem;
+  width: calc(2rem * 1170 / 465);
+}
+
+.qvi-logo-frame img {
+  position: absolute;
+  display: block;
+  max-width: none;
+  width: calc(2rem * 1600 / 465);
+  height: calc(2rem * 1600 / 465);
+  left: calc(2rem * -213 / 465);
+  top: calc(2rem * -601 / 465);
 }
 
 .qvi-logo .qvi-logo-dark {
