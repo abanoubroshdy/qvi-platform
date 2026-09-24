@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Circle, Minus, Pause, Play, Plus, Square, Upload } from "lucide-react";
+import { Circle, Minus, Pause, Play, Plus, Repeat2, Square, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatStudioTimecode, sessionDisplayBpm, studioNewProjectButtonPhase, studioProjectIsOpen } from "@/lib/studio/chrome";
 import { finishedProjectName } from "@/lib/studio/project";
@@ -84,6 +84,19 @@ export function StudioTransportDock({ copy }: { copy: Messages["studio"] }) {
             onClick={() => void studio.toggleRecord()}
           >
             <Circle className={studio.recording ? "fill-current" : ""} />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            className="h-8 w-8"
+            aria-pressed={studio.loopEnabled}
+            aria-label={copy.loop}
+            disabled={!studio.timeRange}
+            title={studio.timeRange ? copy.loopHint : copy.loopNeedsRange}
+            onClick={() => studio.setLoopEnabled(!studio.loopEnabled)}
+          >
+            <Repeat2 className={studio.loopEnabled ? "text-[hsl(var(--studio-teal))]" : undefined} />
           </Button>
         </div>
         <TransportClock label={copy.timecode} duration={studio.duration} />

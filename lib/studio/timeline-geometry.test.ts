@@ -5,6 +5,7 @@ import {
   moveClipOffset,
   musicalBarMarks,
   nextPixelsPerSecond,
+  normalizeTimeRange,
   secondsPerBar,
   secondsPerBeat,
   snapClipMove,
@@ -12,6 +13,7 @@ import {
   snapTrimEnd,
   snapTrimStart,
   timeAtPixel,
+  timeRangeRect,
   rulerMarks,
   timelineWidthPx,
   trimClipEnd,
@@ -71,6 +73,15 @@ describe("studio timeline geometry", () => {
     expect(snapHeardTime(1.6, 120, "off")).toBe(1.6);
     expect(snapHeardTime(-2, 120, "beat")).toBe(0);
     expect(snapClipMove(1, 0.4, 120, "beat")).toBe(1.5);
+  });
+
+  it("normalizes a time range without depending on drag direction", () => {
+    expect(normalizeTimeRange(2, 0.5, 10)).toEqual({ startSec: 0.5, endSec: 2 });
+    expect(normalizeTimeRange(1, 1.06, 10)).toEqual({ startSec: 1, endSec: 1.06 });
+    expect(normalizeTimeRange(1, 1.02, 10)).toBeNull();
+    expect(normalizeTimeRange(-2, 100, 4)).toEqual({ startSec: 0, endSec: 4 });
+    expect(normalizeTimeRange(Number.NaN, 2, 10)).toEqual({ startSec: 0, endSec: 2 });
+    expect(timeRangeRect({ startSec: 1, endSec: 3 }, 20)).toEqual({ leftPx: 20, widthPx: 40 });
   });
 
   it("snaps a trim edge without moving the other edge off the grid math", () => {

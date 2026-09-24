@@ -195,6 +195,8 @@ export const qviStudioV1Capabilities = [
     acceptance: [
       "The timeline shows heard time, after tempo, not raw source time.",
       "The playhead is shared by every track.",
+      "A time range can be selected on the ruler without moving the playhead.",
+      "Optional loop repeats playback inside the selected time range.",
       "Horizontal zoom is available.",
       "The timeline axis stays left-to-right in Arabic.",
     ],

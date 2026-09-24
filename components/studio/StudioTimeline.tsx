@@ -1,13 +1,25 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AudioLines } from "lucide-react";
 import { sessionDisplayBpm } from "@/lib/studio/chrome";
-import { musicalBarMarks, secondsPerBar, secondsPerBeat, timelineWidthPx } from "@/lib/studio/timeline-geometry";
+import {
+  musicalBarMarks,
+  normalizeTimeRange,
+  secondsPerBar,
+  secondsPerBeat,
+  snapHeardTime,
+  timeAtPixel,
+  timelineWidthPx,
+  timeRangeRect,
+  type StudioTimeRange,
+} from "@/lib/studio/timeline-geometry";
 import type { Messages } from "@/lib/i18n";
 import { StudioTrackHeader } from "@/components/studio/StudioTrackHeader";
 import { StudioTrackLane } from "@/components/studio/StudioTrackLane";
 import { useStudio } from "@/components/studio/studio-context";
+
+const RANGE_DRAG_THRESHOLD_PX = 3;
 
 export function StudioTimeline({ copy }: { copy: Messages["studio"] }) {
   const studio = useStudio();
@@ -16,6 +28,7 @@ export function StudioTimeline({ copy }: { copy: Messages["studio"] }) {
   const beatPx = secondsPerBeat(bpm) * studio.pixelsPerSecond;
   const barPx = secondsPerBar(bpm) * studio.pixelsPerSecond;
   const marks = musicalBarMarks(studio.duration, studio.pixelsPerSecond, bpm);
+  const [draftRange, setDraftRange] = useState<StudioTimeRange | null>(null);
   const selectedOnTrack = (trackId: string) => {
     const ids = new Set<string>();
     for (const item of studio.selection) {
@@ -23,6 +36,7 @@ export function StudioTimeline({ copy }: { copy: Messages["studio"] }) {
     }
     return ids;
   };
+  const visibleRange = draftRange ?? studio.timeRange;
 
   return (
     <section aria-label={copy.timeline} className="flex min-h-0 flex-1 flex-col" dir="ltr">
@@ -57,17 +71,26 @@ export function StudioTimeline({ copy }: { copy: Messages["studio"] }) {
           </div>
           <div className="studio-lanes min-w-0 flex-1 overflow-x-auto">
             <div className="relative" style={{ width }}>
-              <div
-                className="studio-ruler relative h-7 border-b border-border text-[10px] text-[hsl(var(--studio-sand))]"
-                data-grid={beatPx >= 8 ? "beats" : "bars"}
-                style={{ ["--beat-px" as string]: `${beatPx}px`, ["--bar-px" as string]: `${barPx}px` }}
-              >
-                {marks.map((mark) => (
-                  <span key={mark.bar} className="absolute top-1 translate-x-1 font-mono tabular-nums" style={{ left: mark.timeSec * studio.pixelsPerSecond }}>
-                    {mark.bar}
-                  </span>
-                ))}
-              </div>
+              <Ruler
+                marks={marks}
+                beatPx={beatPx}
+                barPx={barPx}
+                pixelsPerSecond={studio.pixelsPerSecond}
+                duration={studio.duration}
+                bpm={bpm}
+                snapMode={studio.snapMode}
+                label={copy.timeRange}
+                onSeek={(seconds) => {
+                  studio.clearTimeRange();
+                  studio.seek(seconds);
+                }}
+                onRangeDraft={setDraftRange}
+                onRangeCommit={(range) => {
+                  setDraftRange(null);
+                  studio.setTimeRange(range);
+                }}
+                onRangeCancel={() => setDraftRange(null)}
+              />
               {studio.project.tracks.map((track) => (
                 <StudioTrackLane
                   key={track.id}
@@ -89,12 +112,142 @@ export function StudioTimeline({ copy }: { copy: Messages["studio"] }) {
                   onTrim={(clipId, patch) => studio.setTrim(track.id, clipId, patch)}
                 />
               ))}
+              {visibleRange ? (
+                <TimeRangeOverlay
+                  range={visibleRange}
+                  pixelsPerSecond={studio.pixelsPerSecond}
+                  looping={studio.loopEnabled}
+                  label={copy.timeRange}
+                />
+              ) : null}
               <Playhead pixelsPerSecond={studio.pixelsPerSecond} />
             </div>
           </div>
         </div>
       )}
     </section>
+  );
+}
+
+function Ruler({
+  marks,
+  beatPx,
+  barPx,
+  pixelsPerSecond,
+  duration,
+  bpm,
+  snapMode,
+  label,
+  onSeek,
+  onRangeDraft,
+  onRangeCommit,
+  onRangeCancel,
+}: {
+  marks: readonly { timeSec: number; bar: number }[];
+  beatPx: number;
+  barPx: number;
+  pixelsPerSecond: number;
+  duration: number;
+  bpm: number;
+  snapMode: "bar" | "beat" | "off";
+  label: string;
+  onSeek: (seconds: number) => void;
+  onRangeDraft: (range: StudioTimeRange | null) => void;
+  onRangeCommit: (range: StudioTimeRange) => void;
+  onRangeCancel: () => void;
+}) {
+  const originRef = useRef<{ x: number; timeSec: number } | null>(null);
+  const draggingRef = useRef(false);
+
+  const timeFromClientX = (clientX: number, target: HTMLElement) => {
+    const rect = target.getBoundingClientRect();
+    const raw = timeAtPixel(clientX - rect.left, pixelsPerSecond, Number.POSITIVE_INFINITY);
+    return snapHeardTime(raw, bpm, snapMode);
+  };
+
+  return (
+    <div
+      className="studio-ruler relative h-7 cursor-ew-resize border-b border-border text-[10px] text-[hsl(var(--studio-sand))]"
+      data-grid={beatPx >= 8 ? "beats" : "bars"}
+      style={{ ["--beat-px" as string]: `${beatPx}px`, ["--bar-px" as string]: `${barPx}px` }}
+      role="slider"
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={Math.max(duration, 0)}
+      tabIndex={0}
+      onPointerDown={(event) => {
+        if (event.button !== 0) return;
+        const target = event.currentTarget;
+        const timeSec = timeFromClientX(event.clientX, target);
+        originRef.current = { x: event.clientX, timeSec };
+        draggingRef.current = false;
+        target.setPointerCapture(event.pointerId);
+      }}
+      onPointerMove={(event) => {
+        const origin = originRef.current;
+        if (!origin || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
+        if (!draggingRef.current && Math.abs(event.clientX - origin.x) < RANGE_DRAG_THRESHOLD_PX) return;
+        draggingRef.current = true;
+        const endSec = timeFromClientX(event.clientX, event.currentTarget);
+        onRangeDraft(normalizeTimeRange(origin.timeSec, endSec, duration));
+      }}
+      onPointerUp={(event) => {
+        const origin = originRef.current;
+        originRef.current = null;
+        if (!origin) return;
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+          event.currentTarget.releasePointerCapture(event.pointerId);
+        }
+        if (!draggingRef.current) {
+          onRangeCancel();
+          onSeek(origin.timeSec);
+          return;
+        }
+        draggingRef.current = false;
+        const endSec = timeFromClientX(event.clientX, event.currentTarget);
+        const range = normalizeTimeRange(origin.timeSec, endSec, duration);
+        if (range) onRangeCommit(range);
+        else onRangeCancel();
+      }}
+      onPointerCancel={() => {
+        originRef.current = null;
+        draggingRef.current = false;
+        onRangeCancel();
+      }}
+    >
+      {marks.map((mark) => (
+        <span key={mark.bar} className="absolute top-1 translate-x-1 font-mono tabular-nums" style={{ left: mark.timeSec * pixelsPerSecond }}>
+          {mark.bar}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function TimeRangeOverlay({
+  range,
+  pixelsPerSecond,
+  looping,
+  label,
+}: {
+  range: StudioTimeRange;
+  pixelsPerSecond: number;
+  looping: boolean;
+  label: string;
+}) {
+  const { leftPx, widthPx } = timeRangeRect(range, pixelsPerSecond);
+  return (
+    <div
+      className="studio-time-range pointer-events-none absolute bottom-0 top-0 z-20"
+      data-looping={looping ? "true" : "false"}
+      style={{ left: leftPx, width: widthPx }}
+      aria-hidden
+      title={label}
+    >
+      <span className="studio-time-range-fill" />
+      <span className="studio-time-range-edge studio-time-range-edge-start" />
+      <span className="studio-time-range-edge studio-time-range-edge-end" />
+    </div>
   );
 }
 

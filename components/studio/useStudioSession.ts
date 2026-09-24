@@ -59,7 +59,7 @@ import {
   type StudioSessionAudio,
 } from "@/lib/studio/session-store";
 import type { StudioProject, StudioTrack } from "@/lib/studio/types";
-import { viewportFromWidth, type StudioSnapMode } from "@/lib/studio/timeline-geometry";
+import { viewportFromWidth, type StudioSnapMode, type StudioTimeRange } from "@/lib/studio/timeline-geometry";
 
 export type StudioClipRef = { trackId: string; clipId: string };
 
@@ -148,6 +148,12 @@ export function useStudioSession() {
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
   const [selection, setSelection] = useState<StudioClipRef[]>([]);
   const [snapMode, setSnapMode] = useState<StudioSnapMode>("beat");
+  const [timeRange, setTimeRange] = useState<StudioTimeRange | null>(null);
+  const [loopEnabled, setLoopEnabled] = useState(false);
+  const timeRangeRef = useRef<StudioTimeRange | null>(null);
+  const loopEnabledRef = useRef(false);
+  timeRangeRef.current = timeRange;
+  loopEnabledRef.current = loopEnabled;
   const [pixelsPerSecond, setPixelsPerSecond] = useState(48);
   const [notice, setNotice] = useState<StudioNoticeCode | null>(null);
   const [renderingIds, setRenderingIds] = useState<string[]>([]);
@@ -374,6 +380,22 @@ export function useStudioSession() {
       const engine = engineRef.current;
       if (!engine || engine.currentStatus() !== "playing") return;
       const snap = engine.poll();
+      const range = timeRangeRef.current;
+      const looping = loopEnabledRef.current && range !== null;
+      if (looping && range && snap.playheadSec >= range.endSec - 1e-4) {
+        const next = seekPlayhead(projectRef.current, range.startSec);
+        projectRef.current = next;
+        setProject(next);
+        if (snap.status !== "playing") {
+          engine.play(next);
+        } else {
+          engine.seek(range.startSec);
+        }
+        setTransport({ status: "playing", playheadSec: range.startSec });
+        publishPlayhead(range.startSec);
+        frame = requestAnimationFrame(tick);
+        return;
+      }
       publishPlayhead(snap.playheadSec);
       if (snap.status !== "playing") {
         const next = seekPlayhead(projectRef.current, snap.playheadSec);
@@ -414,6 +436,12 @@ export function useStudioSession() {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (isStudioTextTarget(event.target)) return;
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setTimeRange(null);
+        setLoopEnabled(false);
+        return;
+      }
       const command = studioTransportCommand(event);
       if (!command) return;
       event.preventDefault();
@@ -635,6 +663,16 @@ export function useStudioSession() {
 
   useEffect(() => () => captureRef.current?.dispose(), []);
 
+  const clearTimeRange = useCallback(() => {
+    setTimeRange(null);
+    setLoopEnabled(false);
+  }, []);
+
+  const assignTimeRange = useCallback((range: StudioTimeRange | null) => {
+    setTimeRange(range);
+    if (!range) setLoopEnabled(false);
+  }, []);
+
   const selectedTrack = project.tracks.find((track) => track.id === selectedTrackId) ?? null;
   const selectedClip = selectedTrack?.clips.find((clip) => clip.id === selectedClipId) ?? selectedTrack?.clips[0] ?? null;
 
@@ -666,6 +704,11 @@ export function useStudioSession() {
     selection,
     snapMode,
     setSnapMode,
+    timeRange,
+    setTimeRange: assignTimeRange,
+    clearTimeRange,
+    loopEnabled,
+    setLoopEnabled,
     selectClip,
     moveClipGroup,
     addEmptyTrack: () => {
@@ -740,6 +783,8 @@ export function useStudioSession() {
       setSelectedTrackId(null);
       setSelectedClipId(null);
       setSelection([]);
+      setTimeRange(null);
+      setLoopEnabled(false);
       setNotice(null);
       commit(createStudioProject(STUDIO_DEFAULT_PROJECT_NAME));
       setTransport({ status: "idle", playheadSec: 0 });

@@ -470,6 +470,38 @@ body:has(.studio-console) {
   background: hsl(var(--studio-teal));
 }
 
+.studio-time-range {
+  min-width: 1px;
+}
+
+.studio-time-range-fill {
+  position: absolute;
+  inset: 0;
+  background: hsl(var(--studio-teal) / 0.14);
+  box-shadow: inset 0 0 0 1px hsl(var(--studio-teal) / 0.35);
+}
+
+.studio-time-range[data-looping="true"] .studio-time-range-fill {
+  background: hsl(var(--studio-teal) / 0.22);
+  box-shadow: inset 0 0 0 1px hsl(var(--studio-teal) / 0.55);
+}
+
+.studio-time-range-edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: hsl(var(--studio-teal) / 0.85);
+}
+
+.studio-time-range-edge-start {
+  left: 0;
+}
+
+.studio-time-range-edge-end {
+  right: 0;
+}
+
 .studio-meter {
   position: relative;
   overflow: hidden;

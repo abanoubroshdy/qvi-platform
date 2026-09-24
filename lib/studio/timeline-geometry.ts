@@ -12,9 +12,17 @@ export const STUDIO_MIN_PIXELS_PER_SECOND = 16;
 export const STUDIO_MAX_PIXELS_PER_SECOND = 160;
 export const STUDIO_BEATS_PER_BAR = 4;
 const MIN_TRIM_SEC = 0.05;
+/** Shortest selectable time range (same floor as trim). */
+export const STUDIO_MIN_TIME_RANGE_SEC = MIN_TRIM_SEC;
 const DEFAULT_RULER_BPM = 120;
 
 export type StudioSnapMode = "bar" | "beat" | "off";
+
+/** Heard-time selection on the timeline. Distinct from the playhead. */
+export type StudioTimeRange = {
+  startSec: number;
+  endSec: number;
+};
 
 export type StudioBarMark = {
   timeSec: number;
@@ -127,6 +135,32 @@ export function timeAtPixel(pixel: number, pixelsPerSecond: number, durationSec:
   const time = pixel / pixelsPerSecond;
   const cap = Number.isFinite(durationSec) ? Math.max(0, durationSec) : Number.POSITIVE_INFINITY;
   return Math.min(cap, Math.max(0, time));
+}
+
+/**
+ * Ordered, clamped heard-time range. Returns null when the span is empty or below the minimum.
+ * `a` and `b` may be in either order (drag start/end).
+ */
+export function normalizeTimeRange(
+  a: number,
+  b: number,
+  durationSec = Number.POSITIVE_INFINITY,
+  minSpanSec = STUDIO_MIN_TIME_RANGE_SEC,
+): StudioTimeRange | null {
+  const cap = Number.isFinite(durationSec) && durationSec >= 0 ? durationSec : Number.POSITIVE_INFINITY;
+  const rawA = Number.isFinite(a) ? a : 0;
+  const rawB = Number.isFinite(b) ? b : 0;
+  const startSec = Math.min(cap, Math.max(0, Math.min(rawA, rawB)));
+  const endSec = Math.min(cap, Math.max(0, Math.max(rawA, rawB)));
+  const minSpan = Number.isFinite(minSpanSec) && minSpanSec > 0 ? minSpanSec : STUDIO_MIN_TIME_RANGE_SEC;
+  if (!(endSec - startSec >= minSpan)) return null;
+  return { startSec, endSec };
+}
+
+export function timeRangeRect(range: StudioTimeRange, pixelsPerSecond: number): { leftPx: number; widthPx: number } {
+  const leftPx = Math.max(0, range.startSec) * pixelsPerSecond;
+  const widthPx = Math.max(0, (range.endSec - range.startSec) * pixelsPerSecond);
+  return { leftPx, widthPx };
 }
 
 export function moveClipOffset(offsetSec: number, deltaSec: number): number {
