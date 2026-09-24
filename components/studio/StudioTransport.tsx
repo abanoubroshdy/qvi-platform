@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Circle, Minus, Pause, Play, Plus, Repeat2, Square, Upload } from "lucide-react";
+import { Circle, Minus, Pause, Play, Plus, Repeat2, Square, Timer, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatStudioTimecode, sessionDisplayBpm, studioNewProjectButtonPhase, studioProjectIsOpen } from "@/lib/studio/chrome";
 import { finishedProjectName } from "@/lib/studio/project";
@@ -43,16 +43,43 @@ export function StudioTransportDock({ copy }: { copy: Messages["studio"] }) {
       <div aria-hidden="true" />
       <div className="flex min-w-0 flex-wrap items-center justify-center gap-x-2 gap-y-1" role="group" aria-label={copy.play}>
         <SeekControl label={copy.seek} />
-        {bpm !== null ? (
-          <span className="studio-bpm" dir="ltr" title={studio.selectedTrack?.name}>
-            {bpm.toFixed(1)}
-            <span className="font-medium tracking-wide">{copy.bpm}</span>
-          </span>
-        ) : (
-          <span className="studio-bpm studio-bpm-empty" dir="ltr" aria-label={copy.bpm}>
-            —<span className="font-medium tracking-wide">{copy.bpm}</span>
-          </span>
-        )}
+        <div className="flex items-center gap-1">
+          {bpm !== null ? (
+            <span className="studio-bpm" dir="ltr" title={studio.selectedTrack?.name}>
+              {bpm.toFixed(1)}
+              <span className="font-medium tracking-wide">{copy.bpm}</span>
+            </span>
+          ) : (
+            <span className="studio-bpm studio-bpm-empty" dir="ltr" aria-label={copy.bpm}>
+              —<span className="font-medium tracking-wide">{copy.bpm}</span>
+            </span>
+          )}
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-8 px-2 text-[0.68rem] font-semibold uppercase tracking-wide"
+            aria-label={copy.tapTempo}
+            title={copy.tapTempoHint}
+            disabled={studio.project.tracks.length === 0}
+            onClick={studio.tapTempo}
+          >
+            {copy.tapTempo}
+            {studio.tapCount > 0 ? <span className="ms-1 tabular-nums opacity-70">{studio.tapCount}</span> : null}
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant={studio.metronomeEnabled ? "default" : "outline"}
+            className="h-8 w-8"
+            aria-pressed={studio.metronomeEnabled}
+            aria-label={copy.metronome}
+            title={copy.metronomeHint}
+            onClick={() => studio.setMetronomeEnabled(!studio.metronomeEnabled)}
+          >
+            <Timer />
+          </Button>
+        </div>
         <div className="flex items-center gap-1">
           <Button
             type="button"

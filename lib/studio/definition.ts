@@ -239,6 +239,8 @@ export const qviStudioV1Capabilities = [
       "Stop silences playback and returns the playhead to 0.",
       "Seek clamps to the project timeline.",
       "AudioContext resumes only after a user gesture.",
+      "Tap tempo sets the selected track BPM from recent taps.",
+      "An optional metronome clicks on the bar grid while playing or recording.",
     ],
   },
   {

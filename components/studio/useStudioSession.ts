@@ -3,7 +3,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { stretchAudioBufferOffThread } from "@/lib/audio-stretch-task";
 import { createLiveStretchNode, enableLiveStretch } from "@/lib/audio-stretch-worklet";
-import { isStudioTextTarget, studioTransportCommand } from "@/lib/studio/chrome";
+import { isStudioTextTarget, sessionDisplayBpm, studioTransportCommand } from "@/lib/studio/chrome";
+import { appendTap, tapBpmFromTimestamps } from "@/lib/audio-tempo";
+import {
+  STUDIO_METRONOME_LOOKAHEAD_SEC,
+  STUDIO_METRONOME_SCHEDULE_MS,
+  contextTimeForHeardClick,
+  metronomeClicksInWindow,
+  playMetronomeClick,
+} from "@/lib/studio/metronome";
 import { createBrowserTempoPitchPreview, connectTempoPreview } from "@/lib/studio/tempo-preview";
 import { loadStudioFile } from "@/lib/studio/load-clip";
 import { studioPeakBarCount } from "@/lib/studio/peaks";
@@ -154,6 +162,15 @@ export function useStudioSession() {
   const loopEnabledRef = useRef(false);
   timeRangeRef.current = timeRange;
   loopEnabledRef.current = loopEnabled;
+  const [metronomeEnabled, setMetronomeEnabled] = useState(false);
+  const [tapCount, setTapCount] = useState(0);
+  const tapTimesRef = useRef<number[]>([]);
+  const metronomeEnabledRef = useRef(false);
+  metronomeEnabledRef.current = metronomeEnabled;
+  const selectedTrackIdRef = useRef<string | null>(null);
+  selectedTrackIdRef.current = selectedTrackId;
+  const recordingRef = useRef(false);
+  recordingRef.current = recording;
   const [pixelsPerSecond, setPixelsPerSecond] = useState(48);
   const [notice, setNotice] = useState<StudioNoticeCode | null>(null);
   const [renderingIds, setRenderingIds] = useState<string[]>([]);
@@ -410,6 +427,45 @@ export function useStudioSession() {
     return () => cancelAnimationFrame(frame);
   }, [publishPlayhead, transport.status]);
 
+  useEffect(() => {
+    const active = metronomeEnabled && (transport.status === "playing" || recording);
+    if (!active) return;
+    const context = contextRef.current;
+    if (!context) return;
+    let nextHeard = -1;
+    let freeNextAt = context.currentTime;
+    let freeBeat = 0;
+    const timer = window.setInterval(() => {
+      if (!metronomeEnabledRef.current) return;
+      const engine = engineRef.current;
+      const playing = engine?.currentStatus() === "playing";
+      const bpm =
+        sessionDisplayBpm(projectRef.current.tracks, selectedTrackIdRef.current) ?? 120;
+      if (playing && engine) {
+        const playhead = engine.currentPlayhead();
+        const from = Math.max(playhead, nextHeard);
+        const to = playhead + STUDIO_METRONOME_LOOKAHEAD_SEC;
+        const clicks = metronomeClicksInWindow(from, to, bpm);
+        for (const click of clicks) {
+          if (click.timeSec < nextHeard) continue;
+          const when = contextTimeForHeardClick(click.timeSec, playhead, context.currentTime);
+          playMetronomeClick(context, when, click.accent);
+          nextHeard = click.timeSec + 1e-4;
+        }
+        return;
+      }
+      if (!recordingRef.current) return;
+      const horizon = context.currentTime + STUDIO_METRONOME_LOOKAHEAD_SEC;
+      const beat = Math.max(1e-3, 60 / (Number.isFinite(bpm) && bpm > 0 ? bpm : 120));
+      while (freeNextAt < horizon) {
+        playMetronomeClick(context, freeNextAt, freeBeat % 4 === 0);
+        freeNextAt += beat;
+        freeBeat += 1;
+      }
+    }, STUDIO_METRONOME_SCHEDULE_MS);
+    return () => window.clearInterval(timer);
+  }, [metronomeEnabled, recording, transport.status]);
+
   const seek = useCallback(
     (seconds: number) => {
       const next = seekPlayhead(projectRef.current, seconds);
@@ -433,6 +489,43 @@ export function useStudioSession() {
   const seekRef = useRef(seek);
   stopRef.current = stop;
   seekRef.current = seek;
+
+  const tapTempo = useCallback(() => {
+    const now = performance.now();
+    const next = appendTap(tapTimesRef.current, now);
+    tapTimesRef.current = next;
+    setTapCount(next.length);
+    const bpm = tapBpmFromTimestamps(next);
+    if (bpm == null) return;
+    const tracks = projectRef.current.tracks;
+    const track = tracks.find((item) => item.id === selectedTrackIdRef.current) ?? tracks[0] ?? null;
+    if (!track) return;
+    if (track.tempo.mode === "bpm") {
+      const sync = Math.abs(track.tempo.targetBpm - track.tempo.originalBpm) < 0.05;
+      const result = setTrackTempo(
+        projectRef.current,
+        track.id,
+        sync ? { originalBpm: bpm, targetBpm: bpm } : { targetBpm: bpm },
+      );
+      if (result.ok) commit(result.project);
+      return;
+    }
+    const result = setTrackTempo(projectRef.current, track.id, {
+      mode: "bpm",
+      originalBpm: bpm,
+      targetBpm: bpm,
+    });
+    if (result.ok) commit(result.project);
+  }, [commit]);
+
+  const resetTaps = useCallback(() => {
+    tapTimesRef.current = [];
+    setTapCount(0);
+  }, []);
+
+  const tapTempoRef = useRef(tapTempo);
+  tapTempoRef.current = tapTempo;
+
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (isStudioTextTarget(event.target)) return;
@@ -440,6 +533,16 @@ export function useStudioSession() {
         event.preventDefault();
         setTimeRange(null);
         setLoopEnabled(false);
+        return;
+      }
+      if ((event.key === "t" || event.key === "T") && !event.repeat) {
+        event.preventDefault();
+        tapTempoRef.current();
+        return;
+      }
+      if ((event.key === "m" || event.key === "M") && !event.repeat) {
+        event.preventDefault();
+        setMetronomeEnabled((value) => !value);
         return;
       }
       const command = studioTransportCommand(event);
@@ -709,6 +812,14 @@ export function useStudioSession() {
     clearTimeRange,
     loopEnabled,
     setLoopEnabled,
+    metronomeEnabled,
+    setMetronomeEnabled: (enabled: boolean) => {
+      setMetronomeEnabled(enabled);
+      if (enabled) void engineRef.current?.resumeFromUserGesture();
+    },
+    tapTempo,
+    resetTaps,
+    tapCount,
     selectClip,
     moveClipGroup,
     addEmptyTrack: () => {
@@ -785,6 +896,9 @@ export function useStudioSession() {
       setSelection([]);
       setTimeRange(null);
       setLoopEnabled(false);
+      setMetronomeEnabled(false);
+      tapTimesRef.current = [];
+      setTapCount(0);
       setNotice(null);
       commit(createStudioProject(STUDIO_DEFAULT_PROJECT_NAME));
       setTransport({ status: "idle", playheadSec: 0 });
