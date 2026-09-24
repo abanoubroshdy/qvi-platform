@@ -5,6 +5,7 @@ import {
   moveClipOffset,
   musicalBarMarks,
   nextPixelsPerSecond,
+  normalizeTimeRange,
   secondsPerBar,
   secondsPerBeat,
   snapClipMove,
@@ -12,6 +13,7 @@ import {
   snapTrimEnd,
   snapTrimStart,
   timeAtPixel,
+  timeRangeRect,
   rulerMarks,
   timelineWidthPx,
   trimClipEnd,
@@ -53,8 +55,10 @@ describe("studio timeline geometry", () => {
     expect(trimClipEnd({ offsetSec: 0, trimStartSec: 0, trimEndSec: 2, sourceDurationSec: 4 }, unity, 5)).toBe(4);
     expect(moveClipOffset(1, -4)).toBe(0);
     expect(timeAtPixel(100, 10, 4)).toBe(4);
-    expect(nextPixelsPerSecond(16, "out")).toBe(16);
-    expect(nextPixelsPerSecond(160, "in")).toBe(160);
+    expect(nextPixelsPerSecond(16, "out")).toBe(12.8);
+    expect(nextPixelsPerSecond(160, "in")).toBe(200);
+    expect(nextPixelsPerSecond(12, "out")).toBe(12);
+    expect(nextPixelsPerSecond(320, "in")).toBe(320);
   });
 
   it("counts bars from the track bpm and snaps moves onto that grid", () => {
@@ -73,6 +77,15 @@ describe("studio timeline geometry", () => {
     expect(snapClipMove(1, 0.4, 120, "beat")).toBe(1.5);
   });
 
+  it("normalizes a time range without depending on drag direction", () => {
+    expect(normalizeTimeRange(2, 0.5, 10)).toEqual({ startSec: 0.5, endSec: 2 });
+    expect(normalizeTimeRange(1, 1.06, 10)).toEqual({ startSec: 1, endSec: 1.06 });
+    expect(normalizeTimeRange(1, 1.02, 10)).toBeNull();
+    expect(normalizeTimeRange(-2, 100, 4)).toEqual({ startSec: 0, endSec: 4 });
+    expect(normalizeTimeRange(Number.NaN, 2, 10)).toEqual({ startSec: 0, endSec: 2 });
+    expect(timeRangeRect({ startSec: 1, endSec: 3 }, 20)).toEqual({ leftPx: 20, widthPx: 40 });
+  });
+
   it("snaps a trim edge without moving the other edge off the grid math", () => {
     const clip = { offsetSec: 0, trimStartSec: 0, trimEndSec: 4, sourceDurationSec: 8 };
     expect(snapTrimStart(clip, unity, 0.6, 120, "beat")).toEqual({ offsetSec: 0.5, trimStartSec: 0.5 });
@@ -83,7 +96,10 @@ describe("studio timeline geometry", () => {
   it("draws fewer waveform bars than the phone has device pixels", () => {
     expect(waveformDrawBudget(40, 180, 3)).toEqual({ bars: 40, pixelRatio: 2 });
     expect(waveformDrawBudget(400, 48, 1)).toEqual({ bars: 48, pixelRatio: 1 });
+    expect(waveformDrawBudget(400, 48, 1, true)).toEqual({ bars: 400, pixelRatio: 1 });
     expect(downsamplePeaks([0.1, 0.9, 0.2, 0.4], 2)).toEqual([0.9, 0.4]);
     expect(rulerMarks(0, 48)).toEqual([0, 5, 10, 15, 20, 25, 30]);
+    expect(nextPixelsPerSecond(12, "out")).toBe(12);
+    expect(nextPixelsPerSecond(320, "in")).toBe(320);
   });
 });

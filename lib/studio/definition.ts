@@ -65,19 +65,22 @@ export const qviStudioShells = {
   direction: "ltr",
   mobile: {
     transport: "fixed",
+    chrome: "top",
     timeline: "primary",
     tracks: "list",
     mixer: "track-sheet",
     inspector: "track-sheet",
   },
   tablet: {
-    transport: "top",
+    transport: "bottom",
+    chrome: "top",
     timeline: "full-width",
     mixer: "bottom-sheet",
     inspector: "slide-over",
   },
   desktop: {
-    transport: "top",
+    transport: "bottom",
+    chrome: "top",
     trackHeaders: "leading",
     timeline: "center",
     mixer: "trailing",
@@ -192,7 +195,10 @@ export const qviStudioV1Capabilities = [
     acceptance: [
       "The timeline shows heard time, after tempo, not raw source time.",
       "The playhead is shared by every track.",
+      "A time range can be selected on the ruler without moving the playhead.",
+      "Optional loop repeats playback inside the selected time range.",
       "Horizontal zoom is available.",
+      "Zoomed clips can resample PCM peaks for a sharper waveform.",
       "The timeline axis stays left-to-right in Arabic.",
     ],
   },
@@ -203,6 +209,15 @@ export const qviStudioV1Capabilities = [
       "offsetSec is >= 0 in heard time.",
       "trim uses source time, with trimEnd greater than trimStart.",
       "Pitch does not change heard length. Tempo does.",
+    ],
+  },
+  {
+    id: "clip-fades",
+    summary: "Each clip can fade in and fade out in heard time.",
+    acceptance: [
+      "Fade lengths are heard seconds and clamp to the clip duration.",
+      "Playback and export apply the same fades.",
+      "The inspector edits fade in and fade out for the selected clip.",
     ],
   },
   {
@@ -234,6 +249,8 @@ export const qviStudioV1Capabilities = [
       "Stop silences playback and returns the playhead to 0.",
       "Seek clamps to the project timeline.",
       "AudioContext resumes only after a user gesture.",
+      "Tap tempo sets the selected track BPM from recent taps.",
+      "An optional metronome clicks on the bar grid while playing or recording.",
     ],
   },
   {
@@ -318,7 +335,7 @@ export const qviStudioV1NonGoals = [
     reason: "IndexedDB restores the local /studio session after refresh. There is no cloud save, account sync, or upload.",
   },
   { id: "video-import", reason: "Video extraction stays on the MP4 to MP3 tool." },
-  { id: "per-clip-gain-or-fades", reason: "Gain, mute, and solo are track-level. Clip fades stay on the audio cutter." },
+  { id: "per-clip-gain", reason: "Gain, mute, and solo stay track-level. Per-clip gain is out of scope." },
   { id: "rubberband", reason: "Do not depend on Rubber Band. The wasm FFmpeg build has no rubberband filter. Tempo and pitch use SoundTouchJS (MPL-2.0)." },
   { id: "stem-separation", reason: "Stem separation stays on QV1." },
   { id: "instrument-synthesis", reason: "Instrument synthesis stays on Neyora." },
@@ -367,6 +384,10 @@ export type StudioClipSpan = {
   offsetSec: number;
   trimStartSec: number;
   trimEndSec: number;
+  /** Heard-time fade at the clip start. Omitted on legacy snapshots. */
+  fadeInSec?: number;
+  /** Heard-time fade at the clip end. Omitted on legacy snapshots. */
+  fadeOutSec?: number;
 };
 
 export type StudioTempoSetting = {

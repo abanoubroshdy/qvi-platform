@@ -16,6 +16,7 @@ import type { StudioEngineStatus, StudioPlaybackEngine } from "@/lib/studio/engi
 import { loadStudioFile, type StudioDecodeResult } from "@/lib/studio/load-clip";
 import { peakFromTimeDomain, type StudioMeterReading } from "@/lib/studio/meters";
 import { planPlayback } from "@/lib/studio/playback-schedule";
+import { clipFadeRamps } from "@/lib/studio/fades";
 import { compressorFromAmount, STUDIO_EQ_FREQUENCIES } from "@/lib/studio/mix";
 import { canPlayStudioProject, projectDuration } from "@/lib/studio/project";
 import type { StudioProject, StudioTrack } from "@/lib/studio/types";
@@ -26,7 +27,12 @@ export interface StudioAudioNode {
 }
 
 export interface StudioGainNode extends StudioAudioNode {
-  gain: { value: number };
+  gain: {
+    value: number;
+    setValueAtTime?(value: number, time: number): void;
+    linearRampToValueAtTime?(value: number, time: number): void;
+    cancelScheduledValues?(time: number): void;
+  };
 }
 
 /** Pass-through tap. Peak meters read this; it does not change the mix. */
@@ -288,6 +294,9 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
           event.offsetSec,
           event.durationSec,
           event.playbackRate,
+          event.fadeInSec,
+          event.fadeOutSec,
+          event.fromHeardSec,
           event.buffer.length,
           event.buffer.sampleRate,
         ].join(":"),
@@ -311,12 +320,26 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
       const source = this.host.createBufferSource();
       source.buffer = event.buffer;
       const input = this.trackInput(track ?? { id: event.trackId }, gainFor(plan.trackGains, event.trackId));
+      const fadeGain = this.host.createGain();
+      const heardSlice =
+        event.playbackRate > 0 && event.stretch ? event.durationSec / event.playbackRate : event.durationSec;
+      const envelope = clipFadeRamps({
+        heardDurationSec: event.clipHeardDurationSec,
+        fromHeardSec: event.fromHeardSec,
+        sliceHeardSec: heardSlice,
+        fadeInSec: event.fadeInSec,
+        fadeOutSec: event.fadeOutSec,
+      });
+      const startAt = whenBase + event.delaySec;
+      this.applyFadeEnvelope(fadeGain, startAt, envelope.initialGain, envelope.ramps);
       const stretch = event.stretch ? this.ensureStretch(event.trackId, event.stretch, input) : null;
       if (stretch) {
         if (source.playbackRate) source.playbackRate.value = event.playbackRate;
-        source.connect(stretch);
+        source.connect(fadeGain);
+        fadeGain.connect(stretch);
       } else {
-        source.connect(input);
+        source.connect(fadeGain);
+        fadeGain.connect(input);
       }
       source.start(whenBase + event.delaySec, event.offsetSec, event.durationSec);
       this.sources.push(source);
@@ -334,6 +357,23 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
     for (const track of project.tracks) {
       if (playingTracks.has(track.id)) continue;
       this.trackInput(track, gainFor(plan.trackGains, track.id));
+    }
+  }
+
+  private applyFadeEnvelope(
+    gain: StudioGainNode,
+    startAt: number,
+    initialGain: number,
+    ramps: { atSec: number; gain: number }[],
+  ): void {
+    const param = gain.gain;
+    if (typeof param.cancelScheduledValues === "function") param.cancelScheduledValues(startAt);
+    if (typeof param.setValueAtTime === "function") param.setValueAtTime(initialGain, startAt);
+    else param.value = initialGain;
+    for (const ramp of ramps) {
+      const when = startAt + Math.max(0, ramp.atSec);
+      if (typeof param.linearRampToValueAtTime === "function") param.linearRampToValueAtTime(ramp.gain, when);
+      else param.value = ramp.gain;
     }
   }
 

@@ -31,6 +31,12 @@ export type StudioScheduledEvent = {
   playbackRate: number;
   /** Set when this event must pass through the SoundTouch worklet. */
   stretch: LiveStretchParams | null;
+  /** Full heard length of the clip (for fade math). */
+  clipHeardDurationSec: number;
+  /** Heard offset into the clip where this event starts. */
+  fromHeardSec: number;
+  fadeInSec: number;
+  fadeOutSec: number;
 };
 
 export type StudioPlaybackPlan = {
@@ -90,6 +96,9 @@ function eventsForTrack(
       sourceOffsetSec: 0,
       sourceDurationSec: rendered.duration,
       playhead,
+      fadeInSec: 0,
+      fadeOutSec: 0,
+      clipHeardDurationSec: rendered.duration,
     });
     return event ? [event] : [];
   }
@@ -125,6 +134,10 @@ function eventForLiveClip(
     durationSec,
     playbackRate: rate,
     stretch,
+    clipHeardDurationSec: heardDuration,
+    fromHeardSec: intoHeard,
+    fadeInSec: clip.fadeInSec ?? 0,
+    fadeOutSec: clip.fadeOutSec ?? 0,
   };
 }
 
@@ -139,6 +152,9 @@ function eventForClip(trackId: string, clip: StudioClip, playhead: number): Stud
     sourceOffsetSec: Math.max(0, clip.trimStartSec),
     sourceDurationSec: sourceDuration,
     playhead,
+    fadeInSec: clip.fadeInSec ?? 0,
+    fadeOutSec: clip.fadeOutSec ?? 0,
+    clipHeardDurationSec: sourceDuration,
   });
 }
 
@@ -150,6 +166,9 @@ function eventFromBuffer(input: {
   sourceOffsetSec: number;
   sourceDurationSec: number;
   playhead: number;
+  fadeInSec: number;
+  fadeOutSec: number;
+  clipHeardDurationSec: number;
 }): StudioScheduledEvent | null {
   const heardEnd = input.heardStartSec + input.sourceDurationSec;
   if (input.playhead >= heardEnd - MIN_SLICE_SEC) return null;
@@ -166,5 +185,9 @@ function eventFromBuffer(input: {
     durationSec,
     playbackRate: 1,
     stretch: null,
+    clipHeardDurationSec: input.clipHeardDurationSec,
+    fromHeardSec: into,
+    fadeInSec: input.fadeInSec,
+    fadeOutSec: input.fadeOutSec,
   };
 }

@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { formatStudioTimecode, isStudioTextTarget, sessionDisplayBpm, studioTransportCommand } from "@/lib/studio/chrome";
+import {
+  formatStudioTimecode,
+  isStudioTextTarget,
+  sessionDisplayBpm,
+  studioNewProjectButtonPhase,
+  studioProjectIsOpen,
+  studioTransportCommand,
+} from "@/lib/studio/chrome";
 
 const unity = { mode: "bpm" as const, originalBpm: 120, targetBpm: 120, percent: 0 };
 
@@ -41,5 +48,17 @@ describe("studio timecode and bpm", () => {
     ];
     expect(sessionDisplayBpm(tracks, null)).toBe(120);
     expect(sessionDisplayBpm(tracks, "b")).toBe(150);
+  });
+
+  it("treats a session as open only when it has tracks", () => {
+    expect(studioProjectIsOpen({ tracks: [] })).toBe(false);
+    expect(studioProjectIsOpen({ tracks: [{ id: "a" }] })).toBe(true);
+  });
+
+  it("shows New on empty sessions and Clear then Confirm when open", () => {
+    expect(studioNewProjectButtonPhase(false, false)).toBe("new");
+    expect(studioNewProjectButtonPhase(false, true)).toBe("new");
+    expect(studioNewProjectButtonPhase(true, false)).toBe("clear");
+    expect(studioNewProjectButtonPhase(true, true)).toBe("confirm");
   });
 });

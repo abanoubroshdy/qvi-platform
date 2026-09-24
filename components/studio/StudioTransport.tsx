@@ -1,63 +1,20 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Circle, Minus, Pause, Play, Plus, Square, Upload } from "lucide-react";
+import { Circle, Minus, Pause, Play, Plus, Repeat2, Square, Timer, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatStudioTimecode, sessionDisplayBpm } from "@/lib/studio/chrome";
+import { formatStudioTimecode, sessionDisplayBpm, studioNewProjectButtonPhase, studioProjectIsOpen } from "@/lib/studio/chrome";
 import { finishedProjectName } from "@/lib/studio/project";
 import { nextPixelsPerSecond, type StudioSnapMode } from "@/lib/studio/timeline-geometry";
 import type { Messages } from "@/lib/i18n";
 import { useStudio } from "@/components/studio/studio-context";
 
+/** Top chrome: project identity, snap, and session actions. */
 export function StudioTransport({ copy }: { copy: Messages["studio"] }) {
   const studio = useStudio();
-  const playing = studio.transport.status === "playing";
-  const bpm = sessionDisplayBpm(studio.project.tracks, studio.selectedTrack?.id ?? null);
-
   return (
-    <div className="studio-transport flex flex-wrap items-center gap-x-2 gap-y-2 px-2 py-2 sm:px-3">
+    <div className="studio-transport studio-chrome-top flex flex-wrap items-center gap-x-2 gap-y-2 px-2 py-2 sm:px-3">
       <ProjectName copy={copy} />
-      <div className="flex items-center gap-1">
-        <Button
-          type="button"
-          size="icon"
-          variant="outline"
-          className="h-8 w-8"
-          onClick={studio.stop}
-          aria-label={copy.stop}
-        >
-          <Square />
-        </Button>
-        <Button
-          type="button"
-          size="icon"
-          className="h-9 w-9 rounded-full"
-          onClick={() => void studio.togglePlay()}
-          disabled={!studio.canPlay && !playing}
-          aria-label={playing ? copy.pause : copy.play}
-        >
-          {playing ? <Pause /> : <Play />}
-        </Button>
-        <Button
-          type="button"
-          size="icon"
-          variant={studio.recording ? "destructive" : "outline"}
-          className="h-8 w-8 rounded-full"
-          aria-pressed={studio.recording}
-          aria-label={studio.recording ? copy.stopRecord : copy.record}
-          onClick={() => void studio.toggleRecord()}
-        >
-          <Circle className={studio.recording ? "fill-current" : ""} />
-        </Button>
-      </div>
-      <TransportClock label={copy.timecode} duration={studio.duration} />
-      <SeekControl label={copy.seek} />
-      {bpm !== null && (
-        <span className="studio-bpm" dir="ltr" title={studio.selectedTrack?.name}>
-          {bpm.toFixed(1)}
-          <span className="font-medium tracking-wide">{copy.bpm}</span>
-        </span>
-      )}
       <SnapControl
         label={copy.snap}
         mode={studio.snapMode}
@@ -68,7 +25,110 @@ export function StudioTransport({ copy }: { copy: Messages["studio"] }) {
         ]}
         onChange={studio.setSnapMode}
       />
-      <div className="ms-auto flex flex-wrap items-center gap-1">
+      <ChromeActions copy={copy} />
+      <p className="sr-only">{copy.keys}</p>
+      <p className="sr-only">{copy.shiftSelect}</p>
+    </div>
+  );
+}
+
+/** Bottom dock: seek/BPM + transport + timecode centered; zoom trailing. */
+export function StudioTransportDock({ copy }: { copy: Messages["studio"] }) {
+  const studio = useStudio();
+  const playing = studio.transport.status === "playing";
+  const bpm = sessionDisplayBpm(studio.project.tracks, studio.selectedTrack?.id ?? null);
+
+  return (
+    <div className="studio-transport studio-transport-dock grid grid-cols-[1fr_auto_1fr] items-center gap-x-2 gap-y-2 px-2 py-2 sm:px-3">
+      <div aria-hidden="true" />
+      <div className="flex min-w-0 flex-wrap items-center justify-center gap-x-2 gap-y-1" role="group" aria-label={copy.play}>
+        <SeekControl label={copy.seek} />
+        <div className="flex items-center gap-1">
+          {bpm !== null ? (
+            <span className="studio-bpm" dir="ltr" title={studio.selectedTrack?.name}>
+              {bpm.toFixed(1)}
+              <span className="font-medium tracking-wide">{copy.bpm}</span>
+            </span>
+          ) : (
+            <span className="studio-bpm studio-bpm-empty" dir="ltr" aria-label={copy.bpm}>
+              —<span className="font-medium tracking-wide">{copy.bpm}</span>
+            </span>
+          )}
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-8 px-2 text-[0.68rem] font-semibold uppercase tracking-wide"
+            aria-label={copy.tapTempo}
+            title={copy.tapTempoHint}
+            disabled={studio.project.tracks.length === 0}
+            onClick={studio.tapTempo}
+          >
+            {copy.tapTempo}
+            {studio.tapCount > 0 ? <span className="ms-1 tabular-nums opacity-70">{studio.tapCount}</span> : null}
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant={studio.metronomeEnabled ? "default" : "outline"}
+            className="h-8 w-8"
+            aria-pressed={studio.metronomeEnabled}
+            aria-label={copy.metronome}
+            title={copy.metronomeHint}
+            onClick={() => studio.setMetronomeEnabled(!studio.metronomeEnabled)}
+          >
+            <Timer />
+          </Button>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            className="h-8 w-8"
+            onClick={studio.stop}
+            aria-label={copy.stop}
+          >
+            <Square />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            className="h-9 w-9 rounded-full"
+            onClick={() => void studio.togglePlay()}
+            disabled={!studio.canPlay && !playing}
+            aria-label={playing ? copy.pause : copy.play}
+          >
+            {playing ? <Pause /> : <Play />}
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant={studio.recording ? "destructive" : "outline"}
+            className="h-8 w-8 rounded-full"
+            aria-pressed={studio.recording}
+            aria-label={studio.recording ? copy.stopRecord : copy.record}
+            onClick={() => void studio.toggleRecord()}
+          >
+            <Circle className={studio.recording ? "fill-current" : ""} />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant={studio.loopEnabled ? "default" : "outline"}
+            className="h-8 w-8"
+            aria-pressed={studio.loopEnabled}
+            aria-label={copy.loop}
+            disabled={!studio.timeRange}
+            title={studio.timeRange ? copy.loopHint : copy.loopNeedsRange}
+            onClick={() => studio.setLoopEnabled(!studio.loopEnabled)}
+          >
+            <Repeat2 />
+          </Button>
+        </div>
+        <TransportClock label={copy.timecode} duration={studio.duration} />
+      </div>
+      <div className="flex items-center justify-end gap-1">
         <Button
           type="button"
           size="icon"
@@ -79,6 +139,9 @@ export function StudioTransport({ copy }: { copy: Messages["studio"] }) {
         >
           <Minus />
         </Button>
+        <span className="studio-zoom-level min-w-[2.5rem] text-center text-[10px] font-semibold tabular-nums text-muted-foreground" dir="ltr" title={copy.zoomLevel}>
+          {Math.round((studio.pixelsPerSecond / 48) * 100)}%
+        </span>
         <Button
           type="button"
           size="icon"
@@ -89,22 +152,37 @@ export function StudioTransport({ copy }: { copy: Messages["studio"] }) {
         >
           <Plus />
         </Button>
-        <Button type="button" variant="outline" size="sm" disabled={studio.importing} onClick={() => studio.browse()}>
-          <Upload />
-          <span className="hidden sm:inline">{copy.addFiles}</span>
-        </Button>
-        <Button type="button" variant="secondary" size="sm" className="lg:hidden" onClick={() => studio.setMixerOpen(true)}>
-          {copy.mixer}
-        </Button>
-        <Button type="button" variant="secondary" size="sm" onClick={() => studio.setInspectorOpen((open) => !open)} disabled={!studio.selectedTrack}>
-          {copy.inspector}
-        </Button>
-        <Button type="button" variant="outline" size="sm" onClick={() => studio.setExportOpen(true)}>
-          {copy.export}
-        </Button>
       </div>
-      <p className="sr-only">{copy.keys}</p>
-      <p className="sr-only">{copy.shiftSelect}</p>
+    </div>
+  );
+}
+
+function ChromeActions({ copy }: { copy: Messages["studio"] }) {
+  const studio = useStudio();
+  return (
+    <div className="ms-auto flex flex-wrap items-center gap-1">
+      <Button type="button" variant="outline" size="sm" disabled={studio.importing} onClick={() => studio.browse()}>
+        <Upload />
+        <span className="hidden sm:inline">{copy.addFiles}</span>
+      </Button>
+      <Button type="button" variant="outline" size="sm" onClick={() => studio.addEmptyTrack()}>
+        {copy.addTrack}
+      </Button>
+      <Button type="button" variant="secondary" size="sm" className="lg:hidden" onClick={() => studio.setMixerOpen(true)}>
+        {copy.mixer}
+      </Button>
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        onClick={() => studio.setInspectorOpen((open) => !open)}
+        disabled={!studio.selectedTrack}
+      >
+        {copy.inspector}
+      </Button>
+      <Button type="button" variant="outline" size="sm" onClick={() => studio.setExportOpen(true)}>
+        {copy.export}
+      </Button>
     </div>
   );
 }
@@ -112,6 +190,16 @@ export function StudioTransport({ copy }: { copy: Messages["studio"] }) {
 function ProjectName({ copy }: { copy: Messages["studio"] }) {
   const studio = useStudio();
   const [armed, setArmed] = useState(false);
+  const open = studioProjectIsOpen(studio.project);
+  const phase = studioNewProjectButtonPhase(open, armed);
+
+  useEffect(() => {
+    if (!open) setArmed(false);
+  }, [open]);
+
+  const label =
+    phase === "new" ? copy.newProject : phase === "confirm" ? copy.confirmClear : copy.confirmNew;
+
   return (
     <div className="flex min-w-0 items-center gap-1 pe-1">
       <div className="min-w-0">
@@ -128,14 +216,18 @@ function ProjectName({ copy }: { copy: Messages["studio"] }) {
       </div>
       <Button
         type="button"
-        variant={armed ? "secondary" : "outline"}
+        variant={phase === "confirm" ? "secondary" : "outline"}
         size="sm"
-        aria-label={armed ? copy.confirmNew : copy.newProject}
+        aria-label={label}
         onBlur={() => {
           window.setTimeout(() => setArmed(false), 400);
         }}
         onClick={() => {
-          if (!armed) {
+          if (phase === "new") {
+            studio.newProject();
+            return;
+          }
+          if (phase === "clear") {
             setArmed(true);
             return;
           }
@@ -143,7 +235,7 @@ function ProjectName({ copy }: { copy: Messages["studio"] }) {
           studio.newProject();
         }}
       >
-        {armed ? copy.confirmNew : copy.newProject}
+        {label}
       </Button>
       <p className="sr-only">{copy.newProjectHint}</p>
     </div>
@@ -218,7 +310,7 @@ function SeekControl({ label }: { label: string }) {
   return (
     <input
       ref={ref}
-      className="studio-seek h-1.5 w-full min-w-[6rem] flex-1 cursor-pointer sm:w-36 sm:flex-none"
+      className="studio-seek h-1.5 w-28 shrink-0 cursor-pointer sm:w-36"
       dir="ltr"
       type="range"
       min={0}

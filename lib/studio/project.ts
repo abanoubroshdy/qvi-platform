@@ -20,7 +20,9 @@ import {
   clipTimelineEnd,
   defaultClipOffset,
   exportBlockReason,
+  heardClipDuration,
   qviStudioLimits,
+  sourceClipDuration,
   studioImportExtensions,
   trackAddBlockReason,
   timelineDuration,
@@ -28,6 +30,7 @@ import {
   type StudioTempoSetting,
   type StudioViewport,
 } from "@/lib/studio/definition";
+import { normalizeClipFades } from "@/lib/studio/fades";
 import { clampEqDb, clampPan, clampUnit, defaultTrackEq, normalizeTrackMix, type StudioTrackEq } from "@/lib/studio/mix";
 import {
   createStudioId,
@@ -47,6 +50,7 @@ export const studioEditReasons = {
   clipNotFound: "clip-not-found",
   duplicateId: "duplicate-id",
   unsupportedFile: "unsupported-file",
+  splitOutside: "split-outside-clip",
 } as const;
 
 export type StudioEditReason = (typeof studioEditReasons)[keyof typeof studioEditReasons];
@@ -129,6 +133,8 @@ export function createStudioClip(input: StudioImportedFile & { offsetSec?: numbe
     offsetSec: Math.max(0, finiteNumber(input.offsetSec ?? 0, 0)),
     trimStartSec,
     trimEndSec,
+    fadeInSec: 0,
+    fadeOutSec: 0,
     sampleRate: Math.max(0, Math.round(finiteNumber(input.sampleRate, 0))),
     channels: Math.max(0, Math.round(finiteNumber(input.channels, 0))),
     peaks: [...(input.peaks ?? [])],
@@ -265,6 +271,21 @@ export function addTrack(project: StudioProject, track: StudioTrack, viewport: S
   );
 }
 
+/** Blank lane for recording or receiving moved clips. */
+export function addEmptyTrack(
+  project: StudioProject,
+  viewport: StudioViewport,
+  name?: string,
+): StudioWriteResult {
+  const index = project.tracks.length;
+  const track = createStudioTrack({
+    name: (name?.trim() || `Track ${index + 1}`),
+    index,
+    clips: [],
+  });
+  return addTrack(project, track, viewport);
+}
+
 export function addImportedFileAsTrack(
   project: StudioProject,
   file: StudioImportedFile,
@@ -309,8 +330,92 @@ export function removeClip(project: StudioProject, trackId: string, clipId: stri
   if (!track) return fail(project, studioEditReasons.trackNotFound);
   if (!track.clips.some((clip) => clip.id === clipId)) return fail(project, studioEditReasons.clipNotFound);
   const clips = track.clips.filter((clip) => clip.id !== clipId);
-  if (clips.length === 0) return removeTrack(project, trackId);
   return succeed(replaceTrack(project, trackId, { ...track, clips }));
+}
+
+const SPLIT_EPS = 1e-3;
+
+/** Split one clip at a timeline playhead into two adjacent clips. */
+export function splitClip(
+  project: StudioProject,
+  trackId: string,
+  clipId: string,
+  playheadSec: number,
+): StudioWriteResult {
+  const track = project.tracks.find((item) => item.id === trackId);
+  if (!track) return fail(project, studioEditReasons.trackNotFound);
+  const clip = track.clips.find((item) => item.id === clipId);
+  if (!clip) return fail(project, studioEditReasons.clipNotFound);
+  const rate = Math.max(resolveTempoRate(track.tempo), 1e-6);
+  const heardLen = (clip.trimEndSec - clip.trimStartSec) / rate;
+  const into = playheadSec - clip.offsetSec;
+  if (!Number.isFinite(into) || into <= SPLIT_EPS || into >= heardLen - SPLIT_EPS) {
+    return fail(project, studioEditReasons.splitOutside);
+  }
+  const sourceSplit = clip.trimStartSec + into * rate;
+  const leftFades = normalizeClipFades(into, clip.fadeInSec, 0);
+  const rightFades = normalizeClipFades(heardLen - into, 0, clip.fadeOutSec);
+  const left: StudioClip = {
+    ...clip,
+    peaks: [...clip.peaks],
+    ...normalizeSpan(clip.sourceDurationSec, {
+      offsetSec: clip.offsetSec,
+      trimStartSec: clip.trimStartSec,
+      trimEndSec: sourceSplit,
+    }),
+    fadeInSec: leftFades.fadeInSec,
+    fadeOutSec: leftFades.fadeOutSec,
+  };
+  const right: StudioClip = {
+    ...clip,
+    id: createStudioId("clip"),
+    peaks: [...clip.peaks],
+    buffer: clip.buffer,
+    ...normalizeSpan(clip.sourceDurationSec, {
+      offsetSec: playheadSec,
+      trimStartSec: sourceSplit,
+      trimEndSec: clip.trimEndSec,
+    }),
+    fadeInSec: rightFades.fadeInSec,
+    fadeOutSec: rightFades.fadeOutSec,
+  };
+  const clips = track.clips.flatMap((item) => (item.id === clipId ? [left, right] : [item]));
+  return succeed(replaceTrack(project, trackId, { ...track, clips }));
+}
+
+/** Move a clip to another track (or same track with a new offset). Keeps empty source tracks. */
+export function moveClipToTrack(
+  project: StudioProject,
+  fromTrackId: string,
+  clipId: string,
+  toTrackId: string,
+  offsetSec: number,
+): StudioWriteResult {
+  if (fromTrackId === toTrackId) return setClipOffset(project, fromTrackId, clipId, offsetSec);
+  const from = project.tracks.find((item) => item.id === fromTrackId);
+  const to = project.tracks.find((item) => item.id === toTrackId);
+  if (!from || !to) return fail(project, studioEditReasons.trackNotFound);
+  const clip = from.clips.find((item) => item.id === clipId);
+  if (!clip) return fail(project, studioEditReasons.clipNotFound);
+  const moved: StudioClip = {
+    ...clip,
+    peaks: [...clip.peaks],
+    ...normalizeSpan(clip.sourceDurationSec, {
+      offsetSec,
+      trimStartSec: clip.trimStartSec,
+      trimEndSec: clip.trimEndSec,
+    }),
+  };
+  const nextFrom = { ...from, clips: from.clips.filter((item) => item.id !== clipId) };
+  const nextTo = { ...to, clips: [...to.clips, moved] };
+  return succeed({
+    ...project,
+    tracks: project.tracks.map((track) => {
+      if (track.id === fromTrackId) return nextFrom;
+      if (track.id === toTrackId) return nextTo;
+      return track;
+    }),
+  });
 }
 
 function editTrack(
@@ -422,21 +527,43 @@ export function setClipTrim(
   clipId: string,
   trim: { trimStartSec?: number; trimEndSec?: number },
 ): StudioWriteResult {
-  return editClip(project, trackId, clipId, (clip) => ({
-    ...clip,
-    ...normalizeSpan(clip.sourceDurationSec, {
-      offsetSec: clip.offsetSec,
-      trimStartSec: trim.trimStartSec ?? clip.trimStartSec,
-      trimEndSec: trim.trimEndSec ?? clip.trimEndSec,
-    }),
-  }));
+  return editClip(project, trackId, clipId, (clip, track) => {
+    const next = {
+      ...clip,
+      ...normalizeSpan(clip.sourceDurationSec, {
+        offsetSec: clip.offsetSec,
+        trimStartSec: trim.trimStartSec ?? clip.trimStartSec,
+        trimEndSec: trim.trimEndSec ?? clip.trimEndSec,
+      }),
+    };
+    const heard = heardClipDuration(sourceClipDuration(next), track.tempo);
+    const fades = normalizeClipFades(heard, next.fadeInSec, next.fadeOutSec);
+    return { ...next, fadeInSec: fades.fadeInSec, fadeOutSec: fades.fadeOutSec };
+  });
+}
+
+export function setClipFades(
+  project: StudioProject,
+  trackId: string,
+  clipId: string,
+  fades: { fadeInSec?: number; fadeOutSec?: number },
+): StudioWriteResult {
+  return editClip(project, trackId, clipId, (clip, track) => {
+    const heard = heardClipDuration(sourceClipDuration(clip), track.tempo);
+    const next = normalizeClipFades(
+      heard,
+      fades.fadeInSec ?? clip.fadeInSec,
+      fades.fadeOutSec ?? clip.fadeOutSec,
+    );
+    return { ...clip, fadeInSec: next.fadeInSec, fadeOutSec: next.fadeOutSec };
+  });
 }
 
 function editClip(
   project: StudioProject,
   trackId: string,
   clipId: string,
-  edit: (clip: StudioClip) => StudioClip,
+  edit: (clip: StudioClip, track: StudioTrack) => StudioClip,
 ): StudioWriteResult {
   const track = project.tracks.find((item) => item.id === trackId);
   if (!track) return fail(project, studioEditReasons.trackNotFound);
@@ -444,7 +571,7 @@ function editClip(
   return succeed(
     replaceTrack(project, trackId, {
       ...track,
-      clips: track.clips.map((clip) => (clip.id === clipId ? edit(clip) : clip)),
+      clips: track.clips.map((clip) => (clip.id === clipId ? edit(clip, track) : clip)),
     }),
   );
 }
@@ -513,6 +640,8 @@ export function projectFromSnapshot(
         offsetSec: clip.offsetSec,
         trimStartSec: clip.trimStartSec,
         trimEndSec: clip.trimEndSec,
+        fadeInSec: typeof clip.fadeInSec === "number" && Number.isFinite(clip.fadeInSec) ? clip.fadeInSec : 0,
+        fadeOutSec: typeof clip.fadeOutSec === "number" && Number.isFinite(clip.fadeOutSec) ? clip.fadeOutSec : 0,
         sampleRate: clip.sampleRate,
         channels: clip.channels,
         peaks: [...clip.peaks],
@@ -531,6 +660,8 @@ function clipState(clip: StudioClip): StudioClipState {
     offsetSec: clip.offsetSec,
     trimStartSec: clip.trimStartSec,
     trimEndSec: clip.trimEndSec,
+    fadeInSec: clip.fadeInSec,
+    fadeOutSec: clip.fadeOutSec,
     sampleRate: clip.sampleRate,
     channels: clip.channels,
     peaks: [...clip.peaks],
