@@ -139,6 +139,9 @@ export function StudioTransportDock({ copy }: { copy: Messages["studio"] }) {
         >
           <Minus />
         </Button>
+        <span className="studio-zoom-level min-w-[2.5rem] text-center text-[10px] font-semibold tabular-nums text-muted-foreground" dir="ltr" title={copy.zoomLevel}>
+          {Math.round((studio.pixelsPerSecond / 48) * 100)}%
+        </span>
         <Button
           type="button"
           size="icon"

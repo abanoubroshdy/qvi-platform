@@ -3,10 +3,10 @@
 import { useEffect, useRef } from "react";
 import type { StudioClip, StudioTrack } from "@/lib/studio/types";
 import { paintStudioWaveform } from "@/lib/studio/paint";
+import { resolveClipWaveformPeaks } from "@/lib/studio/peaks";
 import {
   clipHeardSeconds,
   clipRect,
-  downsamplePeaks,
   snapClipMove,
   snapTrimEnd,
   snapTrimStart,
@@ -127,16 +127,32 @@ function ClipBlock({
     if (!canvas) return;
     const width = Math.max(1, rect.widthPx);
     const height = 64;
-    const source = visiblePeaks(clip.peaks, clip.trimStartSec, clip.trimEndSec, clip.sourceDurationSec);
-    const budget = waveformDrawBudget(width, source.length, window.devicePixelRatio || 1);
-    const peaks = downsamplePeaks(source, budget.bars);
+    const allowDetail = Boolean(clip.buffer);
+    const budget = waveformDrawBudget(width, clip.peaks.length || 1, window.devicePixelRatio || 1, allowDetail);
+    const peaks = resolveClipWaveformPeaks({
+      overview: clip.peaks,
+      buffer: clip.buffer,
+      trimStartSec: clip.trimStartSec,
+      trimEndSec: clip.trimEndSec,
+      sourceDurationSec: clip.sourceDurationSec,
+      drawBars: budget.bars,
+    });
     canvas.width = Math.floor(width * budget.pixelRatio);
     canvas.height = Math.floor(height * budget.pixelRatio);
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.setTransform(budget.pixelRatio, 0, 0, budget.pixelRatio, 0, 0);
     paintStudioWaveform(ctx, peaks, width, height, track.color);
-  }, [clip.peaks, clip.sourceDurationSec, clip.trimEndSec, clip.trimStartSec, rect.widthPx, track.color]);
+  }, [
+    clip.buffer,
+    clip.peaks,
+    clip.sourceDurationSec,
+    clip.trimEndSec,
+    clip.trimStartSec,
+    pixelsPerSecond,
+    rect.widthPx,
+    track.color,
+  ]);
 
   return (
     <div
@@ -308,12 +324,4 @@ function placeBlock(
   const next = clipRect(clip.offsetSec, heard, pixelsPerSecond);
   node.style.left = `${next.leftPx}px`;
   node.style.width = `${next.widthPx}px`;
-}
-
-function visiblePeaks(peaks: number[], trimStart: number, trimEnd: number, sourceDuration: number): number[] {
-  if (!peaks.length || !(sourceDuration > 0)) return peaks;
-  const start = Math.floor((Math.max(0, trimStart) / sourceDuration) * peaks.length);
-  const end = Math.ceil((Math.max(trimStart, trimEnd) / sourceDuration) * peaks.length);
-  const slice = peaks.slice(start, Math.max(start + 1, end));
-  return slice.length ? slice : peaks;
 }

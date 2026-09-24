@@ -1634,6 +1634,7 @@ export const ar: Messages = {
     seek: "تقديم",
     zoomIn: "تكبير",
     zoomOut: "تصغير",
+    zoomLevel: "مستوى التكبير",
     mixer: "المكسر",
     inspector: "التراك",
     close: "إغلاق",

@@ -1645,6 +1645,7 @@ export const en = {
     seek: "Seek",
     zoomIn: "Zoom in",
     zoomOut: "Zoom out",
+    zoomLevel: "Zoom level",
     mixer: "Mixer",
     inspector: "Track",
     close: "Close",

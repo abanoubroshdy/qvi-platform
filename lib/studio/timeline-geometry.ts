@@ -8,8 +8,8 @@ import {
   type StudioViewport,
 } from "@/lib/studio/definition";
 
-export const STUDIO_MIN_PIXELS_PER_SECOND = 16;
-export const STUDIO_MAX_PIXELS_PER_SECOND = 160;
+export const STUDIO_MIN_PIXELS_PER_SECOND = 12;
+export const STUDIO_MAX_PIXELS_PER_SECOND = 320;
 export const STUDIO_BEATS_PER_BAR = 4;
 const MIN_TRIM_SEC = 0.05;
 /** Shortest selectable time range (same floor as trim). */
@@ -193,16 +193,24 @@ export function clipHeardSeconds(clip: StudioClipSpan, tempo: StudioTempoSetting
   return heardClipDuration(sourceClipDuration(clip), tempo);
 }
 
-/** Draw at most one bar per CSS pixel, and cap the canvas at 2x so phones do not allocate 3x bitmaps. */
+/** Draw at most one bar per CSS pixel, and cap the canvas at 2x so phones do not allocate 3x bitmaps.
+ * When `allowDetail` is true the bar count follows the CSS width even if overview peaks are fewer,
+ * so a zoomed clip can resample PCM for a sharper waveform.
+ */
 export function waveformDrawBudget(
   cssWidth: number,
   peakCount: number,
   devicePixelRatio = 1,
+  allowDetail = false,
 ): { bars: number; pixelRatio: number } {
   const width = Number.isFinite(cssWidth) ? Math.max(1, cssWidth) : 1;
   const ratio = Math.min(2, Math.max(1, Number.isFinite(devicePixelRatio) ? devicePixelRatio : 1));
   const available = Math.max(1, Math.floor(peakCount) || 1);
-  return { bars: Math.min(available, Math.ceil(width)), pixelRatio: ratio };
+  const target = Math.ceil(width);
+  return {
+    bars: allowDetail ? target : Math.min(available, target),
+    pixelRatio: ratio,
+  };
 }
 
 export function downsamplePeaks(peaks: readonly number[], bars: number): number[] {

@@ -663,7 +663,7 @@ describe("load studio file", () => {
     expect(loaded.ok).toBe(true);
     if (!loaded.ok) return;
     expect(loaded.file.sourceDurationSec).toBe(2);
-    expect(loaded.file.peaks).toHaveLength(320);
+    expect(loaded.file.peaks).toHaveLength(640);
     expect(loaded.warning).toBeNull();
 
     const refused = await loadStudioFile(new File(["x"], "notes.txt"), async () => {

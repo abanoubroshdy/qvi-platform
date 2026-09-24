@@ -198,6 +198,7 @@ export const qviStudioV1Capabilities = [
       "A time range can be selected on the ruler without moving the playhead.",
       "Optional loop repeats playback inside the selected time range.",
       "Horizontal zoom is available.",
+      "Zoomed clips can resample PCM peaks for a sharper waveform.",
       "The timeline axis stays left-to-right in Arabic.",
     ],
   },
