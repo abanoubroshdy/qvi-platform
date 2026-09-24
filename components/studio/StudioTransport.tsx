@@ -32,7 +32,7 @@ export function StudioTransport({ copy }: { copy: Messages["studio"] }) {
   );
 }
 
-/** Bottom dock: transport + timecode centered, tempo leading, zoom trailing. */
+/** Bottom dock: seek/BPM + transport + timecode centered; zoom trailing. */
 export function StudioTransportDock({ copy }: { copy: Messages["studio"] }) {
   const studio = useStudio();
   const playing = studio.transport.status === "playing";
@@ -40,7 +40,8 @@ export function StudioTransportDock({ copy }: { copy: Messages["studio"] }) {
 
   return (
     <div className="studio-transport studio-transport-dock grid grid-cols-[1fr_auto_1fr] items-center gap-x-2 gap-y-2 px-2 py-2 sm:px-3">
-      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+      <div aria-hidden="true" />
+      <div className="flex min-w-0 flex-wrap items-center justify-center gap-x-2 gap-y-1" role="group" aria-label={copy.play}>
         <SeekControl label={copy.seek} />
         {bpm !== null ? (
           <span className="studio-bpm" dir="ltr" title={studio.selectedTrack?.name}>
@@ -52,39 +53,39 @@ export function StudioTransportDock({ copy }: { copy: Messages["studio"] }) {
             —<span className="font-medium tracking-wide">{copy.bpm}</span>
           </span>
         )}
-      </div>
-      <div className="flex items-center justify-center gap-2" role="group" aria-label={copy.play}>
-        <Button
-          type="button"
-          size="icon"
-          variant="outline"
-          className="h-8 w-8"
-          onClick={studio.stop}
-          aria-label={copy.stop}
-        >
-          <Square />
-        </Button>
-        <Button
-          type="button"
-          size="icon"
-          className="h-9 w-9 rounded-full"
-          onClick={() => void studio.togglePlay()}
-          disabled={!studio.canPlay && !playing}
-          aria-label={playing ? copy.pause : copy.play}
-        >
-          {playing ? <Pause /> : <Play />}
-        </Button>
-        <Button
-          type="button"
-          size="icon"
-          variant={studio.recording ? "destructive" : "outline"}
-          className="h-8 w-8 rounded-full"
-          aria-pressed={studio.recording}
-          aria-label={studio.recording ? copy.stopRecord : copy.record}
-          onClick={() => void studio.toggleRecord()}
-        >
-          <Circle className={studio.recording ? "fill-current" : ""} />
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            className="h-8 w-8"
+            onClick={studio.stop}
+            aria-label={copy.stop}
+          >
+            <Square />
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            className="h-9 w-9 rounded-full"
+            onClick={() => void studio.togglePlay()}
+            disabled={!studio.canPlay && !playing}
+            aria-label={playing ? copy.pause : copy.play}
+          >
+            {playing ? <Pause /> : <Play />}
+          </Button>
+          <Button
+            type="button"
+            size="icon"
+            variant={studio.recording ? "destructive" : "outline"}
+            className="h-8 w-8 rounded-full"
+            aria-pressed={studio.recording}
+            aria-label={studio.recording ? copy.stopRecord : copy.record}
+            onClick={() => void studio.toggleRecord()}
+          >
+            <Circle className={studio.recording ? "fill-current" : ""} />
+          </Button>
+        </div>
         <TransportClock label={copy.timecode} duration={studio.duration} />
       </div>
       <div className="flex items-center justify-end gap-1">
@@ -263,7 +264,7 @@ function SeekControl({ label }: { label: string }) {
   return (
     <input
       ref={ref}
-      className="studio-seek h-1.5 w-full min-w-[6rem] flex-1 cursor-pointer sm:w-36 sm:flex-none"
+      className="studio-seek h-1.5 w-28 shrink-0 cursor-pointer sm:w-36"
       dir="ltr"
       type="range"
       min={0}
