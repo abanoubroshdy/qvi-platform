@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import {
@@ -18,11 +18,8 @@ type StudioSliderFieldProps = {
   max: number;
   step?: number;
   digits?: number;
-  /** Shown after the number, e.g. dB. */
   unit?: string;
-  /** Optional display override in the input (e.g. pan label). */
   displayValue?: string;
-  /** When set, parses the number field with pan rules instead of plain float. */
   parse?: "number" | "pan";
   ariaLabel?: string;
   resetHint?: string;
@@ -31,6 +28,8 @@ type StudioSliderFieldProps = {
   compact?: boolean;
   showLabel?: boolean;
 };
+
+const DOUBLE_CLICK_MS = 350;
 
 export function StudioSliderField({
   label,
@@ -52,10 +51,34 @@ export function StudioSliderField({
 }: StudioSliderFieldProps) {
   const formatted = displayValue ?? formatStudioControlValue(value, digits);
   const [draft, setDraft] = useState(formatted);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const onChangeRef = useRef(onChange);
+  const defaultRef = useRef(defaultValue);
+  onChangeRef.current = onChange;
+  defaultRef.current = defaultValue;
 
   useEffect(() => {
     setDraft(displayValue ?? formatStudioControlValue(value, digits));
   }, [displayValue, value, digits]);
+
+  useLayoutEffect(() => {
+    const node = wrapRef.current;
+    if (!node) return;
+    let last = 0;
+    const onPointerDown = (event: PointerEvent) => {
+      const now = performance.now();
+      if (now - last <= DOUBLE_CLICK_MS) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        last = 0;
+        onChangeRef.current(defaultRef.current);
+        return;
+      }
+      last = now;
+    };
+    node.addEventListener("pointerdown", onPointerDown, true);
+    return () => node.removeEventListener("pointerdown", onPointerDown, true);
+  }, []);
 
   const commitDraft = () => {
     const parsed = parse === "pan" ? parsePanInput(draft) : parseStudioNumber(draft);
@@ -65,8 +88,6 @@ export function StudioSliderField({
     }
     onChange(clampStudioNumber(parsed, min, max));
   };
-
-  const reset = () => onChange(defaultValue);
 
   return (
     <div className={className}>
@@ -82,27 +103,30 @@ export function StudioSliderField({
             {label}
           </span>
         ) : null}
-        <Slider
-          className="min-w-0 flex-1"
-          min={min}
-          max={max}
-          step={step}
-          value={[value]}
-          aria-label={ariaLabel ?? label}
-          title={resetHint}
-          onDoubleClick={reset}
-          onValueChange={([next]) => onChange(next ?? defaultValue)}
-        />
+        <div ref={wrapRef} className="min-w-0 flex-1" data-studio-reset-wrap="" title={resetHint}>
+          <Slider
+            className="w-full"
+            min={min}
+            max={max}
+            step={step}
+            value={[value]}
+            aria-label={ariaLabel ?? label}
+            onValueChange={([next]) => onChange(next ?? defaultValue)}
+          />
+        </div>
         <div className="flex shrink-0 items-center gap-1">
           <Input
             dir="ltr"
             inputMode="decimal"
             className={compact ? "h-6 w-14 px-1 py-0 text-[10px]" : "h-7 w-16 px-1.5 py-0 text-xs"}
             value={draft}
-            aria-label={ariaLabel ?? label}
+            aria-label={`${ariaLabel ?? label} value`}
             title={resetHint}
             onChange={(event) => setDraft(event.target.value)}
-            onDoubleClick={reset}
+            onDoubleClick={(event) => {
+              event.preventDefault();
+              onChange(defaultValue);
+            }}
             onKeyDown={(event) => {
               if (event.key === "Enter") event.currentTarget.blur();
               if (event.key === "Escape") {
