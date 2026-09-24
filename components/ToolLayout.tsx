@@ -2,7 +2,7 @@
 
 import { useRef, useState, type DragEvent, type ReactNode } from "react";
 import { Download, Loader2, UploadCloud } from "lucide-react";
-import { AdPlaceholder } from "@/components/AdPlaceholder";
+import { AdSenseScript, ToolAd } from "@/components/ToolAd";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { cn } from "@/lib/utils";
@@ -90,7 +90,8 @@ export function ToolLayout({
 
   return (
     <div className="space-y-4">
-      <AdPlaceholder position="top" />
+      <AdSenseScript />
+      <ToolAd position="top" />
 
       {leading}
 
@@ -147,8 +148,6 @@ export function ToolLayout({
 
       {extra}
 
-      <AdPlaceholder position="middle" />
-
       <div className="flex flex-col gap-3 sm:flex-row">
         <Button
           type="button"
@@ -173,7 +172,7 @@ export function ToolLayout({
         </Button>
       </div>
 
-      <AdPlaceholder position="bottom" />
+      <ToolAd position="bottom" />
     </div>
   );
 }

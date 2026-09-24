@@ -434,9 +434,7 @@ export const en = {
     dropHint: "Processing stays on your device. Nothing is uploaded to a server.",
     emptyPreview: "File preview will appear here after you choose one.",
     ads: {
-      top: "Ad slot — top",
-      middle: "Ad slot — middle",
-      bottom: "Ad slot — bottom",
+      label: "Advertisement",
     },
   },
   compressor: {
