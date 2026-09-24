@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { paintStudioWaveform, waitForNextPaint, type StudioWaveformContext } from "@/lib/studio/paint";
+import {
+  paintStudioWaveform,
+  waitForNextPaint,
+  waveformPaintColor,
+  type StudioWaveformContext,
+} from "@/lib/studio/paint";
 
 function mockCtx(): StudioWaveformContext & { rects: number[][]; paths: number } {
   const rects: number[][] = [];
@@ -26,6 +31,11 @@ function mockCtx(): StudioWaveformContext & { rects: number[][]; paths: number }
 }
 
 describe("studio waveform", () => {
+  it("lightens track colors so peaks contrast on the clip face", () => {
+    expect(waveformPaintColor("#4338CA", 0.5)).toBe("#a19ce5");
+    expect(waveformPaintColor("not-a-color")).toBe("not-a-color");
+  });
+
   it("draws a center line and solid bars for coarse peaks", () => {
     const ctx = mockCtx();
     paintStudioWaveform(ctx, [0, 1, 0.5], 90, 40, "#1a7f96");
