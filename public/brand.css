@@ -70,8 +70,22 @@ a {
 
 .qvi-logo img {
   display: block;
-  height: 2.5rem;
   width: auto;
+  height: 2rem;
+}
+
+.qvi-logo .qvi-logo-dark {
+  display: none;
+}
+
+html.dark .qvi-logo .qvi-logo-light,
+.qvi-header.studio-site-header .qvi-logo-light {
+  display: none;
+}
+
+html.dark .qvi-logo .qvi-logo-dark,
+.qvi-header.studio-site-header .qvi-logo-dark {
+  display: block;
 }
 
 .qvi-nav-desktop {

@@ -7,24 +7,28 @@ type LogoProps = {
   compact?: boolean;
 };
 
+const LOGO_WIDTH = 1246;
+const LOGO_HEIGHT = 619;
+
 export function Logo({ className, compact = false }: LogoProps) {
   return (
-    <Link href="/" className={cn("qvi-logo flex items-center gap-2.5", className)}>
-      <span
-        className={cn(
-          "overflow-hidden rounded-xl border border-border bg-[#F8FAFC] shadow-sm",
-          compact ? "h-10 px-2 py-1" : "h-12 px-2.5 py-1.5",
-        )}
-      >
-        <Image
-          src="/qvi-logo.png"
-          alt="QVI — Audio AI Software"
-          width={640}
-          height={360}
-          className="h-full w-auto object-contain object-center"
-          priority
-        />
-      </span>
+    <Link href="/" className={cn("qvi-logo inline-flex items-center", className)} aria-label="QVI">
+      <Image
+        src="/qvi-logo.png"
+        alt="QVI"
+        width={LOGO_WIDTH}
+        height={LOGO_HEIGHT}
+        priority
+        className={cn("qvi-logo-light w-auto object-contain", compact ? "h-8" : "h-9")}
+      />
+      <Image
+        src="/qvi-logo-on-dark.png"
+        alt=""
+        width={LOGO_WIDTH}
+        height={LOGO_HEIGHT}
+        aria-hidden
+        className={cn("qvi-logo-dark w-auto object-contain", compact ? "h-8" : "h-9")}
+      />
     </Link>
   );
 }
