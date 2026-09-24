@@ -47,6 +47,7 @@ export function StudioTimeline({ copy }: { copy: Messages["studio"] }) {
                 key={track.id}
                 track={track}
                 selected={studio.selectedTrack?.id === track.id}
+                armed={studio.armedTrackId === track.id}
                 copy={copy}
                 onSelect={() => studio.selectTrack(track.id, undefined, true)}
                 onMute={() => studio.setMuted(track.id, !track.muted)}

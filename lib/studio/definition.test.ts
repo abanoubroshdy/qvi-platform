@@ -77,6 +77,9 @@ describe("QVI Studio phase 0 contract", () => {
       "export-mix",
       "responsive-shell",
       "local-session-restore",
+      "track-pan",
+      "track-eq-compressor",
+      "live-recording",
     ]);
   });
 

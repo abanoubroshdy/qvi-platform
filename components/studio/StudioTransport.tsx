@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Minus, Pause, Play, Plus, Square, Upload } from "lucide-react";
+import { Circle, Minus, Pause, Play, Plus, Square, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatStudioTimecode, sessionDisplayBpm } from "@/lib/studio/chrome";
 import { finishedProjectName } from "@/lib/studio/project";
@@ -37,6 +37,17 @@ export function StudioTransport({ copy }: { copy: Messages["studio"] }) {
           aria-label={playing ? copy.pause : copy.play}
         >
           {playing ? <Pause /> : <Play />}
+        </Button>
+        <Button
+          type="button"
+          size="icon"
+          variant={studio.recording ? "destructive" : "outline"}
+          className="h-8 w-8 rounded-full"
+          aria-pressed={studio.recording}
+          aria-label={studio.recording ? copy.stopRecord : copy.record}
+          onClick={() => void studio.toggleRecord()}
+        >
+          <Circle className={studio.recording ? "fill-current" : ""} />
         </Button>
       </div>
       <TransportClock label={copy.timecode} duration={studio.duration} />

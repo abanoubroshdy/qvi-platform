@@ -299,6 +299,32 @@ describe("playback engine", () => {
     host.analysers[1]!.samples.fill(-0.5);
     expect(engine.readMeters()).toEqual({ master: 0.25, tracks: { [track.id]: 0.5 } });
   });
+
+  it("runs each source through eq, a compressor, and a panner before the track gain", () => {
+    const host = new StripHost();
+    const engine = createStudioPlaybackEngine({ host });
+    const { project, track } = projectWithClip();
+    engine.play(project);
+    const source = host.sources[0]!;
+    expect(source.links[0]).toBe(host.biquads[0]);
+    expect(host.biquads[0]!.links[0]).toBe(host.biquads[1]);
+    expect(host.biquads[1]!.links[0]).toBe(host.biquads[2]);
+    expect(host.biquads[2]!.links[0]).toBe(host.compressors[0]);
+    expect(host.compressors[0]!.links[0]).toBe(host.panners[0]);
+    expect(host.panners[0]!.links[0]).toBe(host.gains[1]);
+    expect(host.gains[1]!.links[0]).toBe(host.analysers[1]);
+    const next = {
+      ...project,
+      tracks: [{ ...track, pan: -0.5, eq: { lowDb: 3, midDb: -1, highDb: 2 }, compressor: 1 }],
+    };
+    engine.sync(next);
+    expect(host.panners[0]!.pan.value).toBe(-0.5);
+    expect(host.biquads[0]!.gain.value).toBe(3);
+    expect(host.biquads[1]!.gain.value).toBe(-1);
+    expect(host.biquads[2]!.gain.value).toBe(2);
+    expect(host.compressors[0]!.threshold.value).toBe(-24);
+    expect(host.compressors[0]!.ratio.value).toBe(4);
+  });
 });
 
 class LinkedNode implements StudioAudioNode {
@@ -329,6 +355,63 @@ class MeterSource extends LinkedNode implements StudioBufferSource {
   onended: (() => void) | null = null;
   start() {}
   stop() {}
+}
+
+class StripParam extends LinkedNode {
+  type: BiquadFilterType = "lowshelf";
+  pan = { value: 0 };
+  frequency = { value: 0 };
+  gain = { value: 0 };
+  Q = { value: 1 };
+  threshold = { value: 0 };
+  knee = { value: 0 };
+  ratio = { value: 1 };
+  attack = { value: 0 };
+  release = { value: 0 };
+}
+
+class StripHost implements StudioAudioHost {
+  currentTime = 0;
+  state: AudioContextState = "running";
+  destination: StudioAudioNode = new LinkedNode();
+  gains: MeterGain[] = [];
+  analysers: MeterAnalyser[] = [];
+  biquads: StripParam[] = [];
+  compressors: StripParam[] = [];
+  panners: StripParam[] = [];
+  sources: MeterSource[] = [];
+  async resume() {}
+  async close() {}
+  createGain() {
+    const gain = new MeterGain();
+    this.gains.push(gain);
+    return gain;
+  }
+  createAnalyser() {
+    const analyser = new MeterAnalyser();
+    this.analysers.push(analyser);
+    return analyser;
+  }
+  createBiquadFilter() {
+    const node = new StripParam();
+    this.biquads.push(node);
+    return node;
+  }
+  createDynamicsCompressor() {
+    const node = new StripParam();
+    this.compressors.push(node);
+    return node;
+  }
+  createStereoPanner() {
+    const node = new StripParam();
+    this.panners.push(node);
+    return node;
+  }
+  createBufferSource() {
+    const source = new MeterSource();
+    this.sources.push(source);
+    return source;
+  }
 }
 
 class MeterHost implements StudioAudioHost {

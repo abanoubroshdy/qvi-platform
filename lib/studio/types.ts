@@ -7,6 +7,7 @@
  */
 
 import type { StudioClipSpan, StudioTempoSetting } from "@/lib/studio/definition";
+import type { StudioTrackEq } from "@/lib/studio/mix";
 
 export const STUDIO_MODEL_PHASE = 1 as const;
 
@@ -49,6 +50,11 @@ export type StudioTrack = {
   tempo: StudioTempoSetting;
   pitchSemitones: number;
   pitchCents: number;
+  /** -1 left, 0 center, 1 right. */
+  pan: number;
+  eq: StudioTrackEq;
+  /** 0 bypasses the compressor. 1 is a light squeeze. */
+  compressor: number;
 };
 
 export type StudioProject = {

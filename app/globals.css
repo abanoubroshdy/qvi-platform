@@ -368,6 +368,10 @@ body:has(.studio-console) {
   box-shadow: inset 0 0 0 1px hsl(var(--studio-teal) / 0.9);
 }
 
+.studio-track-head[data-armed="true"] {
+  box-shadow: inset 2px 0 0 hsl(4 74% 56%);
+}
+
 .studio-track-head.is-selected {
   background: hsl(187 32% 16%);
   box-shadow: inset 2px 0 0 hsl(var(--studio-teal));

@@ -9,6 +9,7 @@ import type { StudioTrack } from "@/lib/studio/types";
 export function StudioTrackHeader({
   track,
   selected,
+  armed = false,
   copy,
   onSelect,
   onMute,
@@ -16,13 +17,17 @@ export function StudioTrackHeader({
 }: {
   track: StudioTrack;
   selected: boolean;
+  armed?: boolean;
   copy: Messages["studio"];
   onSelect: () => void;
   onMute: () => void;
   onSolo: () => void;
 }) {
   return (
-    <div className={cn("studio-track-head flex h-16 items-center gap-1 border-b border-border px-1.5", selected && "is-selected")}>
+    <div
+      className={cn("studio-track-head flex h-16 items-center gap-1 border-b border-border px-1.5", selected && "is-selected")}
+      data-armed={armed ? "true" : "false"}
+    >
       <StudioLevelMeter id={track.id} />
       <button type="button" className="flex min-w-0 flex-1 items-center gap-1.5 text-start" onClick={onSelect}>
         <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: track.color }} />

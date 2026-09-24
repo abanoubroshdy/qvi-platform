@@ -14,8 +14,10 @@ import {
 } from "@/lib/studio/playback-engine";
 import {
   addImportedFileAsTrack,
+  addTrack,
   largeFileWarning,
   addImportedFileToTrack,
+  createStudioTrack,
   canPlayStudioProject,
   createStudioProject,
   projectDuration,
@@ -26,9 +28,12 @@ import {
   setClipOffset,
   setClipTrim,
   setMasterGain,
+  setTrackCompressor,
+  setTrackEq,
   setTrackGain,
   setTrackMuted,
   setTrackName,
+  setTrackPan,
   setTrackPitch,
   setTrackSolo,
   setTrackTempo,
@@ -36,6 +41,9 @@ import {
   trackTempoPitchIsIdentity,
 } from "@/lib/studio/project";
 import { exceedsTrackWarning, type StudioTempoSetting } from "@/lib/studio/definition";
+import { StudioMicCapture, type MicProcessor } from "@/lib/studio/mic-capture";
+import { micFailureNotice, nextRecordingName, punchInOffset, type StudioTrackEq } from "@/lib/studio/mix";
+import { encodeWavPcm16, wavArrayBuffer } from "@/lib/studio/wav";
 import {
   browserStudioSessionStore,
   restoreStudioProject,
@@ -56,7 +64,11 @@ export type StudioNoticeCode =
   | "decode-failed"
   | "preview-failed"
   | "save-failed"
-  | "restore-failed";
+  | "restore-failed"
+  | "mic-denied"
+  | "mic-unavailable"
+  | "arm-track"
+  | "recording-empty";
 
 function previewKey(project: StudioProject): string {
   return project.tracks
@@ -109,6 +121,12 @@ export function useStudioSession() {
   const saveEpochRef = useRef(0);
   const [sessionReady, setSessionReady] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const [armedTrackId, setArmedTrackId] = useState<string | null>(null);
+  const armedTrackIdRef = useRef<string | null>(null);
+  armedTrackIdRef.current = armedTrackId;
+  const [recording, setRecording] = useState(false);
+  const captureRef = useRef<StudioMicCapture | null>(null);
+  const punchRef = useRef(0);
   const [transport, setTransport] = useState<StudioTransportSnapshot>({ status: "idle", playheadSec: 0 });
   const [viewport, setViewport] = useState(() => viewportFromWidth(1024));
   const viewportRef = useRef(viewport);
@@ -491,6 +509,96 @@ export function useStudioSession() {
     [importFiles],
   );
 
+  const finishRecording = useCallback(async () => {
+    const capture = captureRef.current;
+    captureRef.current = null;
+    setRecording(false);
+    const buffer = capture?.stop() ?? null;
+    const trackId = armedTrackIdRef.current;
+    if (!buffer || buffer.length < 1 || !trackId) {
+      if (capture) setNotice("recording-empty");
+      return;
+    }
+    await whenEngineReady();
+    const context = contextRef.current;
+    if (!context) return;
+    const names = projectRef.current.tracks.flatMap((track) => track.clips.map((clip) => clip.fileName));
+    const wav = wavArrayBuffer(encodeWavPcm16(buffer));
+    const file = new File([wav], nextRecordingName(names), { type: "audio/wav" });
+    const decoded = await loadStudioFile(file, (data) => context.decodeAudioData(data));
+    if (!decoded.ok) {
+      setNotice(decoded.reason === "unsupported-file" ? "unsupported-file" : "decode-failed");
+      return;
+    }
+    const before = projectRef.current;
+    const added = addImportedFileToTrack(before, trackId, decoded.file);
+    if (!added.ok) {
+      setNotice(added.reason === "track-cap-reached" ? "track-cap-reached" : "unsupported-file");
+      return;
+    }
+    rememberClipAudio(audioRef.current, before, added.project, decoded.sourceBytes);
+    const clipId = added.project.tracks.find((track) => track.id === trackId)?.clips.at(-1)?.id ?? null;
+    const punched = clipId ? setClipOffset(added.project, trackId, clipId, punchInOffset(punchRef.current)) : null;
+    commit(punched && punched.ok ? punched.project : added.project);
+    if (clipId) selectTrack(trackId, clipId, true);
+  }, [commit, selectTrack, whenEngineReady]);
+
+  const toggleRecord = useCallback(async () => {
+    if (captureRef.current) {
+      await finishRecording();
+      return;
+    }
+    let trackId = armedTrackIdRef.current;
+    if (!trackId && projectRef.current.tracks.length === 0) {
+      const track = createStudioTrack({ name: "Recording", index: 0 });
+      const added = addTrack(projectRef.current, track, viewportRef.current);
+      if (!added.ok) {
+        setNotice(added.reason === "track-cap-reached" ? "track-cap-reached" : "unsupported-file");
+        return;
+      }
+      commit(added.project);
+      trackId = track.id;
+      armedTrackIdRef.current = track.id;
+      setArmedTrackId(track.id);
+      selectTrack(track.id, null, true);
+    }
+    if (!trackId) {
+      setNotice("arm-track");
+      return;
+    }
+    const context = contextRef.current;
+    const engine = engineRef.current;
+    if (!context || !engine) return;
+    await engine.resumeFromUserGesture();
+    const capture = new StudioMicCapture({
+      sampleRate: context.sampleRate,
+      destination: context.destination,
+      getUserMedia: (constraints) => {
+        const request = navigator.mediaDevices?.getUserMedia?.bind(navigator.mediaDevices);
+        if (!request) return Promise.reject(Object.assign(new Error("No microphone"), { name: "NotFoundError" }));
+        return request(constraints);
+      },
+      createMediaStreamSource: (stream) => context.createMediaStreamSource(stream),
+      createScriptProcessor: (size, inputs, outputs) => context.createScriptProcessor(size, inputs, outputs) as unknown as MicProcessor,
+      createGain: () => context.createGain(),
+      createBuffer: (channels, length, sampleRate) => context.createBuffer(channels, length, sampleRate),
+    });
+    try {
+      await capture.start();
+    } catch (error) {
+      capture.dispose();
+      setNotice(micFailureNotice(error));
+      return;
+    }
+    captureRef.current = capture;
+    const playing = engine.currentStatus() === "playing";
+    punchRef.current = punchInOffset(playing ? engine.currentPlayhead() : projectRef.current.playheadSec);
+    setRecording(true);
+    setNotice(null);
+  }, [commit, finishRecording, selectTrack]);
+
+  useEffect(() => () => captureRef.current?.dispose(), []);
+
   const selectedTrack = project.tracks.find((track) => track.id === selectedTrackId) ?? null;
   const selectedClip = selectedTrack?.clips.find((clip) => clip.id === selectedClipId) ?? selectedTrack?.clips[0] ?? null;
 
@@ -524,6 +632,22 @@ export function useStudioSession() {
     selectClip,
     moveClipGroup,
     restoring,
+    armedTrackId,
+    setArmedTrack: (trackId: string | null) => setArmedTrackId(trackId),
+    recording,
+    toggleRecord: () => void toggleRecord(),
+    setPan: (trackId: string, pan: number) => {
+      const result = setTrackPan(projectRef.current, trackId, pan);
+      if (result.ok) commit(result.project);
+    },
+    setEq: (trackId: string, patch: Partial<StudioTrackEq>) => {
+      const result = setTrackEq(projectRef.current, trackId, patch);
+      if (result.ok) commit(result.project);
+    },
+    setCompressor: (trackId: string, amount: number) => {
+      const result = setTrackCompressor(projectRef.current, trackId, amount);
+      if (result.ok) commit(result.project);
+    },
     setProjectName: (name: string) => {
       const current = projectRef.current;
       if (name === current.name) return;
@@ -531,6 +655,10 @@ export function useStudioSession() {
     },
     newProject: () => {
       saveEpochRef.current += 1;
+      captureRef.current?.dispose();
+      captureRef.current = null;
+      setRecording(false);
+      setArmedTrackId(null);
       engineRef.current?.stop();
       audioRef.current = new Map();
       setSelectedTrackId(null);
@@ -599,6 +727,7 @@ export function useStudioSession() {
       const result = removeTrack(projectRef.current, trackId);
       if (!result.ok) return;
       commit(result.project);
+      if (armedTrackIdRef.current === trackId) setArmedTrackId(null);
       if (selectedTrackId === trackId) {
         const next = result.project.tracks[0];
         setSelectedTrackId(next?.id ?? null);

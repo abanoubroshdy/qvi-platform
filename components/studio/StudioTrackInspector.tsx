@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { qviStudioLimits } from "@/lib/studio/definition";
+import { STUDIO_EQ_MAX_DB, STUDIO_EQ_MIN_DB, formatPan } from "@/lib/studio/mix";
 import type { Messages } from "@/lib/i18n";
 import { useStudio } from "@/components/studio/studio-context";
 
@@ -65,6 +66,67 @@ export function StudioTrackInspector({ copy }: { copy: Messages["studio"] }) {
           onCommit={(value) => studio.setTempo(track.id, { percent: value })}
         />
       )}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          size="sm"
+          variant={studio.armedTrackId === track.id ? "destructive" : "outline"}
+          aria-pressed={studio.armedTrackId === track.id}
+          onClick={() => studio.setArmedTrack(studio.armedTrackId === track.id ? null : track.id)}
+        >
+          {studio.armedTrackId === track.id ? copy.armed : copy.armForRecord}
+        </Button>
+      </div>
+      <Field label={copy.pan} value={formatPan(track.pan)}>
+        <Slider
+          min={-1}
+          max={1}
+          step={0.01}
+          value={[track.pan]}
+          aria-label={copy.pan}
+          onValueChange={([value]) => studio.setPan(track.id, value ?? 0)}
+        />
+      </Field>
+      <Field label={copy.eqLow} value={`${track.eq.lowDb.toFixed(1)} dB`}>
+        <Slider
+          min={STUDIO_EQ_MIN_DB}
+          max={STUDIO_EQ_MAX_DB}
+          step={0.1}
+          value={[track.eq.lowDb]}
+          aria-label={copy.eqLow}
+          onValueChange={([value]) => studio.setEq(track.id, { lowDb: value ?? 0 })}
+        />
+      </Field>
+      <Field label={copy.eqMid} value={`${track.eq.midDb.toFixed(1)} dB`}>
+        <Slider
+          min={STUDIO_EQ_MIN_DB}
+          max={STUDIO_EQ_MAX_DB}
+          step={0.1}
+          value={[track.eq.midDb]}
+          aria-label={copy.eqMid}
+          onValueChange={([value]) => studio.setEq(track.id, { midDb: value ?? 0 })}
+        />
+      </Field>
+      <Field label={copy.eqHigh} value={`${track.eq.highDb.toFixed(1)} dB`}>
+        <Slider
+          min={STUDIO_EQ_MIN_DB}
+          max={STUDIO_EQ_MAX_DB}
+          step={0.1}
+          value={[track.eq.highDb]}
+          aria-label={copy.eqHigh}
+          onValueChange={([value]) => studio.setEq(track.id, { highDb: value ?? 0 })}
+        />
+      </Field>
+      <Field label={copy.compressor} value={`${Math.round(track.compressor * 100)}`}>
+        <Slider
+          min={0}
+          max={1}
+          step={0.01}
+          value={[track.compressor]}
+          aria-label={copy.compressor}
+          onValueChange={([value]) => studio.setCompressor(track.id, value ?? 0)}
+        />
+      </Field>
       <Field label={copy.semitones} value={`${track.pitchSemitones}`}>
         <Slider
           min={limits.minSemitones}
