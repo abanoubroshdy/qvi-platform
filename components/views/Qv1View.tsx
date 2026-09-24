@@ -1,9 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { AudioLines, Mic2, Music2, Sparkles } from "lucide-react";
 import { JsonLd } from "@/components/JsonLd";
 import { WaitlistForm } from "@/components/WaitlistForm";
 import { useI18n } from "@/components/i18n/I18nProvider";
+import { Button } from "@/components/ui/button";
+import { qv1Path } from "@/lib/site-nav";
 import {
   Accordion,
   AccordionContent,
@@ -41,6 +44,9 @@ export function Qv1View() {
           <p className="mt-4 max-w-2xl text-base leading-8 text-muted-foreground">
             {page.description} {page.extra}
           </p>
+          <Button asChild size="lg" className="qvi-btn mt-6">
+            <Link href={qv1Path}>{page.evaluationCta}</Link>
+          </Button>
         </div>
       </section>
 

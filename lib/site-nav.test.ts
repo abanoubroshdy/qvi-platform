@@ -18,6 +18,7 @@ const routeFiles: Record<string, string> = {
   "/tools": "app/tools/page.tsx",
   "/privacy-policy": "app/privacy-policy/page.tsx",
   "/terms": "app/terms/page.tsx",
+  "/qv1": "app/qv1/page.tsx",
   "/products/qv1": "app/products/qv1/page.tsx",
   "/products/neyora": "app/products/neyora/page.tsx",
 };

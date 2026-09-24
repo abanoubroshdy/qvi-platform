@@ -17,6 +17,7 @@ import {
 import { products } from "@/lib/products";
 import type { LucideIcon } from "lucide-react";
 import { useI18n } from "@/components/i18n/I18nProvider";
+import { qv1Path } from "@/lib/site-nav";
 import { cn } from "@/lib/utils";
 
 type ExploreLink = {
@@ -31,9 +32,9 @@ export function HomeSiteExplore() {
 
   const links: ExploreLink[] = [
     {
-      href: "/products/qv1",
-      label: copy.products.qv1.name,
-      description: copy.products.qv1.title,
+      href: qv1Path,
+      label: copy.qv1Page.shortName,
+      description: copy.qv1Page.lead,
       icon: Music2,
     },
     {

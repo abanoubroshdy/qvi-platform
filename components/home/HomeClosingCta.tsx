@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowRight, Mail } from "lucide-react";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { Button } from "@/components/ui/button";
+import { qv1Path } from "@/lib/site-nav";
 
 export function HomeClosingCta() {
   const { copy } = useI18n();
@@ -19,7 +20,7 @@ export function HomeClosingCta() {
           <p className="qvi-lead mt-3 max-w-2xl text-muted-foreground">{copy.home.closingLead}</p>
           <div className="qvi-actions mt-8 flex flex-wrap gap-3">
             <Button asChild size="lg" className="qvi-btn">
-              <Link href="/products/qv1">
+              <Link href={qv1Path}>
                 {copy.home.qv1Cta}
                 <ArrowRight />
               </Link>

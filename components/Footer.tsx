@@ -6,7 +6,7 @@ import { Logo } from "@/components/Logo";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { products } from "@/lib/products";
 import { siteConfig } from "@/lib/site";
-import { footerCompanyItems, footerExploreItems } from "@/lib/site-nav";
+import { footerCompanyItems, footerExploreItems, qv1Path } from "@/lib/site-nav";
 
 export function Footer() {
   const pathname = usePathname();
@@ -16,6 +16,7 @@ export function Footer() {
 
   const productLinks = [
     { href: products.studio.href, label: copy.products.studio.name },
+    { href: qv1Path, label: copy.qv1Page.shortName },
     { href: products.qv1.href, label: copy.products.qv1.name },
     { href: products.neyora.href, label: copy.products.neyora.name },
   ];

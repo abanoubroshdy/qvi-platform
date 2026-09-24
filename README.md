@@ -27,6 +27,14 @@ npm start
 
 Optional: copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_SITE_URL` before deploy.
 
+## QV1 Evaluation download
+
+`/qv1` is the public page for **QV1 Evaluation** (Windows). `/qv1/models` lists third-party model sources and licenses. `/qv1/download` redirects with HTTP 307 to `QV1_DOWNLOAD_URL`, the installer file on a GitHub Release.
+
+If `QV1_DOWNLOAD_URL` is unset or blank, `/qv1/download` redirects to `/qv1?download=soon` and the download button is disabled with a “Download coming soon” note. Do not invent a file URL in the repo.
+
+Set `QV1_DOWNLOAD_URL` in **Vercel → Project Settings → Environment Variables** (Production and Preview) when the Release asset exists, then redeploy. Version, file name, size, SHA256, and code-signing state live in `lib/qv1-release.ts`. Ads stay on `/tools` only; `/qv1` and `/qv1/models` do not render ad units.
+
 ## Contact form (Vercel)
 
 `/contact` posts to `/api/contact` and emails **support@getqvi.com** via [Resend](https://resend.com). In **Vercel → Environment Variables** (Production + Preview), set:
@@ -60,7 +68,10 @@ V1 scope is defined in `lib/studio/definition.ts`. The in-memory session lives o
 
 - `/` product home, with links to QVI Studio, QV1, Neyora, and free tools
 - `/studio` the QVI Studio session
-- `/products/qv1` QV1 waitlist landing
+- `/qv1` QV1 Evaluation download (Windows)
+- `/qv1/models` third-party model sources and licenses
+- `/qv1/download` redirect to `QV1_DOWNLOAD_URL`, or back to `/qv1?download=soon`
+- `/products/qv1` QV1 product page
 - `/products/neyora` Neyora lab (also `/lab`)
 - `/tools/image-compressor` Image Compressor
 - `/tools/webp-to-jpg` WEBP to JPG

@@ -3,14 +3,14 @@ export const products = {
     slug: "qv1",
     name: "QV1",
     href: "/products/qv1",
-    status: "Coming Soon",
-    title: "QV1 - Stem Separation & Audio Processing Engine",
+    status: "Evaluation",
+    title: "QV1 - 4 AI stems, Drum Split (DSP) in Pro",
     description:
-      "Professional AI engine for vocal/instrumental separation and track processing.",
+      "Free Windows evaluation: 4 AI stems (vocals, drums, bass, other) with non-commercial third-party models. Drum Split (DSP) is Pro, coming soon.",
     features: [
-      "Split mixed tracks into vocals, instruments, and supporting stems",
-      "Clean noise and artifacts without hollowing the source",
-      "Rebuild balance for remix, sample, and scoring workflows",
+      "4 AI stems — vocals, drums, bass, and other — free in QV1 Evaluation",
+      "Drum Split (DSP): Kick, Snare, Hi-hat, and Other Drums — Pro, coming soon, on any drum track",
+      "Audio stays on your PC. Models download only after a non-commercial notice",
     ],
   },
   neyora: {
