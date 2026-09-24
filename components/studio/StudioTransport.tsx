@@ -88,7 +88,7 @@ export function StudioTransportDock({ copy }: { copy: Messages["studio"] }) {
           <Button
             type="button"
             size="icon"
-            variant="outline"
+            variant={studio.loopEnabled ? "default" : "outline"}
             className="h-8 w-8"
             aria-pressed={studio.loopEnabled}
             aria-label={copy.loop}
@@ -96,7 +96,7 @@ export function StudioTransportDock({ copy }: { copy: Messages["studio"] }) {
             title={studio.timeRange ? copy.loopHint : copy.loopNeedsRange}
             onClick={() => studio.setLoopEnabled(!studio.loopEnabled)}
           >
-            <Repeat2 className={studio.loopEnabled ? "text-[hsl(var(--studio-teal))]" : undefined} />
+            <Repeat2 />
           </Button>
         </div>
         <TransportClock label={copy.timecode} duration={studio.duration} />
