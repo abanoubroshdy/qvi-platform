@@ -24,6 +24,7 @@ import {
   seekPlayhead,
   setClipOffset,
   setClipTrim,
+  setClipFades,
   setMasterGain,
   setTrackGain,
   setTrackMuted,
@@ -288,6 +289,26 @@ describe("studio project model", () => {
     expect(clips[1]!.id).not.toBe(clip.id);
     expect(splitClip(project, track.id, clip.id, 0)).toMatchObject({ ok: false, reason: "split-outside-clip" });
     expect(splitClip(project, track.id, clip.id, 4)).toMatchObject({ ok: false, reason: "split-outside-clip" });
+  });
+
+  it("sets clip fades and keeps fade-in on the left after a split", () => {
+    const project = withTrack("fade.wav", 4);
+    const track = project.tracks[0]!;
+    const clip = track.clips[0]!;
+    const faded = setClipFades(project, track.id, clip.id, { fadeInSec: 0.5, fadeOutSec: 0.75 });
+    expect(faded.ok).toBe(true);
+    if (!faded.ok) return;
+    expect(faded.project.tracks[0]!.clips[0]).toMatchObject({ fadeInSec: 0.5, fadeOutSec: 0.75 });
+    const clamped = setClipFades(faded.project, track.id, clip.id, { fadeInSec: 3, fadeOutSec: 3 });
+    expect(clamped.ok).toBe(true);
+    if (!clamped.ok) return;
+    expect(clamped.project.tracks[0]!.clips[0]).toMatchObject({ fadeInSec: 2, fadeOutSec: 2 });
+    const split = splitClip(clamped.project, track.id, clip.id, 1.5);
+    expect(split.ok).toBe(true);
+    if (!split.ok) return;
+    const clips = split.project.tracks[0]!.clips;
+    expect(clips[0]).toMatchObject({ fadeInSec: 0.75, fadeOutSec: 0 });
+    expect(clips[1]).toMatchObject({ fadeInSec: 0, fadeOutSec: 1.25 });
   });
 
   it("leaves the project unchanged when the clip is missing", () => {

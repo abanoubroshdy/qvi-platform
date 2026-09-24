@@ -212,6 +212,15 @@ export const qviStudioV1Capabilities = [
     ],
   },
   {
+    id: "clip-fades",
+    summary: "Each clip can fade in and fade out in heard time.",
+    acceptance: [
+      "Fade lengths are heard seconds and clamp to the clip duration.",
+      "Playback and export apply the same fades.",
+      "The inspector edits fade in and fade out for the selected clip.",
+    ],
+  },
+  {
     id: "track-mixer",
     summary: "Per-track volume, mute, and solo, plus a master volume.",
     acceptance: [
@@ -326,7 +335,7 @@ export const qviStudioV1NonGoals = [
     reason: "IndexedDB restores the local /studio session after refresh. There is no cloud save, account sync, or upload.",
   },
   { id: "video-import", reason: "Video extraction stays on the MP4 to MP3 tool." },
-  { id: "per-clip-gain-or-fades", reason: "Gain, mute, and solo are track-level. Clip fades stay on the audio cutter." },
+  { id: "per-clip-gain", reason: "Gain, mute, and solo stay track-level. Per-clip gain is out of scope." },
   { id: "rubberband", reason: "Do not depend on Rubber Band. The wasm FFmpeg build has no rubberband filter. Tempo and pitch use SoundTouchJS (MPL-2.0)." },
   { id: "stem-separation", reason: "Stem separation stays on QV1." },
   { id: "instrument-synthesis", reason: "Instrument synthesis stays on Neyora." },
@@ -375,6 +384,10 @@ export type StudioClipSpan = {
   offsetSec: number;
   trimStartSec: number;
   trimEndSec: number;
+  /** Heard-time fade at the clip start. Omitted on legacy snapshots. */
+  fadeInSec?: number;
+  /** Heard-time fade at the clip end. Omitted on legacy snapshots. */
+  fadeOutSec?: number;
 };
 
 export type StudioTempoSetting = {

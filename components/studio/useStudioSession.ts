@@ -39,6 +39,7 @@ import {
   seekPlayhead,
   setClipOffset,
   setClipTrim,
+  setClipFades,
   setMasterGain,
   setTrackCompressor,
   setTrackEq,
@@ -98,7 +99,9 @@ function previewKey(project: StudioProject): string {
         track.pitchCents,
         track.stretchPreset,
         track.clips
-          .map((clip) => [clip.id, clip.offsetSec, clip.trimStartSec, clip.trimEndSec, clip.sourceDurationSec].join(":"))
+          .map((clip) =>
+            [clip.id, clip.offsetSec, clip.trimStartSec, clip.trimEndSec, clip.fadeInSec, clip.fadeOutSec, clip.sourceDurationSec].join(":"),
+          )
           .join(","),
       ].join("|"),
     )
@@ -961,6 +964,10 @@ export function useStudioSession() {
         current = trimmed.project;
       }
       commit(current);
+    },
+    setFades: (trackId: string, clipId: string, fades: { fadeInSec?: number; fadeOutSec?: number }) => {
+      const result = setClipFades(projectRef.current, trackId, clipId, fades);
+      if (result.ok) commit(result.project);
     },
     deleteTrack: (trackId: string) => {
       const result = removeTrack(projectRef.current, trackId);

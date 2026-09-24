@@ -20,7 +20,9 @@ import {
   clipTimelineEnd,
   defaultClipOffset,
   exportBlockReason,
+  heardClipDuration,
   qviStudioLimits,
+  sourceClipDuration,
   studioImportExtensions,
   trackAddBlockReason,
   timelineDuration,
@@ -28,6 +30,7 @@ import {
   type StudioTempoSetting,
   type StudioViewport,
 } from "@/lib/studio/definition";
+import { normalizeClipFades } from "@/lib/studio/fades";
 import { clampEqDb, clampPan, clampUnit, defaultTrackEq, normalizeTrackMix, type StudioTrackEq } from "@/lib/studio/mix";
 import {
   createStudioId,
@@ -130,6 +133,8 @@ export function createStudioClip(input: StudioImportedFile & { offsetSec?: numbe
     offsetSec: Math.max(0, finiteNumber(input.offsetSec ?? 0, 0)),
     trimStartSec,
     trimEndSec,
+    fadeInSec: 0,
+    fadeOutSec: 0,
     sampleRate: Math.max(0, Math.round(finiteNumber(input.sampleRate, 0))),
     channels: Math.max(0, Math.round(finiteNumber(input.channels, 0))),
     peaks: [...(input.peaks ?? [])],
@@ -348,6 +353,8 @@ export function splitClip(
     return fail(project, studioEditReasons.splitOutside);
   }
   const sourceSplit = clip.trimStartSec + into * rate;
+  const leftFades = normalizeClipFades(into, clip.fadeInSec, 0);
+  const rightFades = normalizeClipFades(heardLen - into, 0, clip.fadeOutSec);
   const left: StudioClip = {
     ...clip,
     peaks: [...clip.peaks],
@@ -356,6 +363,8 @@ export function splitClip(
       trimStartSec: clip.trimStartSec,
       trimEndSec: sourceSplit,
     }),
+    fadeInSec: leftFades.fadeInSec,
+    fadeOutSec: leftFades.fadeOutSec,
   };
   const right: StudioClip = {
     ...clip,
@@ -367,6 +376,8 @@ export function splitClip(
       trimStartSec: sourceSplit,
       trimEndSec: clip.trimEndSec,
     }),
+    fadeInSec: rightFades.fadeInSec,
+    fadeOutSec: rightFades.fadeOutSec,
   };
   const clips = track.clips.flatMap((item) => (item.id === clipId ? [left, right] : [item]));
   return succeed(replaceTrack(project, trackId, { ...track, clips }));
@@ -516,21 +527,43 @@ export function setClipTrim(
   clipId: string,
   trim: { trimStartSec?: number; trimEndSec?: number },
 ): StudioWriteResult {
-  return editClip(project, trackId, clipId, (clip) => ({
-    ...clip,
-    ...normalizeSpan(clip.sourceDurationSec, {
-      offsetSec: clip.offsetSec,
-      trimStartSec: trim.trimStartSec ?? clip.trimStartSec,
-      trimEndSec: trim.trimEndSec ?? clip.trimEndSec,
-    }),
-  }));
+  return editClip(project, trackId, clipId, (clip, track) => {
+    const next = {
+      ...clip,
+      ...normalizeSpan(clip.sourceDurationSec, {
+        offsetSec: clip.offsetSec,
+        trimStartSec: trim.trimStartSec ?? clip.trimStartSec,
+        trimEndSec: trim.trimEndSec ?? clip.trimEndSec,
+      }),
+    };
+    const heard = heardClipDuration(sourceClipDuration(next), track.tempo);
+    const fades = normalizeClipFades(heard, next.fadeInSec, next.fadeOutSec);
+    return { ...next, fadeInSec: fades.fadeInSec, fadeOutSec: fades.fadeOutSec };
+  });
+}
+
+export function setClipFades(
+  project: StudioProject,
+  trackId: string,
+  clipId: string,
+  fades: { fadeInSec?: number; fadeOutSec?: number },
+): StudioWriteResult {
+  return editClip(project, trackId, clipId, (clip, track) => {
+    const heard = heardClipDuration(sourceClipDuration(clip), track.tempo);
+    const next = normalizeClipFades(
+      heard,
+      fades.fadeInSec ?? clip.fadeInSec,
+      fades.fadeOutSec ?? clip.fadeOutSec,
+    );
+    return { ...clip, fadeInSec: next.fadeInSec, fadeOutSec: next.fadeOutSec };
+  });
 }
 
 function editClip(
   project: StudioProject,
   trackId: string,
   clipId: string,
-  edit: (clip: StudioClip) => StudioClip,
+  edit: (clip: StudioClip, track: StudioTrack) => StudioClip,
 ): StudioWriteResult {
   const track = project.tracks.find((item) => item.id === trackId);
   if (!track) return fail(project, studioEditReasons.trackNotFound);
@@ -538,7 +571,7 @@ function editClip(
   return succeed(
     replaceTrack(project, trackId, {
       ...track,
-      clips: track.clips.map((clip) => (clip.id === clipId ? edit(clip) : clip)),
+      clips: track.clips.map((clip) => (clip.id === clipId ? edit(clip, track) : clip)),
     }),
   );
 }
@@ -607,6 +640,8 @@ export function projectFromSnapshot(
         offsetSec: clip.offsetSec,
         trimStartSec: clip.trimStartSec,
         trimEndSec: clip.trimEndSec,
+        fadeInSec: typeof clip.fadeInSec === "number" && Number.isFinite(clip.fadeInSec) ? clip.fadeInSec : 0,
+        fadeOutSec: typeof clip.fadeOutSec === "number" && Number.isFinite(clip.fadeOutSec) ? clip.fadeOutSec : 0,
         sampleRate: clip.sampleRate,
         channels: clip.channels,
         peaks: [...clip.peaks],
@@ -625,6 +660,8 @@ function clipState(clip: StudioClip): StudioClipState {
     offsetSec: clip.offsetSec,
     trimStartSec: clip.trimStartSec,
     trimEndSec: clip.trimEndSec,
+    fadeInSec: clip.fadeInSec,
+    fadeOutSec: clip.fadeOutSec,
     sampleRate: clip.sampleRate,
     channels: clip.channels,
     peaks: [...clip.peaks],

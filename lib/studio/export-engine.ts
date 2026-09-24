@@ -9,6 +9,7 @@ import { resolveTempoRate } from "@/lib/audio-tempo";
 import { runFFmpegFiles, type FFmpegInputFile } from "@/lib/ffmpeg";
 import { planStudioExport } from "@/lib/studio/export-plan";
 import type { StudioExportEngine, StudioEngineExportResult } from "@/lib/studio/engine";
+import { applyFadesToBuffer } from "@/lib/studio/fades";
 import { trackTempoPitchIsIdentity } from "@/lib/studio/project";
 import { sliceAudioBuffer, type StudioBufferFactory } from "@/lib/studio/tempo-preview";
 import type { StudioClip, StudioProject, StudioTrack } from "@/lib/studio/types";
@@ -71,14 +72,20 @@ async function prepareClip(
 ): Promise<AudioBuffer> {
   if (!clip.buffer) throw new StudioExportError();
   const sliced = sliceAudioBuffer(clip.buffer, clip.trimStartSec, clip.trimEndSec, createBuffer);
-  if (trackTempoPitchIsIdentity(track)) return sliced;
-  return stretchClip(sliced, {
-    tempoRate: resolveTempoRate(track.tempo),
-    semitones: track.pitchSemitones,
-    cents: track.pitchCents,
-    preset: track.stretchPreset,
+  const stretched = trackTempoPitchIsIdentity(track)
+    ? sliced
+    : await stretchClip(sliced, {
+        tempoRate: resolveTempoRate(track.tempo),
+        semitones: track.pitchSemitones,
+        cents: track.pitchCents,
+        preset: track.stretchPreset,
+        createBuffer,
+      });
+  return applyFadesToBuffer(
+    stretched,
+    { fadeInSec: clip.fadeInSec ?? 0, fadeOutSec: clip.fadeOutSec ?? 0 },
     createBuffer,
-  });
+  );
 }
 
 function encodeClipWav(buffer: AudioBuffer, name: string): File {

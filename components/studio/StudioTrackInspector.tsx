@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { StudioNumberField, StudioSliderField } from "@/components/studio/StudioControlField";
 import { resolveTempoRate } from "@/lib/audio-tempo";
 import { tempoPitchComfort, type StretchPresetId } from "@/lib/audio-stretch-preset";
-import { qviStudioLimits } from "@/lib/studio/definition";
+import { heardClipDuration, qviStudioLimits, sourceClipDuration } from "@/lib/studio/definition";
 import { STUDIO_EQ_MAX_DB, STUDIO_EQ_MIN_DB, formatPan } from "@/lib/studio/mix";
 import type { Messages } from "@/lib/i18n";
 import { useStudio } from "@/components/studio/studio-context";
@@ -223,8 +223,33 @@ export function StudioTrackInspector({ copy }: { copy: Messages["studio"] }) {
             digits={2}
             onCommit={(value) => studio.setTrim(track.id, clip.id, { trimEndSec: value })}
           />
+          <StudioSliderField
+            label={copy.fadeIn}
+            value={clip.fadeInSec}
+            defaultValue={0}
+            min={0}
+            max={Math.max(0.01, heardClipDuration(sourceClipDuration(clip), track.tempo) / 2)}
+            step={0.01}
+            digits={2}
+            unit="s"
+            resetHint={copy.resetDefaultHint}
+            onChange={(value) => studio.setFades(track.id, clip.id, { fadeInSec: value })}
+          />
+          <StudioSliderField
+            label={copy.fadeOut}
+            value={clip.fadeOutSec}
+            defaultValue={0}
+            min={0}
+            max={Math.max(0.01, heardClipDuration(sourceClipDuration(clip), track.tempo) / 2)}
+            step={0.01}
+            digits={2}
+            unit="s"
+            resetHint={copy.resetDefaultHint}
+            onChange={(value) => studio.setFades(track.id, clip.id, { fadeOutSec: value })}
+          />
         </div>
       )}
+      {clip ? <p className="text-xs text-muted-foreground">{copy.fadeHint}</p> : null}
       <div className="flex flex-wrap gap-2">
         <Button type="button" variant="outline" onClick={() => studio.browse(track.id)}>
           {copy.addToTrack}

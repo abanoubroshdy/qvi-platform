@@ -71,6 +71,7 @@ describe("QVI Studio phase 0 contract", () => {
       "multi-clip-tracks",
       "shared-timeline",
       "clip-offset-and-trim",
+      "clip-fades",
       "track-mixer",
       "per-track-tempo-pitch",
       "global-transport",

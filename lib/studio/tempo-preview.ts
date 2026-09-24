@@ -8,6 +8,7 @@
 import { stretchAudioBuffer, type AudioStretchOptions } from "@/lib/audio-stretch";
 import { resolveTempoRate } from "@/lib/audio-tempo";
 import { qviStudioLimits } from "@/lib/studio/definition";
+import { applyFadesToBuffer } from "@/lib/studio/fades";
 import type { StudioTempoPitchPreview } from "@/lib/studio/engine";
 import { trackTempoPitchIsIdentity } from "@/lib/studio/project";
 import type { StudioTrack } from "@/lib/studio/types";
@@ -46,7 +47,12 @@ export function createTempoPitchPreview(deps: {
         const trimmed = sliceAudioBuffer(clip.buffer, clip.trimStartSec, clip.trimEndSec, deps.createBuffer);
         const processed = await deps.processClip({ buffer: trimmed, track, signal: abort });
         if (abort.aborted) throw abortError();
-        placed.push({ buffer: processed, heardOffsetSec: Math.max(0, clip.offsetSec) });
+        const faded = applyFadesToBuffer(
+          processed,
+          { fadeInSec: clip.fadeInSec ?? 0, fadeOutSec: clip.fadeOutSec ?? 0 },
+          deps.createBuffer,
+        );
+        placed.push({ buffer: faded, heardOffsetSec: Math.max(0, clip.offsetSec) });
       }
       return mixHeardBuffers(placed, deps.createBuffer);
     },

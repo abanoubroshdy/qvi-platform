@@ -502,6 +502,14 @@ body:has(.studio-console) {
   right: 0;
 }
 
+.studio-fade-in {
+  background: linear-gradient(to right, hsl(0 0% 0% / 0.55), transparent);
+}
+
+.studio-fade-out {
+  background: linear-gradient(to left, hsl(0 0% 0% / 0.55), transparent);
+}
+
 .studio-meter {
   position: relative;
   overflow: hidden;

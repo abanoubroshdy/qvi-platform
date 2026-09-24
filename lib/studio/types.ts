@@ -35,6 +35,8 @@ export type StudioClip = StudioClipSpan & {
   sampleRate: number;
   channels: number;
   peaks: number[];
+  fadeInSec: number;
+  fadeOutSec: number;
   /** Decoded PCM. Never written into a snapshot. */
   buffer: AudioBuffer | null;
 };

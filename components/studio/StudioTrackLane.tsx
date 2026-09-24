@@ -232,6 +232,20 @@ function ClipBlock({
       }}
     >
       <canvas ref={canvasRef} className="h-full w-full" />
+      {clip.fadeInSec > 0 ? (
+        <span
+          className="studio-fade studio-fade-in pointer-events-none absolute inset-y-0 start-0"
+          style={{ width: `${Math.min(50, (clip.fadeInSec / Math.max(heard, 1e-4)) * 100)}%` }}
+          aria-hidden
+        />
+      ) : null}
+      {clip.fadeOutSec > 0 ? (
+        <span
+          className="studio-fade studio-fade-out pointer-events-none absolute inset-y-0 end-0"
+          style={{ width: `${Math.min(50, (clip.fadeOutSec / Math.max(heard, 1e-4)) * 100)}%` }}
+          aria-hidden
+        />
+      ) : null}
       <span className="pointer-events-none absolute start-2 top-1 max-w-[70%] truncate text-[10px] font-medium">{clip.fileName}</span>
       {primary && (
         <>

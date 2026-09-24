@@ -348,13 +348,15 @@ describe("playback engine", () => {
     expect(engine.readMeters()).toEqual({ master: 0.25, tracks: { [track.id]: 0.5 } });
   });
 
-  it("runs each source through eq, a compressor, and a panner before the track gain", () => {
+  it("runs each source through a fade gain, eq, a compressor, and a panner before the track gain", () => {
     const host = new StripHost();
     const engine = createStudioPlaybackEngine({ host });
     const { project, track } = projectWithClip();
     engine.play(project);
     const source = host.sources[0]!;
-    expect(source.links[0]).toBe(host.biquads[0]);
+    const fadeGain = source.links[0] as MeterGain;
+    expect(fadeGain).toBe(host.gains[2]);
+    expect(fadeGain.links[0]).toBe(host.biquads[0]);
     expect(host.biquads[0]!.links[0]).toBe(host.biquads[1]);
     expect(host.biquads[1]!.links[0]).toBe(host.biquads[2]);
     expect(host.biquads[2]!.links[0]).toBe(host.compressors[0]);
@@ -395,7 +397,7 @@ describe("playback engine", () => {
     expect(host.stretches[0]!.applied?.playbackRate).toBe(2);
   });
 
-  it("places the live stretcher before eq, the compressor, and pan", () => {
+  it("places the fade gain before the live stretcher, then eq, compressor, and pan", () => {
     const host = new LiveStripHost();
     const engine = createStudioPlaybackEngine({ host });
     const { project, track } = projectWithClip({ seconds: 8 });
@@ -404,7 +406,9 @@ describe("playback engine", () => {
     engine.play(sped.project);
     const source = host.sources[0]!;
     const stretch = host.stretches[0]!;
-    expect(source.links[0]).toBe(stretch);
+    const fadeGain = source.links[0] as MeterGain;
+    expect(fadeGain).toBe(host.gains[2]);
+    expect(fadeGain.links[0]).toBe(stretch);
     expect(stretch.links[0]).toBe(host.biquads[0]);
     expect(host.biquads[2]!.links[0]).toBe(host.compressors[0]);
     expect(host.compressors[0]!.links[0]).toBe(host.panners[0]);
