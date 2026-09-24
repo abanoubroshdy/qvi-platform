@@ -502,12 +502,18 @@ body:has(.studio-console) {
   right: 0;
 }
 
+.studio-fade {
+  z-index: 1;
+}
+
 .studio-fade-in {
-  background: linear-gradient(to right, hsl(0 0% 0% / 0.55), transparent);
+  background: linear-gradient(to right, hsl(0 0% 0% / 0.72), hsl(0 0% 0% / 0.28) 70%, transparent);
+  clip-path: polygon(0 0, 100% 0, 0 100%);
 }
 
 .studio-fade-out {
-  background: linear-gradient(to left, hsl(0 0% 0% / 0.55), transparent);
+  background: linear-gradient(to left, hsl(0 0% 0% / 0.72), hsl(0 0% 0% / 0.28) 70%, transparent);
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
 }
 
 .studio-meter {
