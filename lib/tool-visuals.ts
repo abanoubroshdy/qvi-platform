@@ -7,7 +7,7 @@ export type ToolVisual = {
 
 export const toolVisuals: Record<ToolSlug, ToolVisual> = {
   "mp4-to-mp3": {
-    background: "linear-gradient(145deg, #132033 0%, #1a4a5c 52%, #1a7f96 100%)",
+    background: "linear-gradient(145deg, #0B1220 0%, #12323C 52%, #0891B2 100%)",
     caption: "MP4 → Audio",
   },
   "mp3-to-wav": {

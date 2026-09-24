@@ -14,12 +14,12 @@ export const STUDIO_MODEL_PHASE = 1 as const;
 
 export const STUDIO_SNAPSHOT_VERSION = 1 as const;
 
-/** Cycled per track. Teal, violet, and sand follow the QVI brand. */
+/** Cycled per track. Cyan, indigo, and sand stay visible on the #0B1220 console. */
 export const studioTrackColors = [
-  "#1a7f96",
+  "#0891B2",
   "#6d5efc",
   "#c4a574",
-  "#0f2744",
+  "#818CF8",
   "#d4654f",
   "#3d8b6e",
   "#8b5e83",
