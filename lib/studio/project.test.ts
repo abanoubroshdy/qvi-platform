@@ -11,11 +11,13 @@ import {
 import {
   addImportedFileAsTrack,
   addImportedFileToTrack,
+  addEmptyTrack,
   audibleDuration,
   canPlayStudioProject,
   createStudioProject,
   defaultTempo,
   largeFileWarning,
+  moveClipToTrack,
   projectDuration,
   projectExportBlockReason,
   removeClip,
@@ -29,6 +31,7 @@ import {
   setTrackSolo,
   setTrackStretchPreset,
   setTrackTempo,
+  splitClip,
   snapshotStudioProject,
   stopPlayhead,
   trackTempoPitchIsIdentity,
@@ -238,14 +241,53 @@ describe("studio project model", () => {
     expect(largeFileWarning(FFMPEG_LARGE_FILE_BYTES - 1)).toBeNull();
   });
 
-  it("removes a track when its last clip is removed", () => {
+  it("keeps an empty track when its last clip is removed", () => {
     const project = withTrack("only.wav", 3);
     const track = project.tracks[0]!;
     const removed = removeClip(project, track.id, track.clips[0]!.id);
     expect(removed.ok).toBe(true);
     if (!removed.ok) return;
-    expect(removed.project.tracks).toEqual([]);
+    expect(removed.project.tracks).toHaveLength(1);
+    expect(removed.project.tracks[0]!.clips).toEqual([]);
     expect(projectDuration(removed.project)).toBe(0);
+  });
+
+  it("adds empty tracks and moves clips onto them", () => {
+    let project = withTrack("lead.wav", 4);
+    const sourceId = project.tracks[0]!.id;
+    const clipId = project.tracks[0]!.clips[0]!.id;
+    const empty = addEmptyTrack(project, "desktop", "Pad");
+    expect(empty.ok).toBe(true);
+    if (!empty.ok) return;
+    project = empty.project;
+    const destId = project.tracks[1]!.id;
+    expect(project.tracks[1]!.clips).toEqual([]);
+    const moved = moveClipToTrack(project, sourceId, clipId, destId, 1.5);
+    expect(moved.ok).toBe(true);
+    if (!moved.ok) return;
+    expect(moved.project.tracks[0]!.clips).toEqual([]);
+    expect(moved.project.tracks[1]!.clips).toHaveLength(1);
+    expect(moved.project.tracks[1]!.clips[0]!.offsetSec).toBe(1.5);
+  });
+
+  it("splits a clip at the playhead into two adjacent clips", () => {
+    const project = withTrack("split.wav", 4);
+    const track = project.tracks[0]!;
+    const clip = track.clips[0]!;
+    const split = splitClip(project, track.id, clip.id, 1.5);
+    expect(split.ok).toBe(true);
+    if (!split.ok) return;
+    const clips = split.project.tracks[0]!.clips;
+    expect(clips).toHaveLength(2);
+    expect(clips[0]!.trimStartSec).toBe(0);
+    expect(clips[0]!.trimEndSec).toBe(1.5);
+    expect(clips[1]!.trimStartSec).toBe(1.5);
+    expect(clips[1]!.trimEndSec).toBe(4);
+    expect(clips[1]!.offsetSec).toBe(1.5);
+    expect(clips[0]!.id).toBe(clip.id);
+    expect(clips[1]!.id).not.toBe(clip.id);
+    expect(splitClip(project, track.id, clip.id, 0)).toMatchObject({ ok: false, reason: "split-outside-clip" });
+    expect(splitClip(project, track.id, clip.id, 4)).toMatchObject({ ok: false, reason: "split-outside-clip" });
   });
 
   it("leaves the project unchanged when the clip is missing", () => {

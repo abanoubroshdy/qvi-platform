@@ -44,12 +44,18 @@ export function StudioTrackLane({
   onSelectClip: (clipId: string, mode: "replace" | "add") => void;
   onTapClip: (clipId: string) => void;
   onSeek: (seconds: number) => void;
-  onMoveGroup: (group: readonly StudioClipRef[], anchor: StudioClipRef, nextOffsetSec: number) => void;
+  onMoveGroup: (
+    group: readonly StudioClipRef[],
+    anchor: StudioClipRef,
+    nextOffsetSec: number,
+    targetTrackId?: string,
+  ) => void;
   onTrim: (clipId: string, patch: { offsetSec?: number; trimStartSec?: number; trimEndSec?: number }) => void;
 }) {
   return (
     <div
       className="studio-lane relative h-16 border-b border-border"
+      data-studio-lane={track.id}
       style={{ ["--beat-px" as string]: `${beatPx}px`, ["--bar-px" as string]: `${barPx}px` }}
       data-grid={beatPx >= 8 ? "beats" : "bars"}
       onPointerDown={(event) => {
@@ -103,7 +109,12 @@ function ClipBlock({
   bpm: number;
   onSelect: (mode: "replace" | "add") => void;
   onTap: () => void;
-  onMoveGroup: (group: readonly StudioClipRef[], anchor: StudioClipRef, nextOffsetSec: number) => void;
+  onMoveGroup: (
+    group: readonly StudioClipRef[],
+    anchor: StudioClipRef,
+    nextOffsetSec: number,
+    targetTrackId?: string,
+  ) => void;
   onTrim: (patch: { offsetSec?: number; trimStartSec?: number; trimEndSec?: number }) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -165,6 +176,14 @@ function ClipBlock({
           });
           return next;
         };
+        const resolveLane = (clientY: number) => {
+          const lanes = Array.from(document.querySelectorAll<HTMLElement>("[data-studio-lane]"));
+          for (const lane of lanes) {
+            const box = lane.getBoundingClientRect();
+            if (clientY >= box.top && clientY <= box.bottom) return lane.dataset.studioLane || track.id;
+          }
+          return track.id;
+        };
         const move = (ev: PointerEvent) => {
           place(ev.clientX);
         };
@@ -173,7 +192,8 @@ function ClipBlock({
           target.removeEventListener("pointerup", up);
           target.removeEventListener("pointercancel", cancel);
           const moved = Math.abs(ev.clientX - startX);
-          if (moved <= 3) {
+          const destTrackId = resolveLane(ev.clientY);
+          if (moved <= 3 && destTrackId === track.id) {
             origins.forEach(({ node, offset }) => {
               node.style.left = `${offset * pixelsPerSecond}px`;
             });
@@ -181,7 +201,12 @@ function ClipBlock({
             return;
           }
           const next = place(ev.clientX);
-          if (next !== origin) onMoveGroup(group, anchor, next);
+          if (next !== origin || destTrackId !== track.id) onMoveGroup(group, anchor, next, destTrackId);
+          else {
+            origins.forEach(({ node, offset }) => {
+              node.style.left = `${offset * pixelsPerSecond}px`;
+            });
+          }
         };
         const up = (ev: PointerEvent) => finish(ev, true);
         const cancel = (ev: PointerEvent) => finish(ev, false);

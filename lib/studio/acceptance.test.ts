@@ -94,7 +94,8 @@ describe("QVI Studio v1 acceptance", () => {
 
     const dropped = take(removeClip(project, drumsId, project.tracks[0]!.clips[0]!.id));
     const emptied = take(removeClip(dropped, drumsId, dropped.tracks[0]!.clips[0]!.id));
-    expect(emptied.tracks.map((track) => track.name)).toEqual(["bass"]);
+    expect(emptied.tracks.map((track) => track.name)).toEqual(["drums", "bass"]);
+    expect(emptied.tracks[0]!.clips).toEqual([]);
   });
 
   it("blocks a ninth track on a phone", () => {

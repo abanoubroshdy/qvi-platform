@@ -230,6 +230,11 @@ export function StudioTrackInspector({ copy }: { copy: Messages["studio"] }) {
           {copy.addToTrack}
         </Button>
         {clip && (
+          <Button type="button" variant="outline" onClick={() => studio.splitSelectedAtPlayhead()}>
+            {copy.splitClip}
+          </Button>
+        )}
+        {clip && (
           <Button type="button" variant="outline" onClick={() => studio.deleteClip(track.id, clip.id)}>
             {copy.removeClip}
           </Button>

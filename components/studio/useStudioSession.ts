@@ -15,6 +15,7 @@ import {
   type StudioTransportSnapshot,
 } from "@/lib/studio/playback-engine";
 import {
+  addEmptyTrack,
   addImportedFileAsTrack,
   addTrack,
   largeFileWarning,
@@ -22,6 +23,7 @@ import {
   createStudioTrack,
   canPlayStudioProject,
   createStudioProject,
+  moveClipToTrack,
   projectDuration,
   removeClip,
   STUDIO_DEFAULT_PROJECT_NAME,
@@ -40,11 +42,12 @@ import {
   setTrackSolo,
   setTrackStretchPreset,
   setTrackTempo,
+  splitClip,
   stopPlayhead,
   trackTempoPitchIsIdentity,
 } from "@/lib/studio/project";
 import type { StretchPresetId } from "@/lib/audio-stretch-preset";
-import { exceedsTrackWarning, type StudioTempoSetting } from "@/lib/studio/definition";
+import { canAddTrack, exceedsTrackWarning, type StudioTempoSetting } from "@/lib/studio/definition";
 import { StudioMicCapture, type MicProcessor } from "@/lib/studio/mic-capture";
 import { micFailureNotice, nextRecordingName, punchInOffset, type StudioTrackEq } from "@/lib/studio/mix";
 import { encodeWavPcm16, wavArrayBuffer } from "@/lib/studio/wav";
@@ -104,6 +107,11 @@ function rememberClipAudio(audio: StudioSessionAudio, before: StudioProject, aft
       if (!known.has(clip.id)) audio.set(clip.id, bytes);
     }
   }
+}
+
+function copyClipAudio(audio: StudioSessionAudio, fromClipId: string, toClipId: string) {
+  const bytes = audio.get(fromClipId);
+  if (bytes) audio.set(toClipId, bytes.slice(0));
 }
 
 function pruneClipAudio(audio: StudioSessionAudio, project: StudioProject) {
@@ -450,21 +458,27 @@ export function useStudioSession() {
   }, []);
 
   const moveClipGroup = useCallback(
-    (group: readonly StudioClipRef[], anchor: StudioClipRef, nextOffsetSec: number) => {
+    (group: readonly StudioClipRef[], anchor: StudioClipRef, nextOffsetSec: number, targetTrackId?: string) => {
       const anchorClip = projectRef.current.tracks
         .find((track) => track.id === anchor.trackId)
         ?.clips.find((clip) => clip.id === anchor.clipId);
       if (!anchorClip) return;
       const delta = nextOffsetSec - anchorClip.offsetSec;
-      if (Math.abs(delta) < 1e-4) return;
+      const destTrackId = targetTrackId ?? anchor.trackId;
+      if (Math.abs(delta) < 1e-4 && destTrackId === anchor.trackId) return;
       let current = projectRef.current;
       for (const item of group) {
         const clip = current.tracks.find((track) => track.id === item.trackId)?.clips.find((entry) => entry.id === item.clipId);
         if (!clip) continue;
-        const result = setClipOffset(current, item.trackId, item.clipId, clip.offsetSec + delta);
+        const result = moveClipToTrack(current, item.trackId, item.clipId, destTrackId, clip.offsetSec + delta);
         if (result.ok) current = result.project;
       }
       commit(current);
+      if (destTrackId !== anchor.trackId) {
+        setSelection(group.map((item) => ({ trackId: destTrackId, clipId: item.clipId })));
+        setSelectedTrackId(destTrackId);
+        setSelectedClipId(anchor.clipId);
+      }
     },
     [commit],
   );
@@ -654,6 +668,45 @@ export function useStudioSession() {
     setSnapMode,
     selectClip,
     moveClipGroup,
+    addEmptyTrack: () => {
+      if (!canAddTrack(projectRef.current.tracks.length, viewportRef.current)) {
+        setNotice("track-cap-reached");
+        return;
+      }
+      const result = addEmptyTrack(projectRef.current, viewportRef.current);
+      if (!result.ok) {
+        setNotice(result.reason === "track-cap-reached" ? "track-cap-reached" : "track-limit");
+        return;
+      }
+      commit(result.project);
+      const track = result.project.tracks.at(-1);
+      if (track) selectTrack(track.id, null);
+      if (exceedsTrackWarning(result.project.tracks.length, viewportRef.current)) setNotice("track-limit");
+    },
+    splitSelectedAtPlayhead: () => {
+      const trackId = selectedTrackId;
+      const clipId = selectedClipId;
+      if (!trackId || !clipId) return;
+      const before = projectRef.current;
+      const result = splitClip(before, trackId, clipId, playheadRef.current);
+      if (!result.ok) return;
+      const beforeIds = new Set<string>();
+      for (const track of before.tracks) {
+        for (const clip of track.clips) beforeIds.add(clip.id);
+      }
+      const created = result.project.tracks
+        .find((track) => track.id === trackId)
+        ?.clips.find((clip) => !beforeIds.has(clip.id));
+      if (created) copyClipAudio(audioRef.current, clipId, created.id);
+      commit(result.project);
+      if (created) {
+        setSelectedClipId(created.id);
+        setSelection([
+          { trackId, clipId },
+          { trackId, clipId: created.id },
+        ]);
+      }
+    },
     restoring,
     armedTrackId,
     setArmedTrack: (trackId: string | null) => setArmedTrackId(trackId),

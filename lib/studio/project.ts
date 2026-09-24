@@ -47,6 +47,7 @@ export const studioEditReasons = {
   clipNotFound: "clip-not-found",
   duplicateId: "duplicate-id",
   unsupportedFile: "unsupported-file",
+  splitOutside: "split-outside-clip",
 } as const;
 
 export type StudioEditReason = (typeof studioEditReasons)[keyof typeof studioEditReasons];
@@ -265,6 +266,21 @@ export function addTrack(project: StudioProject, track: StudioTrack, viewport: S
   );
 }
 
+/** Blank lane for recording or receiving moved clips. */
+export function addEmptyTrack(
+  project: StudioProject,
+  viewport: StudioViewport,
+  name?: string,
+): StudioWriteResult {
+  const index = project.tracks.length;
+  const track = createStudioTrack({
+    name: (name?.trim() || `Track ${index + 1}`),
+    index,
+    clips: [],
+  });
+  return addTrack(project, track, viewport);
+}
+
 export function addImportedFileAsTrack(
   project: StudioProject,
   file: StudioImportedFile,
@@ -309,8 +325,86 @@ export function removeClip(project: StudioProject, trackId: string, clipId: stri
   if (!track) return fail(project, studioEditReasons.trackNotFound);
   if (!track.clips.some((clip) => clip.id === clipId)) return fail(project, studioEditReasons.clipNotFound);
   const clips = track.clips.filter((clip) => clip.id !== clipId);
-  if (clips.length === 0) return removeTrack(project, trackId);
   return succeed(replaceTrack(project, trackId, { ...track, clips }));
+}
+
+const SPLIT_EPS = 1e-3;
+
+/** Split one clip at a timeline playhead into two adjacent clips. */
+export function splitClip(
+  project: StudioProject,
+  trackId: string,
+  clipId: string,
+  playheadSec: number,
+): StudioWriteResult {
+  const track = project.tracks.find((item) => item.id === trackId);
+  if (!track) return fail(project, studioEditReasons.trackNotFound);
+  const clip = track.clips.find((item) => item.id === clipId);
+  if (!clip) return fail(project, studioEditReasons.clipNotFound);
+  const rate = Math.max(resolveTempoRate(track.tempo), 1e-6);
+  const heardLen = (clip.trimEndSec - clip.trimStartSec) / rate;
+  const into = playheadSec - clip.offsetSec;
+  if (!Number.isFinite(into) || into <= SPLIT_EPS || into >= heardLen - SPLIT_EPS) {
+    return fail(project, studioEditReasons.splitOutside);
+  }
+  const sourceSplit = clip.trimStartSec + into * rate;
+  const left: StudioClip = {
+    ...clip,
+    peaks: [...clip.peaks],
+    ...normalizeSpan(clip.sourceDurationSec, {
+      offsetSec: clip.offsetSec,
+      trimStartSec: clip.trimStartSec,
+      trimEndSec: sourceSplit,
+    }),
+  };
+  const right: StudioClip = {
+    ...clip,
+    id: createStudioId("clip"),
+    peaks: [...clip.peaks],
+    buffer: clip.buffer,
+    ...normalizeSpan(clip.sourceDurationSec, {
+      offsetSec: playheadSec,
+      trimStartSec: sourceSplit,
+      trimEndSec: clip.trimEndSec,
+    }),
+  };
+  const clips = track.clips.flatMap((item) => (item.id === clipId ? [left, right] : [item]));
+  return succeed(replaceTrack(project, trackId, { ...track, clips }));
+}
+
+/** Move a clip to another track (or same track with a new offset). Keeps empty source tracks. */
+export function moveClipToTrack(
+  project: StudioProject,
+  fromTrackId: string,
+  clipId: string,
+  toTrackId: string,
+  offsetSec: number,
+): StudioWriteResult {
+  if (fromTrackId === toTrackId) return setClipOffset(project, fromTrackId, clipId, offsetSec);
+  const from = project.tracks.find((item) => item.id === fromTrackId);
+  const to = project.tracks.find((item) => item.id === toTrackId);
+  if (!from || !to) return fail(project, studioEditReasons.trackNotFound);
+  const clip = from.clips.find((item) => item.id === clipId);
+  if (!clip) return fail(project, studioEditReasons.clipNotFound);
+  const moved: StudioClip = {
+    ...clip,
+    peaks: [...clip.peaks],
+    ...normalizeSpan(clip.sourceDurationSec, {
+      offsetSec,
+      trimStartSec: clip.trimStartSec,
+      trimEndSec: clip.trimEndSec,
+    }),
+  };
+  const nextFrom = { ...from, clips: from.clips.filter((item) => item.id !== clipId) };
+  const nextTo = { ...to, clips: [...to.clips, moved] };
+  return succeed({
+    ...project,
+    tracks: project.tracks.map((track) => {
+      if (track.id === fromTrackId) return nextFrom;
+      if (track.id === toTrackId) return nextTo;
+      return track;
+    }),
+  });
 }
 
 function editTrack(

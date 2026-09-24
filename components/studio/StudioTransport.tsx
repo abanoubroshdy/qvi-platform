@@ -122,6 +122,9 @@ function ChromeActions({ copy }: { copy: Messages["studio"] }) {
         <Upload />
         <span className="hidden sm:inline">{copy.addFiles}</span>
       </Button>
+      <Button type="button" variant="outline" size="sm" onClick={() => studio.addEmptyTrack()}>
+        {copy.addTrack}
+      </Button>
       <Button type="button" variant="secondary" size="sm" className="lg:hidden" onClick={() => studio.setMixerOpen(true)}>
         {copy.mixer}
       </Button>
