@@ -32,15 +32,29 @@ export function StudioTransport({ copy }: { copy: Messages["studio"] }) {
   );
 }
 
-/** Bottom dock: transport, tempo readout, and zoom. */
+/** Bottom dock: transport centered, tempo/clock leading, zoom trailing. */
 export function StudioTransportDock({ copy }: { copy: Messages["studio"] }) {
   const studio = useStudio();
   const playing = studio.transport.status === "playing";
   const bpm = sessionDisplayBpm(studio.project.tracks, studio.selectedTrack?.id ?? null);
 
   return (
-    <div className="studio-transport studio-transport-dock flex flex-wrap items-center gap-x-2 gap-y-2 px-2 py-2 sm:px-3">
-      <div className="flex items-center gap-1">
+    <div className="studio-transport studio-transport-dock grid grid-cols-[1fr_auto_1fr] items-center gap-x-2 gap-y-2 px-2 py-2 sm:px-3">
+      <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+        <TransportClock label={copy.timecode} duration={studio.duration} />
+        <SeekControl label={copy.seek} />
+        {bpm !== null ? (
+          <span className="studio-bpm" dir="ltr" title={studio.selectedTrack?.name}>
+            {bpm.toFixed(1)}
+            <span className="font-medium tracking-wide">{copy.bpm}</span>
+          </span>
+        ) : (
+          <span className="studio-bpm studio-bpm-empty" dir="ltr" aria-label={copy.bpm}>
+            —<span className="font-medium tracking-wide">{copy.bpm}</span>
+          </span>
+        )}
+      </div>
+      <div className="flex items-center justify-center gap-1" role="group" aria-label={copy.play}>
         <Button
           type="button"
           size="icon"
@@ -73,19 +87,7 @@ export function StudioTransportDock({ copy }: { copy: Messages["studio"] }) {
           <Circle className={studio.recording ? "fill-current" : ""} />
         </Button>
       </div>
-      <TransportClock label={copy.timecode} duration={studio.duration} />
-      <SeekControl label={copy.seek} />
-      {bpm !== null ? (
-        <span className="studio-bpm" dir="ltr" title={studio.selectedTrack?.name}>
-          {bpm.toFixed(1)}
-          <span className="font-medium tracking-wide">{copy.bpm}</span>
-        </span>
-      ) : (
-        <span className="studio-bpm studio-bpm-empty" dir="ltr" aria-label={copy.bpm}>
-          —<span className="font-medium tracking-wide">{copy.bpm}</span>
-        </span>
-      )}
-      <div className="ms-auto flex items-center gap-1">
+      <div className="flex items-center justify-end gap-1">
         <Button
           type="button"
           size="icon"
