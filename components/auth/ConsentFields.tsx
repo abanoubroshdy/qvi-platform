@@ -6,17 +6,23 @@ import { useI18n } from "@/components/i18n/I18nProvider";
 import { cn } from "@/lib/utils";
 
 type ConsentFieldsProps = {
+  ageConfirmed: boolean;
   agreedToPrivacy: boolean;
   agreedToMarketing: boolean;
+  ageError?: string;
   privacyError?: string;
+  onAgeChange: (value: boolean) => void;
   onPrivacyChange: (value: boolean) => void;
   onMarketingChange: (value: boolean) => void;
 };
 
 export function ConsentFields({
+  ageConfirmed,
   agreedToPrivacy,
   agreedToMarketing,
+  ageError,
   privacyError,
+  onAgeChange,
   onPrivacyChange,
   onMarketingChange,
 }: ConsentFieldsProps) {
@@ -25,6 +31,35 @@ export function ConsentFields({
 
   return (
     <div className="space-y-3">
+      <label
+        className={cn(
+          "flex cursor-pointer items-start gap-3 rounded-xl border bg-background/70 p-3 text-sm leading-6",
+          ageError ? "border-destructive/60" : "border-border",
+        )}
+      >
+        <input
+          id="signup-age"
+          type="checkbox"
+          required
+          aria-required="true"
+          aria-invalid={Boolean(ageError)}
+          checked={ageConfirmed}
+          onChange={(event) => onAgeChange(event.target.checked)}
+          className="mt-1 h-4 w-4 shrink-0 accent-primary"
+        />
+        <span>
+          {a.ageConfirm}
+          <span className="ms-1 text-destructive" aria-hidden>
+            *
+          </span>
+        </span>
+      </label>
+      {ageError ? (
+        <p className="text-xs text-destructive" role="alert">
+          {ageError}
+        </p>
+      ) : null}
+
       <label
         className={cn(
           "flex cursor-pointer items-start gap-3 rounded-xl border bg-background/70 p-3 text-sm leading-6",

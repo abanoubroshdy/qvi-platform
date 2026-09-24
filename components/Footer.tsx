@@ -6,6 +6,7 @@ import { Logo } from "@/components/Logo";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { products } from "@/lib/products";
 import { siteConfig } from "@/lib/site";
+import { footerCompanyItems, footerExploreItems } from "@/lib/site-nav";
 
 export function Footer() {
   const pathname = usePathname();
@@ -19,21 +20,15 @@ export function Footer() {
     { href: products.neyora.href, label: copy.products.neyora.name },
   ];
 
-  const exploreLinks = [
-    { href: "/", label: copy.footer.home },
-    { href: "/#products", label: copy.nav.products },
-    { href: "/#tools", label: copy.footer.freeTools },
-    { href: products.studio.href, label: copy.nav.studio },
-    { href: "/lab", label: copy.nav.lab },
-    { href: "/#explore", label: copy.footer.siteMap },
-  ];
+  const exploreLinks = footerExploreItems.map((item) => ({
+    href: item.href,
+    label: item.source === "footer" ? copy.footer[item.labelKey] : copy.nav[item.labelKey],
+  }));
 
-  const legalLinks = [
-    { href: "/about", label: copy.footer.about },
-    { href: "/privacy-policy", label: copy.footer.privacy },
-    { href: "/contact", label: copy.footer.contact },
-    { href: "/terms", label: copy.footer.terms },
-  ];
+  const legalLinks = footerCompanyItems.map((item) => ({
+    href: item.href,
+    label: copy.footer[item.labelKey],
+  }));
 
   return (
     <footer className="qvi-footer mt-auto border-t border-border bg-muted/40">

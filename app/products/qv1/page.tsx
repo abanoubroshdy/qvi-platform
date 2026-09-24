@@ -4,7 +4,7 @@ import { siteConfig } from "@/lib/site";
 
 const pageTitle = "QV1 - AI Stem Separation Tool";
 const pageDescription =
-  "QV1 is QVI's professional AI engine for vocal and instrumental stem separation, de-noise, and remix workflows — designed to run on your device.";
+  "QV1 is QVI’s desktop audio engine for stem separation, de-noise, and remix. It is a core product, not a free browser tool.";
 
 export const metadata: Metadata = {
   title: pageTitle,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveContactToEmail, validateContactPayload } from "@/lib/contact";
+import { CONTACT_LIMITS, resolveContactToEmail, validateContactFields, validateContactPayload } from "@/lib/contact";
 
 describe("validateContactPayload", () => {
   it("accepts a valid payload", () => {
@@ -23,9 +23,37 @@ describe("validateContactPayload", () => {
     const result = validateContactPayload({
       name: "Ada",
       email: "not-an-email",
-      message: "Hi",
+      message: "Hello from the form.",
     });
     expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toBe("invalid_email");
+  });
+
+  it("rejects a message that is too short or too long", () => {
+    expect(validateContactFields({ name: "Ada", email: "ada@studio.com", message: "Hi" }).message).toBe("too_short");
+    const short = validateContactPayload({
+      name: "Ada",
+      email: "ada@studio.com",
+      message: "Hi",
+    });
+    expect(short.ok).toBe(false);
+    if (!short.ok) expect(short.error).toBe("too_short");
+
+    const long = validateContactPayload({
+      name: "Ada",
+      email: "ada@studio.com",
+      message: "x".repeat(CONTACT_LIMITS.message + 1),
+    });
+    expect(long.ok).toBe(false);
+    if (!long.ok) expect(long.error).toBe("too_long");
+  });
+
+  it("reports each invalid field for the form", () => {
+    expect(validateContactFields({ name: "", email: "bad", message: "" })).toEqual({
+      name: "required",
+      email: "invalid_email",
+      message: "required",
+    });
   });
 
   it("treats honeypot submissions as success without data", () => {
