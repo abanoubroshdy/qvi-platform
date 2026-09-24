@@ -63,9 +63,9 @@ export function WaveformPlayer({
       ctx.clearRect(0, 0, width, height);
 
       const styles = getComputedStyle(canvas);
-      const primary = `hsl(${styles.getPropertyValue("--primary").trim() || "189 52% 32%"})`;
-      const muted = `hsl(${styles.getPropertyValue("--muted-foreground").trim() || "213 14% 38%"})`;
-      const foreground = `hsl(${styles.getPropertyValue("--foreground").trim() || "213 48% 16%"})`;
+      const primary = `hsl(${styles.getPropertyValue("--primary").trim() || "244.5 57.9% 50.6%"})`;
+      const muted = `hsl(${styles.getPropertyValue("--muted-foreground").trim() || "215.4 16.3% 46.9%"})`;
+      const foreground = `hsl(${styles.getPropertyValue("--foreground").trim() || "217.2 32.6% 17.5%"})`;
       const barWidth = width / peaks.length;
       const rangeStart = readOnly ? 0 : start;
       const rangeEnd = readOnly ? duration : end;

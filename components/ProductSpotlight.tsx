@@ -29,9 +29,9 @@ const toneClass: Record<ProductSpotlightProps["tone"], { card: string; blob: str
   },
   sand: {
     card: "glow-sand",
-    blob: "bg-amber-400/20",
-    dot: "bg-amber-500",
-    badge: "bg-amber-500 text-black",
+    blob: "bg-primary/10",
+    dot: "bg-primary",
+    badge: "bg-primary text-primary-foreground",
   },
 };
 
