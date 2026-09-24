@@ -11,8 +11,8 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["var(--font-outfit)", "var(--font-cairo)", "ui-sans-serif", "system-ui", "sans-serif"],
-        cairo: ["var(--font-cairo)", "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ["var(--font-inter)", "var(--font-ibm-plex-arabic)", "ui-sans-serif", "system-ui", "sans-serif"],
+        arabic: ["var(--font-ibm-plex-arabic)", "var(--font-inter)", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       colors: {
         background: "hsl(var(--background))",
@@ -64,6 +64,37 @@ const config: Config = {
           "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
+        },
+        neutral: {
+          50: "#F8FAFC",
+          100: "#F1F5F9",
+          200: "#E2E8F0",
+          300: "#CBD5E1",
+          400: "#94A3B8",
+          500: "#64748B",
+          600: "#475569",
+          700: "#334155",
+          800: "#1E293B",
+          900: "#162033",
+          950: "#0B1220",
+        },
+        brand: {
+          DEFAULT: "#4338CA",
+          foreground: "#FFFFFF",
+          secondary: "#0891B2",
+        },
+        wave: "#0891B2",
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
+        info: {
+          DEFAULT: "hsl(var(--info))",
+          foreground: "hsl(var(--info-foreground))",
         },
       },
       borderRadius: {

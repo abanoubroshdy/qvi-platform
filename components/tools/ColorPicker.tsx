@@ -13,15 +13,15 @@ import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "qvi-recent-colors";
 const PALETTE = [
-  "#0F2744",
-  "#1A7F96",
-  "#5EB6C6",
-  "#6B6BB8",
-  "#F6F4EF",
-  "#E8C36A",
-  "#C45C5C",
-  "#3F8F6B",
-  "#111827",
+  "#0B1220",
+  "#4338CA",
+  "#0891B2",
+  "#F8FAFC",
+  "#818CF8",
+  "#E7C9A0",
+  "#B91C1C",
+  "#047857",
+  "#334155",
   "#FFFFFF",
 ];
 

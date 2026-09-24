@@ -69,7 +69,7 @@ describe("studio project model", () => {
     if (!result.ok) return;
     const track = result.project.tracks[0]!;
     expect(track.name).toBe("drums");
-    expect(track.color).toBe("#1a7f96");
+    expect(track.color).toBe("#0891B2");
     expect(track.gainDb).toBe(0);
     expect(track.clips[0]).toMatchObject({ offsetSec: 0, trimStartSec: 0, trimEndSec: 8 });
     expect(projectDuration(result.project)).toBe(8);

@@ -1,21 +1,25 @@
 :root {
-  --qvi-bg: #f6f4ef;
-  --qvi-fg: #0f2744;
-  --qvi-muted: #5b6b7c;
-  --qvi-card: #fffcf8;
-  --qvi-line: #d5dde6;
-  --qvi-primary: #1a7f96;
+  --qvi-bg: #f8fafc;
+  --qvi-fg: #0b1220;
+  --qvi-muted: #475569;
+  --qvi-card: #ffffff;
+  --qvi-line: #e2e8f0;
+  --qvi-primary: #4338ca;
+  --qvi-link: #4338ca;
   --qvi-btn-fg: #ffffff;
+  --qvi-wave: #0891b2;
 }
 
 .dark {
-  --qvi-bg: #121c28;
-  --qvi-fg: #f3efe8;
-  --qvi-muted: #a8b4c0;
-  --qvi-card: #182433;
-  --qvi-line: #2a3a4d;
-  --qvi-primary: #5eb6c6;
-  --qvi-btn-fg: #121c28;
+  --qvi-bg: #0b1220;
+  --qvi-fg: #f8fafc;
+  --qvi-muted: #94a3b8;
+  --qvi-card: #121a2b;
+  --qvi-line: #243044;
+  --qvi-primary: #4338ca;
+  --qvi-link: #818cf8;
+  --qvi-btn-fg: #ffffff;
+  --qvi-wave: #22d3ee;
 }
 
 html,
@@ -23,16 +27,16 @@ body {
   margin: 0;
   background: var(--qvi-bg);
   color: var(--qvi-fg);
-  font-family: Outfit, Cairo, ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-inter), var(--font-ibm-plex-arabic), Inter, "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
 }
 
 html[lang="ar"],
 html[lang="ar"] body {
-  font-family: Cairo, Outfit, ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-ibm-plex-arabic), var(--font-inter), "IBM Plex Sans Arabic", Inter, ui-sans-serif, system-ui, sans-serif;
 }
 
 a {
-  color: var(--qvi-primary);
+  color: var(--qvi-link);
   text-decoration: none;
 }
 
@@ -62,17 +66,42 @@ a {
 }
 
 .qvi-logo {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.65rem;
-  color: var(--qvi-fg) !important;
+  color: inherit !important;
   flex-shrink: 0;
+  line-height: 0;
 }
 
-.qvi-logo img {
+.qvi-logo-frame {
+  position: relative;
   display: block;
-  height: 2.5rem;
-  width: auto;
+  height: 2rem;
+  width: calc(2rem * 1168 / 463);
+  overflow: hidden;
+  flex: none;
+}
+
+.qvi-logo-on-dark {
+  display: none;
+}
+
+.dark .qvi-logo-on-light {
+  display: none;
+}
+
+.dark .qvi-logo-on-dark,
+.qvi-header.studio-site-header .qvi-logo-on-dark {
+  display: block;
+}
+
+.qvi-header.studio-site-header .qvi-logo-on-light {
+  display: none;
+}
+
+.dark .qvi-btn,
+.qvi-header.studio-site-header .qvi-btn {
+  box-shadow: inset 0 0 0 1px rgb(199 210 254 / 0.85);
 }
 
 .qvi-nav-desktop {
