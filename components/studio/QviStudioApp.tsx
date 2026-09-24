@@ -9,7 +9,7 @@ import { useStudioMeterPaint } from "@/components/studio/StudioLevelMeter";
 import { StudioMixer } from "@/components/studio/StudioMixer";
 import { StudioTimeline } from "@/components/studio/StudioTimeline";
 import { StudioTrackInspector } from "@/components/studio/StudioTrackInspector";
-import { StudioTransport } from "@/components/studio/StudioTransport";
+import { StudioTransport, StudioTransportDock } from "@/components/studio/StudioTransport";
 import { useStudio } from "@/components/studio/studio-context";
 import type { StudioSession } from "@/components/studio/useStudioSession";
 
@@ -123,6 +123,10 @@ export function QviStudioApp() {
           <aside className="studio-mixer hidden w-72 shrink-0 overflow-y-auto border-s border-border lg:block">
             <StudioMixer copy={studioCopy} />
           </aside>
+        </div>
+
+        <div className="z-30 shrink-0 border-t border-border">
+          <StudioTransportDock copy={studioCopy} />
         </div>
 
         {session.viewport === "tablet" && session.mixerOpen && (

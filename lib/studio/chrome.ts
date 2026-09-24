@@ -66,3 +66,8 @@ export function sessionDisplayBpm(tracks: readonly BpmTrack[], selectedTrackId: 
       : track.tempo.targetBpm;
   return Number.isFinite(bpm) ? bpm : null;
 }
+
+/** A session counts as open once it has at least one track (clips optional). */
+export function studioProjectIsOpen(project: { tracks: readonly unknown[] }): boolean {
+  return project.tracks.length > 0;
+}

@@ -251,6 +251,14 @@ body:has(.studio-console) {
   background: linear-gradient(180deg, hsl(var(--studio-panel)) 0%, hsl(var(--studio-navy)) 100%);
 }
 
+.studio-transport-dock {
+  background: linear-gradient(0deg, hsl(var(--studio-panel)) 0%, hsl(var(--studio-navy)) 100%);
+}
+
+.studio-bpm-empty {
+  opacity: 0.55;
+}
+
 .studio-timecode {
   display: inline-flex;
   align-items: baseline;
