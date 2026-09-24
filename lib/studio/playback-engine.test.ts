@@ -1,6 +1,4 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { defaultAudioExportSettings } from "@/lib/audio-export";
-import { buildTempoPitchExportPlan } from "@/lib/audio-tempo";
 import { FFMPEG_LARGE_FILE_BYTES } from "@/lib/ffmpeg";
 import { loadStudioFile } from "@/lib/studio/load-clip";
 import {
@@ -10,7 +8,9 @@ import {
   type StudioAudioNode,
   type StudioBufferSource,
   type StudioGainNode,
+  type StudioLiveStretch,
 } from "@/lib/studio/playback-engine";
+import type { LiveStretchParams } from "@/lib/audio-stretch-live";
 import { dbToGain, planPlayback } from "@/lib/studio/playback-schedule";
 import {
   addImportedFileAsTrack,
@@ -18,20 +18,22 @@ import {
   setMasterGain,
   setTrackGain,
   setTrackMuted,
+  setTrackPitch,
   setTrackSolo,
+  setTrackStretchPreset,
   setTrackTempo,
 } from "@/lib/studio/project";
 import { qviStudioLimits } from "@/lib/studio/definition";
 import type { StudioProject, StudioTrack } from "@/lib/studio/types";
 import {
   connectTempoPreview,
-  createFfmpegClipProcessor,
+  createSoundTouchClipProcessor,
   createTempoPitchPreview,
   createTempoPreviewScheduler,
   mixHeardBuffers,
   type StudioBufferFactory,
 } from "@/lib/studio/tempo-preview";
-import { encodeWavPcm16, wavArrayBuffer } from "@/lib/studio/wav";
+import { encodeWavPcm16 } from "@/lib/studio/wav";
 
 afterEach(() => {
   vi.useRealTimers();
@@ -71,6 +73,7 @@ class FakeGain implements StudioGainNode {
 
 class FakeSource implements StudioBufferSource {
   buffer: AudioBuffer | null = null;
+  playbackRate = { value: 1 };
   onended: (() => void) | null = null;
   started: { when: number; offset: number; duration: number } | null = null;
   stopped = false;
@@ -113,6 +116,24 @@ class FakeHost implements StudioAudioHost {
     const source = new FakeSource();
     this.sources.push(source);
     return source;
+  }
+}
+
+class FakeStretch implements StudioLiveStretch {
+  applied: LiveStretchParams | null = null;
+  connect() {}
+  disconnect() {}
+  apply(params: LiveStretchParams) {
+    this.applied = params;
+  }
+}
+
+class LiveHost extends FakeHost {
+  stretches: FakeStretch[] = [];
+  createLiveStretch() {
+    const node = new FakeStretch();
+    this.stretches.push(node);
+    return node;
   }
 }
 
@@ -194,6 +215,33 @@ describe("playback schedule", () => {
     expect(planPlayback({ project, playheadSec: 0, renderedTracks: new Map([[track.id, rendered]]) }).events[0]!.clipId).toBe(
       track.clips[0]!.id,
     );
+  });
+
+  it("plays a live tempo change from the source clip and keeps mute and solo", () => {
+    const { project, track } = projectWithClip({ seconds: 8 });
+    const sped = setTrackTempo(project, track.id, { targetBpm: 240 });
+    if (!sped.ok) throw new Error(sped.reason);
+    const speech = setTrackStretchPreset(sped.project, track.id, "speech");
+    if (!speech.ok) throw new Error("preset");
+    const live = planPlayback({ project: speech.project, playheadSec: 1, live: true });
+    expect(live.events).toHaveLength(1);
+    expect(live.events[0]).toMatchObject({
+      clipId: track.clips[0]!.id,
+      delaySec: 0,
+      offsetSec: 2,
+      durationSec: 6,
+      playbackRate: 2,
+    });
+    expect(live.events[0]!.stretch).toMatchObject({
+      playbackRate: 2,
+      pitch: 1,
+      stretch: { sequenceMs: 40, seekWindowMs: 15, overlapMs: 8, quickSeek: true },
+    });
+
+    const muted = setTrackMuted(speech.project, track.id, true);
+    if (!muted.ok) throw new Error(muted.reason);
+    expect(planPlayback({ project: muted.project, playheadSec: 0, live: true }).events).toEqual([]);
+    expect(planPlayback({ project: muted.project, playheadSec: 0, live: true }).trackGains[0]!.linear).toBe(0);
   });
 });
 
@@ -325,6 +373,43 @@ describe("playback engine", () => {
     expect(host.compressors[0]!.threshold.value).toBe(-24);
     expect(host.compressors[0]!.ratio.value).toBe(4);
   });
+
+  it("updates live pitch without restarting and still bakes nothing into the source rate by itself", () => {
+    const host = new LiveHost();
+    const engine = createStudioPlaybackEngine({ host });
+    const { project, track } = projectWithClip({ seconds: 8 });
+    const sped = setTrackTempo(project, track.id, { targetBpm: 240 });
+    if (!sped.ok) throw new Error(sped.reason);
+    engine.play(sped.project);
+    expect(host.sources).toHaveLength(1);
+    expect(host.sources[0]!.playbackRate.value).toBe(2);
+    expect(host.sources[0]!.stopped).toBe(false);
+    expect(host.stretches).toHaveLength(1);
+
+    const pitched = setTrackPitch(sped.project, track.id, { semitones: 3, cents: 0 });
+    if (!pitched.ok) throw new Error(pitched.reason);
+    engine.sync(pitched.project);
+    expect(host.sources.filter((source) => !source.stopped)).toHaveLength(1);
+    expect(host.sources).toHaveLength(1);
+    expect(host.stretches[0]!.applied?.pitchSemitones).toBe(3);
+    expect(host.stretches[0]!.applied?.playbackRate).toBe(2);
+  });
+
+  it("places the live stretcher before eq, the compressor, and pan", () => {
+    const host = new LiveStripHost();
+    const engine = createStudioPlaybackEngine({ host });
+    const { project, track } = projectWithClip({ seconds: 8 });
+    const sped = setTrackTempo(project, track.id, { targetBpm: 240 });
+    if (!sped.ok) throw new Error(sped.reason);
+    engine.play(sped.project);
+    const source = host.sources[0]!;
+    const stretch = host.stretches[0]!;
+    expect(source.links[0]).toBe(stretch);
+    expect(stretch.links[0]).toBe(host.biquads[0]);
+    expect(host.biquads[2]!.links[0]).toBe(host.compressors[0]);
+    expect(host.compressors[0]!.links[0]).toBe(host.panners[0]);
+    expect(host.panners[0]!.links[0]).toBe(host.gains[1]);
+  });
 });
 
 class LinkedNode implements StudioAudioNode {
@@ -414,6 +499,22 @@ class StripHost implements StudioAudioHost {
   }
 }
 
+class LinkedStretch extends LinkedNode implements StudioLiveStretch {
+  applied: LiveStretchParams | null = null;
+  apply(params: LiveStretchParams) {
+    this.applied = params;
+  }
+}
+
+class LiveStripHost extends StripHost {
+  stretches: LinkedStretch[] = [];
+  createLiveStretch() {
+    const node = new LinkedStretch();
+    this.stretches.push(node);
+    return node;
+  }
+}
+
 class MeterHost implements StudioAudioHost {
   currentTime = 0;
   state: AudioContextState = "running";
@@ -474,42 +575,17 @@ describe("tempo preview", () => {
     expect(mixed?.getChannelData(0)[5]).toBeCloseTo(1.25, 5);
   });
 
-  it("asks ffmpeg for a tempo filter and decodes the wav it returns", async () => {
-    const source = makeBuffer(10, 10, 0.5);
-    const decoded = makeBuffer(5, 10, 0.5);
+  it("stretches a clip with SoundTouch and keeps the heard length", async () => {
+    const source = makeBuffer(8000, 16000, 0.5);
     const { project, track } = projectWithClip();
     const sped = setTrackTempo(project, track.id, { targetBpm: 240 });
     if (!sped.ok) throw new Error(sped.reason);
     const changed = sped.project.tracks[0]!;
-    let args: string[] = [];
-    const process = createFfmpegClipProcessor({
-      decodeAudioData: async () => decoded,
-      run: async (options) => {
-        args = options.args;
-        return new Blob([wavArrayBuffer(encodeWavPcm16(source))]);
-      },
-    });
+    const process = createSoundTouchClipProcessor({ createBuffer });
     const result = await process({ buffer: source, track: changed, signal: new AbortController().signal });
-    expect(result).toBe(decoded);
-    const plan = buildTempoPitchExportPlan({
-      inputName: "clip.wav",
-      sourceDuration: source.duration,
-      sampleRate: source.sampleRate || 44100,
-      mode: changed.tempo.mode,
-      originalBpm: changed.tempo.originalBpm,
-      targetBpm: changed.tempo.targetBpm,
-      percent: changed.tempo.percent,
-      semitones: changed.pitchSemitones,
-      cents: changed.pitchCents,
-      format: "wav",
-      settings: {
-        ...defaultAudioExportSettings,
-        sampleRate: source.sampleRate || defaultAudioExportSettings.sampleRate,
-        channels: 1,
-        wavBitDepth: 16,
-      },
-    });
-    expect(args).toEqual(plan.args);
+    expect(result.sampleRate).toBe(16000);
+    expect(result.length).toBe(4000);
+    expect(result.duration).toBeCloseTo(0.25, 5);
   });
 
   it("waits out the debounce and lets an unchanged track skip it", async () => {

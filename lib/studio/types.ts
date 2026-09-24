@@ -6,6 +6,7 @@
  * There is no cloud copy.
  */
 
+import type { StretchPresetId } from "@/lib/audio-stretch-preset";
 import type { StudioClipSpan, StudioTempoSetting } from "@/lib/studio/definition";
 import type { StudioTrackEq } from "@/lib/studio/mix";
 
@@ -55,6 +56,8 @@ export type StudioTrack = {
   eq: StudioTrackEq;
   /** 0 bypasses the compressor. 1 is a light squeeze. */
   compressor: number;
+  /** SoundTouch quality profile for this track. Stored with the session, same as tempo. */
+  stretchPreset: StretchPresetId;
 };
 
 export type StudioProject = {

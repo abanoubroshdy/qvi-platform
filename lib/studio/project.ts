@@ -6,6 +6,7 @@
  */
 
 import { clampGainDb } from "@/lib/audio-edit";
+import { DEFAULT_STRETCH_PRESET, parseStretchPreset, type StretchPresetId } from "@/lib/audio-stretch-preset";
 import {
   clampBpm,
   clampCents,
@@ -156,6 +157,7 @@ export function createStudioTrack(input: {
     pan: 0,
     eq: defaultTrackEq(),
     compressor: 0,
+    stretchPreset: DEFAULT_STRETCH_PRESET,
   };
 }
 
@@ -379,6 +381,17 @@ export function setTrackCompressor(project: StudioProject, trackId: string, amou
   return editTrack(project, trackId, (track) => ({ ...track, compressor: clampUnit(amount) }));
 }
 
+export function setTrackStretchPreset(
+  project: StudioProject,
+  trackId: string,
+  preset: StretchPresetId,
+): StudioWriteResult {
+  return editTrack(project, trackId, (track) => ({
+    ...track,
+    stretchPreset: parseStretchPreset(preset),
+  }));
+}
+
 export function setTrackPitch(
   project: StudioProject,
   trackId: string,
@@ -465,6 +478,7 @@ export function snapshotStudioProject(project: StudioProject): StudioProjectSnap
       pan: track.pan,
       eq: { ...track.eq },
       compressor: track.compressor,
+      stretchPreset: track.stretchPreset,
       clips: track.clips.map((clip) => clipState(clip)),
     })),
   };
@@ -490,6 +504,7 @@ export function projectFromSnapshot(
       pitchSemitones: track.pitchSemitones,
       pitchCents: track.pitchCents,
       ...normalizeTrackMix(track),
+      stretchPreset: parseStretchPreset(track.stretchPreset),
       clips: track.clips.map((clip) => ({
         id: clip.id,
         fileName: clip.fileName,

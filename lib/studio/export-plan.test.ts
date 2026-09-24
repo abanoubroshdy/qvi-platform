@@ -101,14 +101,15 @@ describe("studio export plan", () => {
     expect(plan.filterComplex).toContain("amix=inputs=2:duration=longest:dropout_transition=0:normalize=0,volume=-6dB");
     expect(plan.filterComplex).toContain("adelay=1500|1500");
     expect(plan.filterComplex.endsWith("volume=3dB[out]")).toBe(true);
-    expect(plan.filterComplex).not.toContain("atempo=");
+    expect(plan.filterComplex).not.toContain("atempo");
+    expect(plan.filterComplex).not.toContain("asetrate");
     expect(plan.args).toContain("pcm_s16le");
     expect(plan.mimeType).toBe("audio/wav");
     expect(plan.fileName).toBe("QVI Studio.wav");
     expect(plan.estimatedDuration).toBe(audibleDuration(mastered));
   });
 
-  it("bakes tempo and pitch with the audio-tempo filters", () => {
+  it("leaves tempo and pitch out of the mix graph", () => {
     const project = projectWith([imported("a.wav", 8)]);
     const trackId = project.tracks[0]!.id;
     const tempo = setTrackTempo(project, trackId, { targetBpm: 240 });
@@ -120,8 +121,9 @@ describe("studio export plan", () => {
     const plan = planStudioExport(pitched.project, "mp3", { ...settings, channels: 1 });
     expect(plan.ok).toBe(true);
     if (!plan.ok) return;
-    expect(plan.filterComplex).toContain("atempo=2");
-    expect(plan.filterComplex).toContain("asetrate=");
+    expect(plan.filterComplex).not.toContain("atempo");
+    expect(plan.filterComplex).not.toContain("asetrate");
+    expect(plan.filterComplex).not.toContain("rubberband");
     expect(plan.filterComplex).toContain("channel_layouts=mono");
     expect(plan.estimatedDuration).toBe(4);
     expect(plan.args).toContain("libmp3lame");
@@ -167,6 +169,85 @@ describe("studio export engine", () => {
     const engine = createStudioExportEngine({ run });
     await expect(engine.exportMix({ project, format: "wav", settings })).rejects.toBeInstanceOf(StudioExportError);
     expect(ran).toBe(false);
+  });
+
+  it("stretches a clip before the mix and keeps pitch filters out of ffmpeg", async () => {
+    const frames = 8000;
+    const sampleRate = 16000;
+    const project = projectWith([imported("a.wav", frames / sampleRate)]);
+    const trackId = project.tracks[0]!.id;
+    const clip = project.tracks[0]!.clips[0]!;
+    const data = new Float32Array(frames).fill(0.25);
+    clip.sampleRate = sampleRate;
+    clip.sourceDurationSec = frames / sampleRate;
+    clip.trimStartSec = 0;
+    clip.trimEndSec = frames / sampleRate;
+    clip.buffer = {
+      duration: frames / sampleRate,
+      length: frames,
+      sampleRate,
+      numberOfChannels: 1,
+      getChannelData: () => data,
+      copyFromChannel() {},
+      copyToChannel() {},
+    } as AudioBuffer;
+    const tempo = setTrackTempo(project, trackId, { targetBpm: 240 });
+    expect(tempo.ok).toBe(true);
+    if (!tempo.ok) return;
+    let encodedLength = 0;
+    let args = "";
+    const engine = createStudioExportEngine({
+      run: async (options) => {
+        args = options.args.join(" ");
+        return new Blob(["mix"], { type: "audio/wav" });
+      },
+      encodeClip: (buffer, name) => {
+        encodedLength = buffer.length;
+        return new File([new Uint8Array([1])], name, { type: "audio/wav" });
+      },
+    });
+    const result = await engine.exportMix({ project: tempo.project, format: "wav", settings });
+    expect(result.ok).toBe(true);
+    expect(encodedLength).toBe(frames / 2);
+    expect(args).not.toMatch(/asetrate|atempo|rubberband/);
+    expect(args).not.toContain("-af");
+  });
+
+  it("trims a clip before ffmpeg instead of using atrim", async () => {
+    const frames = 8000;
+    const sampleRate = 8000;
+    const project = projectWith([imported("a.wav", 1)]);
+    const clip = project.tracks[0]!.clips[0]!;
+    const data = new Float32Array(frames).fill(0.2);
+    clip.sampleRate = sampleRate;
+    clip.sourceDurationSec = 1;
+    clip.trimStartSec = 0.25;
+    clip.trimEndSec = 0.5;
+    clip.buffer = {
+      duration: 1,
+      length: frames,
+      sampleRate,
+      numberOfChannels: 1,
+      getChannelData: () => data,
+      copyFromChannel() {},
+      copyToChannel() {},
+    } as AudioBuffer;
+    let encodedLength = 0;
+    let filter = "";
+    const engine = createStudioExportEngine({
+      run: async (options) => {
+        filter = options.args.join(" ");
+        return new Blob(["mix"]);
+      },
+      encodeClip: (buffer, name) => {
+        encodedLength = buffer.length;
+        return new File([new Uint8Array([1])], name);
+      },
+    });
+    await engine.exportMix({ project, format: "wav", settings });
+    expect(encodedLength).toBe(2000);
+    expect(filter).not.toContain("atrim=");
+    expect(filter).not.toContain("asetrate");
   });
 
   it("does not run ffmpeg when the project cannot export", async () => {

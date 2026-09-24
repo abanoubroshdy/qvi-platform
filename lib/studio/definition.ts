@@ -119,22 +119,47 @@ export const qviStudioLimits = {
 export const qviStudioEngines = {
   playback: {
     runtime: "web-audio",
-    nodes: ["AudioContext", "AudioBufferSourceNode", "GainNode", "AnalyserNode", "BiquadFilterNode", "DynamicsCompressorNode", "StereoPannerNode"],
+    nodes: [
+      "AudioContext",
+      "AudioBufferSourceNode",
+      "GainNode",
+      "AnalyserNode",
+      "BiquadFilterNode",
+      "DynamicsCompressorNode",
+      "StereoPannerNode",
+      "AudioWorkletNode",
+    ],
     startPolicy: "resume-after-user-gesture",
   },
   tempoPitchPreview: {
-    strategy: "offline-render",
+    /** Slider scrubbing plays through the SoundTouch AudioWorklet. */
+    strategy: "audio-worklet",
+    /** Worklet registration can fail. Playback then waits for the offline render. */
+    fallback: "offline-render",
+    /** Live preview is WSOLA. Export still uses the phase vocoder when the clip allows it. */
+    liveStretch: "wsola",
+    engine: "soundtouch",
+    /**
+     * Default music preset. Speech stays on WSOLA. Solo vocal uses a denser
+     * overlap. Mapping lives in `lib/audio-stretch-preset.ts`.
+     */
+    stretch: "phase-vocoder",
     debounceMs: qviStudioLimits.previewDebounceMs,
     /** playbackRate changes pitch with speed and is not the preview path. */
     forbiddenStrategies: ["playback-rate-only"],
     /** Identity tempo and pitch skip the offline render. */
     skipWhenUnchanged: true,
+    /**
+     * ffmpeg.wasm has no rubberband filter. Tempo and pitch use SoundTouchJS
+     * (MPL-2.0), not Rubber Band.
+     */
     rubberband: false,
   },
   export: {
     runtime: "ffmpeg-wasm",
     mix: "amix",
-    tempoPitch: "audio-tempo-filters",
+    /** Offline SoundTouch stretches each clip. ffmpeg only formats and sums the mix. */
+    tempoPitch: "soundtouch",
     rubberband: false,
     formats: studioExportFormats,
   },
@@ -294,8 +319,7 @@ export const qviStudioV1NonGoals = [
   },
   { id: "video-import", reason: "Video extraction stays on the MP4 to MP3 tool." },
   { id: "per-clip-gain-or-fades", reason: "Gain, mute, and solo are track-level. Clip fades stay on the audio cutter." },
-  { id: "realtime-pitch-stretch", reason: "Tempo and pitch preview is an offline render, not a live stretcher." },
-  { id: "rubberband", reason: "The wasm FFmpeg build has no rubberband. Do not depend on it." },
+  { id: "rubberband", reason: "Do not depend on Rubber Band. The wasm FFmpeg build has no rubberband filter. Tempo and pitch use SoundTouchJS (MPL-2.0)." },
   { id: "stem-separation", reason: "Stem separation stays on QV1." },
   { id: "instrument-synthesis", reason: "Instrument synthesis stays on Neyora." },
   { id: "tools-hub-listing", reason: "QVI Studio is a product surface, not a free-tool card." },

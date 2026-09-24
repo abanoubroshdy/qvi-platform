@@ -840,7 +840,11 @@ export const ar: Messages = {
   tempoPitch: {
     action: "تطبيق التيمبو والطبقة",
     exportAgain: "تصدير مرة أخرى",
-    autoPreviewHint: "تُحدَّث المعاينة تلقائيًا بعد لحظة من تغيير التيمبو أو الطبقة (FFmpeg محلي — وليس playbackRate).",
+    autoPreviewHint: "تُحدَّث المعاينة القابلة للتنزيل بعد لحظة من تغيير التيمبو أو الطبقة. التشغيل المباشر يتبع المنزلقات فورًا.",
+    livePlay: "تشغيل مباشر",
+    liveStop: "إيقاف المباشر",
+    liveHint:
+      "المعاينة المباشرة تتبع المنزلقات عبر SoundTouch في الوقت الحقيقي (WSOLA). التنزيل ما زال يستخدم التمديد الأعلى جودة.",
     downloadFormat: "تنزيل {format}",
     dropTitle: "أسقط ملفًا صوتيًا هنا أو اضغط للاختيار",
     dropHint: "MP3 أو WAV أو M4A أو OGG أو FLAC. اضغط Tap للـ BPM، اضبط التيمبو والطبقة، ثم صدّر محليًا عبر FFmpeg.",
@@ -853,7 +857,7 @@ export const ar: Messages = {
     resetTap: "إعادة الضربات",
     tapCount: "{count} ضربات",
     tempoSection: "تغيير التيمبو",
-    tempoHint: "سرّع أو أبطئ مع الحفاظ على الطبقة (atempo في FFmpeg — بدون asetrate). اترك الطبقة على 0.",
+    tempoHint: "سرّع أو أبطئ مع الحفاظ على الطبقة (تمديد SoundTouch). اترك الطبقة على 0.",
     tempoMode: "وضع التيمبو",
     modeBpm: "بالـ BPM",
     modePercent: "بالنسبة المئوية",
@@ -870,6 +874,20 @@ export const ar: Messages = {
     cents: "سنت",
     centsHint: "مايكرو تيونينج من −50¢ إلى +50¢.",
     pitchSummary: "{semitones} st · {cents} · الإجمالي {total} · النسبة {ratio}",
+    presetSection: "جودة التمديد",
+    presetHint:
+      "الموسيقى تستخدم phase vocoder للمقاطع الأطول. الكلام يستخدم ملف WSOLA أسرع. الغناء المنفرد يستخدم تداخلًا أكثف.",
+    presetMusic: "موسيقى",
+    presetSpeech: "كلام",
+    presetSoloVocal: "غناء منفرد",
+    formantNote: "تحريك الطبقة يحرّك الطيف كله. SoundTouch لا يوفّر تحكمًا منفصلًا للحفاظ على الفورمانت.",
+    tempoComfort:
+      "هذه السرعة خارج النطاق المعتاد (من نصف السرعة إلى ضعفها). يمكنك المعاينة والتصدير، وقد يبدو التمديد أقل طبيعية.",
+    pitchComfort:
+      "الطبقة مع السنت تتجاوز ±12 نصف تون. يمكنك المعاينة والتصدير، وقد يبدو التحويل أقل طبيعية.",
+    compare: "مقارنة",
+    hearBefore: "قبل",
+    hearAfter: "بعد",
     exportSection: "التصدير",
     exportHint: "اختر MP3 أو WAV ومعدل العينة / البيت ريت للملف المعالج.",
     outputFormat: "صيغة الخروج",
@@ -1399,7 +1417,7 @@ export const ar: Messages = {
         "اضغط Tap لتقريب الـ BPM، غيّر التيمبو بالـ BPM أو النسبة، وحرّك الطبقة بأنصاف التون والسنت بلا رفع. المعالجة تبقى على جهازك.",
       howToTitle: "كيف أغيّر التيمبو أو الطبقة؟",
       howToNote:
-        "التيمبو يستخدم atempo فقط في FFmpeg (الطبقة محفوظة — بلا asetrate). الطبقة مرحلة منفصلة: asetrate + aresample + atempo لإعادة المدة، ثم atempo للتيمبو إن لزم.",
+        "التيمبو والطبقة يستخدمان SoundTouch. التيمبو يحفظ الطبقة ويغيّر المدة. الطبقة تحفظ المدة. FFmpeg يرمّز الملف فقط.",
       howToSteps: [
         "أسقط ملفًا صوتيًا وانتظر الموجة.",
         "اضغط مع الإيقاع، أو اكتب الـ BPM الأصلي والمطلوب (أو استخدم وضع النسبة).",
@@ -1409,7 +1427,7 @@ export const ar: Messages = {
       faqs: [
         {
           q: "هل يُرفع الصوت؟",
-          a: "لا. الاكتشاف والمعالجة يعملان في المتصفح عبر Web Audio API وFFmpeg.",
+          a: "لا. التيمبو والطبقة يعملان في المتصفح عبر SoundTouch. FFmpeg يرمّز ملف التنزيل.",
         },
         {
           q: "كيف يعمل وضع الـ BPM؟",
@@ -1550,7 +1568,7 @@ export const ar: Messages = {
       "نستخدم ملفات الارتباط والتخزين المماثل فقط كما هو مطبَّق أدناه. ولا تضبط الشيفرة الحالية ملفات ارتباط إعلانية لطرف ثالث.",
     cookies: [
       "ملفات جلسة ضرورية من Supabase Auth بعد تسجيل الدخول، ليتعرّف الموقع عليك في الزيارات اللاحقة.",
-      "مفاتيح localStorage على هذا الجهاز: qvi-locale وqvi-theme وqvi-recent-colors وqvi-neyora-last-prompt وqvi-waitlist-* كما سبق. تبقى في متصفحك ولا تُرسل إلى قاعدتنا إلا عند إرسال بريد قائمة الانتظار إلى الخادم.",
+      "مفاتيح localStorage على هذا الجهاز: qvi-locale وqvi-theme وqvi-recent-colors وqvi-neyora-last-prompt وqvi-tempo-pitch-preset وqvi-waitlist-* كما سبق. تبقى في متصفحك ولا تُرسل إلى قاعدتنا إلا عند إرسال بريد قائمة الانتظار إلى الخادم.",
     ],
     childrenTitle: "10. خصوصية الأطفال",
     children:
@@ -1637,6 +1655,13 @@ export const ar: Messages = {
     pitch: "الطبقة",
     semitones: "أنصاف التون",
     cents: "سنت",
+    stretchPreset: "جودة التمديد",
+    presetMusic: "موسيقى",
+    presetSpeech: "كلام",
+    presetSoloVocal: "غناء منفرد",
+    formantNote: "تحريك الطبقة يحرّك الطيف كله. SoundTouch لا يُبقي فورمانت الصوت في مكانه.",
+    tempoComfort: "هذه السرعة خارج نطاق نصف السرعة إلى ضعفها. المعاينة والتصدير يبقيان متاحين.",
+    pitchComfort: "الطبقة مع السنت تتجاوز ±12 نصف تون. المعاينة والتصدير يبقيان متاحين.",
     trimStart: "بداية القص",
     trimEnd: "نهاية القص",
     removeTrack: "حذف التراك",
@@ -1644,6 +1669,7 @@ export const ar: Messages = {
     emptyTitle: "أفلت ملفًا صوتيًا لبدء تراك",
     emptyBody: "MP3 أو WAV أو M4A أو OGG أو AAC أو FLAC. لا يُرفع أي ملف.",
     rendering: "جارٍ تحديث السرعة والطبقة…",
+    livePreview: "التمديد المباشر يتبع المنزلقات. التصدير ما زال يرسم صوت SoundTouch الأعلى جودة.",
     reading: "جارٍ قراءة الصوت…",
     largeFile: "هذا الملف كبير وقد يتعذر تشغيله على الهاتف.",
     trackCap: "هذه الشاشة تتوقف عند {count} تراكات.",

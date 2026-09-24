@@ -4,10 +4,14 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
+import { resolveTempoRate } from "@/lib/audio-tempo";
+import { tempoPitchComfort, type StretchPresetId } from "@/lib/audio-stretch-preset";
 import { qviStudioLimits } from "@/lib/studio/definition";
 import { STUDIO_EQ_MAX_DB, STUDIO_EQ_MIN_DB, formatPan } from "@/lib/studio/mix";
 import type { Messages } from "@/lib/i18n";
 import { useStudio } from "@/components/studio/studio-context";
+
+const STRETCH_PRESETS = ["music", "speech", "solo-vocal"] as const satisfies readonly StretchPresetId[];
 
 export function StudioTrackInspector({ copy }: { copy: Messages["studio"] }) {
   const studio = useStudio();
@@ -17,6 +21,16 @@ export function StudioTrackInspector({ copy }: { copy: Messages["studio"] }) {
 
   const limits = qviStudioLimits.tempo;
   const rendering = studio.renderingIds.includes(track.id);
+  const comfort = tempoPitchComfort({
+    tempoRate: resolveTempoRate(track.tempo),
+    semitones: track.pitchSemitones,
+    cents: track.pitchCents,
+  });
+  const presetLabel: Record<StretchPresetId, string> = {
+    music: copy.presetMusic,
+    speech: copy.presetSpeech,
+    "solo-vocal": copy.presetSoloVocal,
+  };
 
   return (
     <div className="flex flex-col gap-4 p-4">
@@ -32,6 +46,7 @@ export function StudioTrackInspector({ copy }: { copy: Messages["studio"] }) {
         onChange={(event) => studio.setName(track.id, event.target.value)}
       />
       {rendering && <p className="text-xs text-primary">{copy.rendering}</p>}
+      {studio.liveReady ? <p className="text-xs text-muted-foreground">{copy.livePreview}</p> : null}
       <div className="flex gap-2">
         <Button type="button" size="sm" variant={track.tempo.mode === "bpm" ? "default" : "outline"} onClick={() => studio.setTempo(track.id, { mode: "bpm" })}>
           {copy.bpm}
@@ -66,6 +81,21 @@ export function StudioTrackInspector({ copy }: { copy: Messages["studio"] }) {
           onCommit={(value) => studio.setTempo(track.id, { percent: value })}
         />
       )}
+      {comfort.tempo ? <p className="text-xs text-amber-700 dark:text-amber-300">{copy.tempoComfort}</p> : null}
+      <div className="flex flex-wrap gap-2" role="group" aria-label={copy.stretchPreset}>
+        {STRETCH_PRESETS.map((preset) => (
+          <Button
+            key={preset}
+            type="button"
+            size="sm"
+            variant={track.stretchPreset === preset ? "default" : "outline"}
+            aria-pressed={track.stretchPreset === preset}
+            onClick={() => studio.setStretchPreset(track.id, preset)}
+          >
+            {presetLabel[preset]}
+          </Button>
+        ))}
+      </div>
       <div className="flex flex-wrap gap-2">
         <Button
           type="button"
@@ -147,6 +177,8 @@ export function StudioTrackInspector({ copy }: { copy: Messages["studio"] }) {
           onValueChange={([value]) => studio.setPitch(track.id, { cents: value ?? 0 })}
         />
       </Field>
+      {comfort.pitch ? <p className="text-xs text-amber-700 dark:text-amber-300">{copy.pitchComfort}</p> : null}
+      <p className="text-xs text-muted-foreground">{copy.formantNote}</p>
       {clip && (
         <div className="grid grid-cols-2 gap-2">
           <NumberField

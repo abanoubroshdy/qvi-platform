@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { stretchAudioBufferOffThread } from "@/lib/audio-stretch-task";
+import { createLiveStretchNode, enableLiveStretch } from "@/lib/audio-stretch-worklet";
 import { isStudioTextTarget, studioTransportCommand } from "@/lib/studio/chrome";
 import { createBrowserTempoPitchPreview, connectTempoPreview } from "@/lib/studio/tempo-preview";
 import { loadStudioFile } from "@/lib/studio/load-clip";
@@ -36,10 +38,12 @@ import {
   setTrackPan,
   setTrackPitch,
   setTrackSolo,
+  setTrackStretchPreset,
   setTrackTempo,
   stopPlayhead,
   trackTempoPitchIsIdentity,
 } from "@/lib/studio/project";
+import type { StretchPresetId } from "@/lib/audio-stretch-preset";
 import { exceedsTrackWarning, type StudioTempoSetting } from "@/lib/studio/definition";
 import { StudioMicCapture, type MicProcessor } from "@/lib/studio/mic-capture";
 import { micFailureNotice, nextRecordingName, punchInOffset, type StudioTrackEq } from "@/lib/studio/mix";
@@ -81,6 +85,7 @@ function previewKey(project: StudioProject): string {
         track.tempo.percent,
         track.pitchSemitones,
         track.pitchCents,
+        track.stretchPreset,
         track.clips
           .map((clip) => [clip.id, clip.offsetSec, clip.trimStartSec, clip.trimEndSec, clip.sourceDurationSec].join(":"))
           .join(","),
@@ -142,6 +147,7 @@ export function useStudioSession() {
   const [mixerOpen, setMixerOpen] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [liveReady, setLiveReady] = useState(false);
   const engineRef = useRef<QviStudioPlaybackEngine | null>(null);
   const schedulerRef = useRef<ReturnType<typeof connectTempoPreview> | null>(null);
   const contextRef = useRef<AudioContext | null>(null);
@@ -161,8 +167,9 @@ export function useStudioSession() {
   useEffect(() => {
     const context = new AudioContext();
     contextRef.current = context;
+    const host = createStudioAudioHost(context);
     const engine = createStudioPlaybackEngine({
-      host: createStudioAudioHost(context),
+      host,
       onTransport: (snapshot) => {
         playheadRef.current = snapshot.playheadSec;
         setTransport(snapshot);
@@ -171,8 +178,12 @@ export function useStudioSession() {
     engineRef.current = engine;
     const scheduler = connectTempoPreview({
       preview: createBrowserTempoPitchPreview({
-        decodeAudioData: (data) => context.decodeAudioData(data),
         createBuffer: (channels, length, sampleRate) => context.createBuffer(channels, length, sampleRate),
+        stretchClip: (buffer, options) =>
+          stretchAudioBufferOffThread(buffer, {
+            ...options,
+            createBuffer: (channels, length, sampleRate) => context.createBuffer(channels, length, sampleRate),
+          }),
       }),
       setRenderedTrack: (trackId, buffer) => {
         engine.setRenderedTrack(trackId, buffer);
@@ -185,6 +196,11 @@ export function useStudioSession() {
     });
     schedulerRef.current = scheduler;
     let cancelled = false;
+    void enableLiveStretch(context).then((ok) => {
+      if (cancelled || !ok) return;
+      host.createLiveStretch = () => createLiveStretchNode(context);
+      setLiveReady(true);
+    });
     queueMicrotask(() => {
       if (cancelled || !contextRef.current || !engineRef.current) return;
       const waiters = engineWaitersRef.current.splice(0);
@@ -217,6 +233,12 @@ export function useStudioSession() {
     const scheduler = schedulerRef.current;
     const engine = engineRef.current;
     if (!scheduler || !engine) return;
+    if (liveReady) {
+      scheduler.cancel();
+      setRenderingIds([]);
+      engine.sync(projectRef.current);
+      return;
+    }
     const pending: string[] = [];
     for (const track of projectRef.current.tracks) {
       if (!trackTempoPitchIsIdentity(track)) {
@@ -226,7 +248,7 @@ export function useStudioSession() {
       scheduler.schedule(track);
     }
     setRenderingIds(pending);
-  }, [contentKey]);
+  }, [contentKey, liveReady]);
 
   useEffect(() => {
     const mobile = window.matchMedia("(max-width: 639px)");
@@ -623,6 +645,7 @@ export function useStudioSession() {
     setInspectorOpen,
     exportOpen,
     setExportOpen,
+    liveReady,
     fileInputRef,
     selectedTrack,
     selectedClip,
@@ -699,6 +722,10 @@ export function useStudioSession() {
     },
     setPitch: (trackId: string, pitch: { semitones?: number; cents?: number }) => {
       const result = setTrackPitch(projectRef.current, trackId, pitch);
+      if (result.ok) commit(result.project);
+    },
+    setStretchPreset: (trackId: string, preset: StretchPresetId) => {
+      const result = setTrackStretchPreset(projectRef.current, trackId, preset);
       if (result.ok) commit(result.project);
     },
     setName: (trackId: string, name: string) => {

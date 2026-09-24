@@ -1,13 +1,10 @@
 /**
- * Tempo / pitch helpers for the browser FFmpeg wasm build.
+ * Tempo / pitch amounts for the free tool and QVI Studio.
  *
- * Filter stages are applied in a fixed order (never mixed into one atempo product):
- *   1) Pitch keep-duration: asetrate=sr*ratio,aresample=sr,atempo=1/ratio
- *   2) Tempo only:          atempo=… (daisy-chained in [0.5, 2])
- *
- * Tempo-only (semitones=0, cents=0) MUST be an atempo chain with no asetrate —
- * that is what keeps musical pitch unchanged while speeding/slowing.
- * @ffmpeg/core typically has no rubberband; do not rely on it.
+ * Time-stretch and pitch shift run in SoundTouch (`lib/audio-stretch.ts`).
+ * This module only clamps the controls, converts BPM and cents to ratios,
+ * and builds an ffmpeg encode command. The encode command does not change
+ * tempo or pitch. ffmpeg.wasm has no rubberband filter; do not add one.
  */
 
 import {
@@ -31,16 +28,15 @@ export const MAX_CENTS = 50;
 export const MIN_TEMPO_PERCENT = -50;
 export const MAX_TEMPO_PERCENT = 100;
 
-/** Preferred atempo factor range for smoother results (FFmpeg allows up to 100). */
-export const ATEMPO_MIN = 0.5;
-export const ATEMPO_MAX = 2;
+/**
+ * Percent-mode floor uses three steps of 0.5 so a rate never drops below 0.125.
+ * The tool UI already clamps percent to −50…+100. SoundTouch does the stretch.
+ */
+const PERCENT_TEMPO_STEP = 0.5;
 
 export const TAP_GAP_RESET_MS = 2500;
 export const MIN_TAPS_FOR_BPM = 3;
 export const TAP_INTERVAL_WINDOW = 8;
-
-const RATE_EPS = 1e-6;
-const RATIO_EPS = 1e-9;
 
 export type TempoMode = "bpm" | "percent";
 
@@ -193,7 +189,7 @@ export function tempoRateFromBpm(originalBpm: number, targetBpm: number): number
 export function tempoRateFromPercent(percent: number): number {
   const p = clampTempoPercent(percent);
   const rate = 1 + p / 100;
-  return round6(Math.max(ATEMPO_MIN * ATEMPO_MIN * ATEMPO_MIN, rate));
+  return round6(Math.max(PERCENT_TEMPO_STEP * PERCENT_TEMPO_STEP * PERCENT_TEMPO_STEP, rate));
 }
 
 export function bpmDelta(originalBpm: number, targetBpm: number): number {
@@ -211,77 +207,7 @@ export function pitchRatio(semitones: number, cents: number): number {
   return round6(2 ** (total / 1200));
 }
 
-/**
- * Split a tempo scale into atempo factors within [ATEMPO_MIN, ATEMPO_MAX].
- * Returns [] when the rate is effectively 1.
- */
-export function chainAtempoFactors(rate: number): number[] {
-  if (!Number.isFinite(rate) || rate <= 0) return [1];
-  let remaining = rate;
-  if (Math.abs(remaining - 1) < RATE_EPS) return [];
-
-  const factors: number[] = [];
-  while (remaining > ATEMPO_MAX + RATE_EPS) {
-    factors.push(ATEMPO_MAX);
-    remaining /= ATEMPO_MAX;
-  }
-  while (remaining < ATEMPO_MIN - RATE_EPS) {
-    factors.push(ATEMPO_MIN);
-    remaining /= ATEMPO_MIN;
-  }
-  if (Math.abs(remaining - 1) >= RATE_EPS) {
-    factors.push(round6(remaining));
-  }
-  return factors.length ? factors : [];
-}
-
-/** Comma-joined atempo=… chain, or empty string when tempo is unchanged. */
-export function atempoFilter(rate: number): string {
-  return chainAtempoFactors(rate)
-    .map((factor) => `atempo=${formatFilterNumber(factor)}`)
-    .join(",");
-}
-
-/**
- * Pitch shift that restores original duration (atempo = 1/ratio).
- * Empty when pitch is unchanged. Never includes the user tempo change.
- */
-export function buildPitchKeepDurationFilter(sampleRate: number, semitones: number, cents: number): string {
-  const sr = Math.max(1, Math.round(sampleRate) || 44100);
-  const ratio = pitchRatio(semitones, cents);
-  if (Math.abs(ratio - 1) < RATIO_EPS) return "";
-
-  const setRate = sr * ratio;
-  const restore = atempoFilter(1 / ratio);
-  const parts = [`asetrate=${formatFilterNumber(setRate)}`, `aresample=${sr}`];
-  if (restore) parts.push(restore);
-  return parts.join(",");
-}
-
-/** True when the filter is empty or only daisy-chained atempo (pitch-preserving tempo). */
-export function isAtempoOnlyFilter(filter: string): boolean {
-  if (!filter) return true;
-  return /^(atempo=[0-9.eE+-]+)(,atempo=[0-9.eE+-]+)*$/.test(filter);
-}
-
-/**
- * Build the full -af chain: pitch-keep-duration first, then tempo atempo.
- * Tempo-only requests never emit asetrate/aresample.
- */
-export function buildTempoPitchFilter(options: {
-  sampleRate: number;
-  tempoRate: number;
-  semitones: number;
-  cents: number;
-}): string {
-  const sampleRate = Math.max(1, Math.round(options.sampleRate) || 44100);
-  const tempoRate = Number.isFinite(options.tempoRate) && options.tempoRate > 0 ? options.tempoRate : 1;
-  const pitch = buildPitchKeepDurationFilter(sampleRate, options.semitones, options.cents);
-  const tempo = atempoFilter(tempoRate);
-  return [pitch, tempo].filter(Boolean).join(",");
-}
-
-/** Output duration after a tempo change (pitch-keep-duration does not alter length). */
+/** Output duration after a tempo change. Pitch does not alter length. */
 export function estimateOutputDuration(sourceDuration: number, tempoRate: number): number {
   if (!Number.isFinite(sourceDuration) || sourceDuration <= 0) return 0;
   const rate = Number.isFinite(tempoRate) && tempoRate > 0 ? tempoRate : 1;
@@ -333,7 +259,10 @@ export function resolveTempoRate(options: {
   return tempoRateFromBpm(options.originalBpm, options.targetBpm);
 }
 
-/** Build FFmpeg args for tempo and/or pitch processing + export. */
+/**
+ * ffmpeg encode command for audio that SoundTouch has already stretched.
+ * `filter` stays empty: tempo and pitch are not ffmpeg filters.
+ */
 export function buildTempoPitchExportPlan(options: {
   inputName: string;
   sourceDuration: number;
@@ -356,19 +285,13 @@ export function buildTempoPitchExportPlan(options: {
     percent: options.percent,
   });
   const ratio = pitchRatio(options.semitones, options.cents);
-  const filter = buildTempoPitchFilter({
-    sampleRate: options.sampleRate || settings.sampleRate,
-    tempoRate,
-    semitones: options.semitones,
-    cents: options.cents,
-  });
   const outputName = audioExportOutputName(format);
   const mimeType = audioExportMimeType(format);
   const codec = audioCodecArgs(format, settings);
-  const filterArgs = filter ? ["-af", filter] : [];
+  const filter = "";
 
-  const reencode = ["-i", options.inputName, ...filterArgs, "-vn", ...codec, outputName];
-  const reencodeUnmapped = ["-i", options.inputName, ...filterArgs, ...codec, outputName];
+  const reencode = ["-i", options.inputName, "-vn", ...codec, outputName];
+  const reencodeUnmapped = ["-i", options.inputName, ...codec, outputName];
 
   return {
     filter,

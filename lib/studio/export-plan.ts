@@ -2,6 +2,10 @@
  * Bounce plan for one QVI Studio mix.
  * Clips on a track sum first, then the track gain, then the tracks, then the master.
  * amix does not attenuate (normalize=0) so the sum matches Web Audio playback.
+ *
+ * Each input is already source-trimmed and time-stretched. This graph only
+ * places clips, matches the export format, and sums them. Tempo and pitch
+ * are not ffmpeg filters.
  */
 
 import { clampGainDb } from "@/lib/audio-edit";
@@ -12,7 +16,7 @@ import {
   clampAudioExportSettings,
   type AudioExportSettings,
 } from "@/lib/audio-export";
-import { buildTempoPitchFilter, formatFilterNumber, resolveTempoRate } from "@/lib/audio-tempo";
+import { formatFilterNumber } from "@/lib/audio-tempo";
 import {
   audibleTracks,
   sourceClipDuration,
@@ -70,7 +74,7 @@ export function planStudioExport(
       const name = `clip${index}.wav`;
       inputs.push({ name, clipId: clip.id, trackId: track.id });
       const label = `c${index}`;
-      chains.push(clipChain(index, label, clip, track, stream));
+      chains.push(clipChain(index, label, clip, stream));
       clipLabels.push(label);
     }
     if (!clipLabels.length) continue;
@@ -107,25 +111,8 @@ function audibleClips(track: StudioTrack): StudioClip[] {
   return track.clips.filter((clip) => sourceClipDuration(clip) >= MIN_SLICE_SEC);
 }
 
-function clipChain(
-  index: number,
-  label: string,
-  clip: StudioClip,
-  track: StudioTrack,
-  stream: AudioExportSettings,
-): string {
-  const start = Math.max(0, clip.trimStartSec);
-  const end = Math.max(start, clip.trimEndSec);
-  const sampleRate = clip.sampleRate > 0 ? clip.sampleRate : stream.sampleRate;
-  const tempo = buildTempoPitchFilter({
-    sampleRate,
-    tempoRate: resolveTempoRate(track.tempo),
-    semitones: track.pitchSemitones,
-    cents: track.pitchCents,
-  });
-  const parts = [`atrim=start=${formatFilterNumber(start, 6)}:end=${formatFilterNumber(end, 6)}`, "asetpts=PTS-STARTPTS"];
-  if (tempo) parts.push(tempo);
-  parts.push(`aformat=sample_rates=${stream.sampleRate}:channel_layouts=${stream.channels === 1 ? "mono" : "stereo"}`);
+function clipChain(index: number, label: string, clip: StudioClip, stream: AudioExportSettings): string {
+  const parts = [`aformat=sample_rates=${stream.sampleRate}:channel_layouts=${stream.channels === 1 ? "mono" : "stereo"}`];
   const delayMs = Math.round(Math.max(0, clip.offsetSec) * 1000);
   if (delayMs > 0) {
     const delay = stream.channels === 1 ? String(delayMs) : `${delayMs}|${delayMs}`;

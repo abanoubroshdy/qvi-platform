@@ -844,7 +844,11 @@ export const en = {
   tempoPitch: {
     action: "Apply tempo & pitch",
     exportAgain: "Export again",
-    autoPreviewHint: "Preview updates automatically a moment after you change tempo or pitch (local FFmpeg — not playbackRate).",
+    autoPreviewHint: "The downloadable preview updates a moment after you change tempo or pitch. Live playback follows the sliders immediately.",
+    livePlay: "Play live",
+    liveStop: "Stop live",
+    liveHint:
+      "Live preview follows the sliders through SoundTouch in real time (WSOLA). Download still uses the full-quality render.",
     downloadFormat: "Download {format}",
     dropTitle: "Drop an audio file here or click to choose",
     dropHint: "MP3, WAV, M4A, OGG, or FLAC. Tap BPM, set tempo and pitch, then export locally with FFmpeg.",
@@ -857,7 +861,7 @@ export const en = {
     resetTap: "Reset taps",
     tapCount: "{count} taps",
     tempoSection: "Change tempo",
-    tempoHint: "Speed up or slow down while keeping pitch (FFmpeg atempo — no asetrate). Pitch controls stay at 0.",
+    tempoHint: "Speed up or slow down while keeping pitch (SoundTouch time-stretch). Pitch controls stay at 0.",
     tempoMode: "Tempo mode",
     modeBpm: "By BPM",
     modePercent: "By percent",
@@ -874,6 +878,20 @@ export const en = {
     cents: "Cents",
     centsHint: "Micro-tuning from −50¢ to +50¢.",
     pitchSummary: "{semitones} st · {cents} · total {total} · ratio {ratio}",
+    presetSection: "Stretch quality",
+    presetHint:
+      "Music uses a phase vocoder on longer clips. Speech uses a faster WSOLA profile. Solo vocal uses a denser phase-vocoder overlap.",
+    presetMusic: "Music",
+    presetSpeech: "Speech",
+    presetSoloVocal: "Solo vocal",
+    formantNote: "Pitch moves the whole spectrum. SoundTouch does not offer a separate formant-preserve control.",
+    tempoComfort:
+      "This tempo is outside the usual range (half speed to double speed). You can still preview and export; the stretch may sound less natural.",
+    pitchComfort:
+      "Pitch plus cents is past ±12 semitones. You can still preview and export; the shift may sound less natural.",
+    compare: "Compare",
+    hearBefore: "Before",
+    hearAfter: "After",
     exportSection: "Export",
     exportHint: "Choose MP3 or WAV and the sample rate / bitrate for the processed file.",
     outputFormat: "Output format",
@@ -1408,7 +1426,7 @@ export const en = {
         "Tap an approximate BPM, retarget tempo by BPM or percent, and shift pitch in semitones and cents without uploading. Processing stays on your device.",
       howToTitle: "How do I change tempo or pitch?",
       howToNote:
-        "Tempo uses FFmpeg atempo only (pitch preserved — no asetrate). Pitch is a separate stage: asetrate + aresample + atempo to restore duration, then tempo atempo if needed.",
+        "Tempo and pitch use SoundTouch. Tempo keeps pitch and changes length. Pitch keeps length. FFmpeg only encodes the file.",
       howToSteps: [
         "Drop an audio file and wait for the waveform.",
         "Tap along with the beat, or type the original and target BPM (or use percent mode).",
@@ -1418,7 +1436,7 @@ export const en = {
       faqs: [
         {
           q: "Is my audio uploaded?",
-          a: "No. Detection and processing run in the browser with the Web Audio API and FFmpeg.",
+          a: "No. Tempo and pitch run in the browser with SoundTouch. FFmpeg encodes the download.",
         },
         {
           q: "How does BPM mode work?",
@@ -1561,7 +1579,7 @@ export const en = {
       "We use cookies and similar storage only as implemented below. The current code does not set third-party advertising cookies.",
     cookies: [
       "Essential session cookies from Supabase Auth after sign-in, so the site can recognize you on later visits.",
-      "localStorage keys on this device: qvi-locale, qvi-theme, qvi-recent-colors, qvi-neyora-last-prompt, and qvi-waitlist-* as described above. These stay in your browser and are not sent to our database except when you submit a waitlist email to the server.",
+      "localStorage keys on this device: qvi-locale, qvi-theme, qvi-recent-colors, qvi-neyora-last-prompt, qvi-tempo-pitch-preset, and qvi-waitlist-* as described above. These stay in your browser and are not sent to our database except when you submit a waitlist email to the server.",
     ],
     childrenTitle: "10. Children’s privacy",
     children:
@@ -1648,6 +1666,13 @@ export const en = {
     pitch: "Pitch",
     semitones: "Semitones",
     cents: "Cents",
+    stretchPreset: "Stretch quality",
+    presetMusic: "Music",
+    presetSpeech: "Speech",
+    presetSoloVocal: "Solo vocal",
+    formantNote: "Pitch moves the whole spectrum. SoundTouch does not keep vocal formants in place.",
+    tempoComfort: "This tempo is outside half speed to double speed. Preview and export still run.",
+    pitchComfort: "Pitch plus cents is past ±12 semitones. Preview and export still run.",
     trimStart: "Trim start",
     trimEnd: "Trim end",
     removeTrack: "Remove track",
@@ -1655,6 +1680,7 @@ export const en = {
     emptyTitle: "Drop audio to start a track",
     emptyBody: "MP3, WAV, M4A, OGG, AAC, or FLAC. Nothing is uploaded.",
     rendering: "Updating tempo and pitch…",
+    livePreview: "Live stretch follows the sliders. Export still renders the full-quality SoundTouch buffer.",
     reading: "Reading audio…",
     largeFile: "This file is large and may fail to play on a phone.",
     trackCap: "This screen stops at {count} tracks.",

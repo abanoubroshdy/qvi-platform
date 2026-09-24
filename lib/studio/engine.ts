@@ -22,8 +22,9 @@ export const studioEngineContract = {
 export type StudioEngineStatus = "idle" | "playing" | "paused";
 
 /**
- * Live playback is Web Audio. Tempo and pitch are already baked into buffers
- * by {@link StudioTempoPitchPreview} before they reach this engine.
+ * Live playback is Web Audio. When a SoundTouch worklet is registered, tempo
+ * and pitch run there. Otherwise {@link StudioTempoPitchPreview} bakes them
+ * into a buffer first. Export always uses the offline bake.
  * Audibility follows `isTrackAudible`. Start only after a user gesture.
  */
 export interface StudioPlaybackEngine {

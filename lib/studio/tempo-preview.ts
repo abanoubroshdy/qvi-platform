@@ -1,17 +1,16 @@
 /**
  * Offline tempo and pitch for one track.
- * Identity settings skip the render. Anything else is mixed into one buffer
- * aligned to timeline zero. Debounce matches the Tempo Pitch tool.
+ * Identity settings skip the render. Anything else is stretched with SoundTouch
+ * and mixed into one buffer aligned to timeline zero. Debounce matches the Tempo Pitch tool.
+ * ffmpeg is not used for this preview.
  */
 
-import { buildTempoPitchExportPlan } from "@/lib/audio-tempo";
-import { defaultAudioExportSettings } from "@/lib/audio-export";
-import { runFFmpeg } from "@/lib/ffmpeg";
+import { stretchAudioBuffer, type AudioStretchOptions } from "@/lib/audio-stretch";
+import { resolveTempoRate } from "@/lib/audio-tempo";
 import { qviStudioLimits } from "@/lib/studio/definition";
 import type { StudioTempoPitchPreview } from "@/lib/studio/engine";
 import { trackTempoPitchIsIdentity } from "@/lib/studio/project";
 import type { StudioTrack } from "@/lib/studio/types";
-import { encodeWavPcm16, wavArrayBuffer } from "@/lib/studio/wav";
 
 export type StudioBufferFactory = (channels: number, length: number, sampleRate: number) => AudioBuffer;
 
@@ -54,54 +53,37 @@ export function createTempoPitchPreview(deps: {
   };
 }
 
-export function createFfmpegClipProcessor(deps: {
-  decodeAudioData: (data: ArrayBuffer) => Promise<AudioBuffer>;
-  run?: typeof runFFmpeg;
+export type StudioClipStretch = (
+  buffer: AudioBuffer,
+  options: AudioStretchOptions,
+) => AudioBuffer | Promise<AudioBuffer>;
+
+export function createSoundTouchClipProcessor(deps: {
+  createBuffer: StudioBufferFactory;
+  stretchClip?: StudioClipStretch;
 }): StudioClipProcessor {
-  const run = deps.run ?? runFFmpeg;
+  const stretch = deps.stretchClip ?? ((buffer, options) => stretchAudioBuffer(buffer, { ...options, createBuffer: deps.createBuffer }));
   return async ({ buffer, track, signal }) => {
     if (signal.aborted) throw abortError();
-    const wav = wavArrayBuffer(encodeWavPcm16(buffer));
-    const file = new File([wav], "clip.wav", { type: "audio/wav" });
-    const channels: 1 | 2 = buffer.numberOfChannels >= 2 ? 2 : 1;
-    const plan = buildTempoPitchExportPlan({
-      inputName: "clip.wav",
-      sourceDuration: buffer.duration,
-      sampleRate: buffer.sampleRate || 44100,
-      mode: track.tempo.mode,
-      originalBpm: track.tempo.originalBpm,
-      targetBpm: track.tempo.targetBpm,
-      percent: track.tempo.percent,
+    const stretched = await stretch(buffer, {
+      tempoRate: resolveTempoRate(track.tempo),
       semitones: track.pitchSemitones,
       cents: track.pitchCents,
-      format: "wav",
-      settings: {
-        ...defaultAudioExportSettings,
-        sampleRate: buffer.sampleRate || defaultAudioExportSettings.sampleRate,
-        channels,
-        wavBitDepth: 16,
-      },
-    });
-    const blob = await run({
-      file,
-      inputName: "clip.wav",
-      outputName: plan.outputName,
-      mimeType: plan.mimeType,
-      args: plan.args,
-      fallbackArgs: plan.fallbackArgs,
+      preset: track.stretchPreset,
+      signal,
+      createBuffer: deps.createBuffer,
     });
     if (signal.aborted) throw abortError();
-    return deps.decodeAudioData(await blob.arrayBuffer());
+    return stretched;
   };
 }
 
 export function createBrowserTempoPitchPreview(deps: {
-  decodeAudioData: (data: ArrayBuffer) => Promise<AudioBuffer>;
   createBuffer: StudioBufferFactory;
-  run?: typeof runFFmpeg;
+  stretchClip?: StudioClipStretch;
 }): StudioTempoPitchPreview {
   return createTempoPitchPreview({
-    processClip: createFfmpegClipProcessor(deps),
+    processClip: createSoundTouchClipProcessor(deps),
     createBuffer: deps.createBuffer,
   });
 }

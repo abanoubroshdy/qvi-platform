@@ -1,15 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   appendTap,
-  atempoFilter,
   bpmDelta,
   buildTempoPitchExportPlan,
-  buildTempoPitchFilter,
-  chainAtempoFactors,
   estimateOutputDuration,
   formatBpmDraft,
   formatSignedDraft,
-  isAtempoOnlyFilter,
   parseBpmDraft,
   parseCentsDraft,
   parseSemitonesDraft,
@@ -72,31 +68,6 @@ describe("tempoRateFromPercent", () => {
   });
 });
 
-describe("chainAtempoFactors", () => {
-  it("returns an empty list for unity tempo", () => {
-    expect(chainAtempoFactors(1)).toEqual([]);
-    expect(atempoFilter(1)).toBe("");
-  });
-
-  it("keeps a single factor inside 0.5–2", () => {
-    expect(chainAtempoFactors(1.2)).toEqual([1.2]);
-    expect(atempoFilter(1.2)).toBe("atempo=1.2");
-  });
-
-  it("daisy-chains factors whose product matches a rate of 3", () => {
-    const factors = chainAtempoFactors(3);
-    const product = factors.reduce((acc, value) => acc * value, 1);
-    expect(product).toBeCloseTo(3, 6);
-    expect(factors.every((factor) => factor >= 0.5 - 1e-9 && factor <= 2 + 1e-9)).toBe(true);
-  });
-
-  it("daisy-chains factors for a very slow rate", () => {
-    const factors = chainAtempoFactors(0.25);
-    const product = factors.reduce((acc, value) => acc * value, 1);
-    expect(product).toBeCloseTo(0.25, 6);
-  });
-});
-
 describe("pitchRatio", () => {
   it("is 2 for +12 semitones", () => {
     expect(pitchRatio(12, 0)).toBeCloseTo(2, 6);
@@ -110,50 +81,6 @@ describe("pitchRatio", () => {
 
   it("handles the lower bound −12 st −50¢", () => {
     expect(pitchRatio(-12, -50)).toBeCloseTo(2 ** (-1250 / 1200), 6);
-  });
-});
-
-describe("buildTempoPitchFilter", () => {
-  it("uses atempo only when pitch is unchanged (no asetrate)", () => {
-    const filter = buildTempoPitchFilter({ sampleRate: 44100, tempoRate: 1.2, semitones: 0, cents: 0 });
-    expect(filter).toBe("atempo=1.2");
-    expect(filter).not.toContain("asetrate");
-    expect(filter).not.toContain("aresample");
-    expect(isAtempoOnlyFilter(filter)).toBe(true);
-  });
-
-  it("keeps slowdowns pitch-preserving with atempo only", () => {
-    const filter = buildTempoPitchFilter({ sampleRate: 44100, tempoRate: 0.5, semitones: 0, cents: 0 });
-    expect(filter).toBe("atempo=0.5");
-    expect(isAtempoOnlyFilter(filter)).toBe(true);
-  });
-
-  it("daisy-chains extreme tempo without asetrate when pitch is 0", () => {
-    const filter = buildTempoPitchFilter({ sampleRate: 44100, tempoRate: 0.25, semitones: 0, cents: 0 });
-    expect(isAtempoOnlyFilter(filter)).toBe(true);
-    expect(filter.startsWith("atempo=")).toBe(true);
-    const product = filter
-      .split(",")
-      .map((part) => Number(part.replace("atempo=", "")))
-      .reduce((acc, value) => acc * value, 1);
-    expect(product).toBeCloseTo(0.25, 6);
-  });
-
-  it("pitches up an octave and restores duration when tempo is 1", () => {
-    const filter = buildTempoPitchFilter({ sampleRate: 44100, tempoRate: 1, semitones: 12, cents: 0 });
-    expect(filter).toBe("asetrate=88200,aresample=44100,atempo=0.5");
-  });
-
-  it("applies pitch-keep-duration then tempo as separate stages", () => {
-    // +12 st → pitch restore atempo=0.5, then user tempo ×1.2
-    const filter = buildTempoPitchFilter({ sampleRate: 48000, tempoRate: 1.2, semitones: 12, cents: 0 });
-    expect(filter).toBe("asetrate=96000,aresample=48000,atempo=0.5,atempo=1.2");
-    expect(isAtempoOnlyFilter(filter)).toBe(false);
-  });
-
-  it("returns an empty filter when nothing changes", () => {
-    expect(buildTempoPitchFilter({ sampleRate: 44100, tempoRate: 1, semitones: 0, cents: 0 })).toBe("");
-    expect(isAtempoOnlyFilter("")).toBe(true);
   });
 });
 
@@ -203,10 +130,32 @@ describe("buildTempoPitchExportPlan", () => {
       settings: defaultAudioExportSettings,
     });
     expect(plan.tempoRate).toBeCloseTo(1.2, 6);
-    expect(plan.filter).toBe("atempo=1.2");
+    expect(plan.pitchRatio).toBe(1);
+    expect(plan.filter).toBe("");
     expect(plan.estimatedDuration).toBeCloseTo(50, 5);
-    expect(plan.args).toContain("-af");
-    expect(plan.args).toContain("atempo=1.2");
+    expect(plan.args).not.toContain("-af");
+    expect(plan.args.join(" ")).not.toMatch(/asetrate|atempo|aresample/);
     expect(plan.outputName).toBe("output.mp3");
+  });
+
+  it("keeps pitch in the plan ratios and out of the ffmpeg command", () => {
+    const plan = buildTempoPitchExportPlan({
+      inputName: "stretched.wav",
+      sourceDuration: 10,
+      sampleRate: 44100,
+      mode: "bpm",
+      originalBpm: 120,
+      targetBpm: 120,
+      percent: 0,
+      semitones: 12,
+      cents: 0,
+      format: "wav",
+      settings: defaultAudioExportSettings,
+    });
+    expect(plan.pitchRatio).toBeCloseTo(2, 6);
+    expect(plan.tempoRate).toBe(1);
+    expect(plan.filter).toBe("");
+    expect(plan.estimatedDuration).toBe(10);
+    expect(plan.args.join(" ")).not.toMatch(/asetrate|atempo|rubberband/);
   });
 });
