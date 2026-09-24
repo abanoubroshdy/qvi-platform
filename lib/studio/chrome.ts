@@ -71,3 +71,11 @@ export function sessionDisplayBpm(tracks: readonly BpmTrack[], selectedTrackId: 
 export function studioProjectIsOpen(project: { tracks: readonly unknown[] }): boolean {
   return project.tracks.length > 0;
 }
+
+export type StudioNewProjectButtonPhase = "new" | "clear" | "confirm";
+
+/** Empty sessions show New. Open sessions show Clear, then Confirm clear when armed. */
+export function studioNewProjectButtonPhase(open: boolean, armed: boolean): StudioNewProjectButtonPhase {
+  if (!open) return "new";
+  return armed ? "confirm" : "clear";
+}

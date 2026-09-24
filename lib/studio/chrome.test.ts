@@ -3,6 +3,7 @@ import {
   formatStudioTimecode,
   isStudioTextTarget,
   sessionDisplayBpm,
+  studioNewProjectButtonPhase,
   studioProjectIsOpen,
   studioTransportCommand,
 } from "@/lib/studio/chrome";
@@ -52,5 +53,12 @@ describe("studio timecode and bpm", () => {
   it("treats a session as open only when it has tracks", () => {
     expect(studioProjectIsOpen({ tracks: [] })).toBe(false);
     expect(studioProjectIsOpen({ tracks: [{ id: "a" }] })).toBe(true);
+  });
+
+  it("shows New on empty sessions and Clear then Confirm when open", () => {
+    expect(studioNewProjectButtonPhase(false, false)).toBe("new");
+    expect(studioNewProjectButtonPhase(false, true)).toBe("new");
+    expect(studioNewProjectButtonPhase(true, false)).toBe("clear");
+    expect(studioNewProjectButtonPhase(true, true)).toBe("confirm");
   });
 });

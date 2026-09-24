@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Circle, Minus, Pause, Play, Plus, Square, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatStudioTimecode, sessionDisplayBpm, studioProjectIsOpen } from "@/lib/studio/chrome";
+import { formatStudioTimecode, sessionDisplayBpm, studioNewProjectButtonPhase, studioProjectIsOpen } from "@/lib/studio/chrome";
 import { finishedProjectName } from "@/lib/studio/project";
 import { nextPixelsPerSecond, type StudioSnapMode } from "@/lib/studio/timeline-geometry";
 import type { Messages } from "@/lib/i18n";
@@ -142,13 +142,14 @@ function ProjectName({ copy }: { copy: Messages["studio"] }) {
   const studio = useStudio();
   const [armed, setArmed] = useState(false);
   const open = studioProjectIsOpen(studio.project);
+  const phase = studioNewProjectButtonPhase(open, armed);
 
   useEffect(() => {
     if (!open) setArmed(false);
   }, [open]);
 
-  const label = !open ? copy.newProject : armed ? copy.confirmClear : copy.confirmNew;
-  const aria = !open ? copy.newProject : armed ? copy.confirmClear : copy.confirmNew;
+  const label =
+    phase === "new" ? copy.newProject : phase === "confirm" ? copy.confirmClear : copy.confirmNew;
 
   return (
     <div className="flex min-w-0 items-center gap-1 pe-1">
@@ -166,18 +167,18 @@ function ProjectName({ copy }: { copy: Messages["studio"] }) {
       </div>
       <Button
         type="button"
-        variant={armed ? "secondary" : "outline"}
+        variant={phase === "confirm" ? "secondary" : "outline"}
         size="sm"
-        aria-label={aria}
+        aria-label={label}
         onBlur={() => {
           window.setTimeout(() => setArmed(false), 400);
         }}
         onClick={() => {
-          if (!open) {
+          if (phase === "new") {
             studio.newProject();
             return;
           }
-          if (!armed) {
+          if (phase === "clear") {
             setArmed(true);
             return;
           }
