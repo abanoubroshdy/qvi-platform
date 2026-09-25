@@ -1,26 +1,16 @@
-import type { Metadata } from "next";
 import { ColorPicker } from "@/components/tools/ColorPicker";
 import { LiveToolView } from "@/components/views/LiveToolView";
-import { siteConfig } from "@/lib/site";
+import { toolPageMeta } from "@/lib/page-meta";
+import { buildPageMetadata } from "@/lib/seo";
 
-const pageTitle = "منتقي الألوان أونلاين مجاناً — بدون رفع";
-const pageDescription =
-  "اختر لونًا وانسخ قيم HEX وRGB وHSL فورًا. التحويل يعمل في المتصفح والألوان الأخيرة تُحفظ على جهازك فقط.";
+const meta = toolPageMeta["color-picker"];
 
-export function generateMetadata(): Metadata {
-  return {
-    title: pageTitle,
-    description: pageDescription,
-    alternates: { canonical: "/tools/color-picker" },
-    openGraph: {
-      title: pageTitle,
-      description: pageDescription,
-      url: `${siteConfig.url}/tools/color-picker`,
-      locale: "ar_AR",
-      type: "article",
-    },
-  };
-}
+export const metadata = buildPageMetadata({
+  title: meta.title,
+  description: meta.description,
+  path: meta.path,
+  absolute: true,
+});
 
 export default function ColorPickerPage() {
   return (

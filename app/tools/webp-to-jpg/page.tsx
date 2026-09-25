@@ -1,26 +1,16 @@
-import type { Metadata } from "next";
 import { WebpToJpg } from "@/components/tools/WebpToJpg";
 import { LiveToolView } from "@/components/views/LiveToolView";
-import { siteConfig } from "@/lib/site";
+import { toolPageMeta } from "@/lib/page-meta";
+import { buildPageMetadata } from "@/lib/seo";
 
-const pageTitle = "Convert WEBP to JPG Online — No Upload";
-const pageDescription =
-  "Convert WEBP images to compatible JPG files in your browser. Free, instant, and nothing is uploaded.";
+const meta = toolPageMeta["webp-to-jpg"];
 
-export function generateMetadata(): Metadata {
-  return {
-    title: pageTitle,
-    description: pageDescription,
-    alternates: { canonical: "/tools/webp-to-jpg" },
-    openGraph: {
-      title: pageTitle,
-      description: pageDescription,
-      url: `${siteConfig.url}/tools/webp-to-jpg`,
-      locale: "en_US",
-      type: "article",
-    },
-  };
-}
+export const metadata = buildPageMetadata({
+  title: meta.title,
+  description: meta.description,
+  path: meta.path,
+  absolute: true,
+});
 
 export default function WebpToJpgPage() {
   return (

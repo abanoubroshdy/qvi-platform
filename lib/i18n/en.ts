@@ -107,25 +107,25 @@ export const en = {
     exploreLab: "Explore Lab",
   },
   home: {
-    kicker: "Desktop intelligent audio",
-    title: "QVI — Quality Virtual Instruments",
+    kicker: "On-device AI audio",
+    title: "On-device AI stem separation & instrument performance",
     lead:
-      "QV1 and Neyora are the product: desktop software for stem separation and instrument synthesis. Free browser tools are helpful extras — they are not what QVI is building.",
+      "QV1 splits a song into vocals, drums, bass, and accompaniment on your computer — a stem splitter and vocal remover that keeps source audio on your machine. Neyora turns text, a hummed melody, or MIDI into an instrument performance with DDSP. Free audio, PDF, and image tools run in the browser as well.",
     exploreQv1: "Explore QV1",
     tryTools: "Free browser tools",
     toolsAside: "Need a quick file utility instead?",
     productsKicker: "The product",
     productsTitle: "QV1 and Neyora",
     productsLead:
-      "Desktop intelligent audio comes first. Join the QV1 waitlist or follow Neyora in the lab. The free tools further down are extras.",
+      "QV1 is on-device AI stem separation and a vocal remover. Neyora is an AI instrument for text, voice, or MIDI. Join the QV1 waitlist, or follow Neyora while it is in development.",
     extrasNote:
-      "QVI Studio is a small browser mixer. The free tools are local utilities. Neither one replaces QV1 or Neyora.",
+      "QVI Studio is a small browser mixer for tracks you already have. QV1 and Neyora are the desktop AI products.",
     qv1Cta: "Join the QV1 waitlist",
     neyoraCta: "Explore Neyora",
     toolsKicker: "Utilities",
     toolsTitle: "Free online tools — powered by QVI",
     toolsLead:
-      "Free browser utilities that process files locally. They are extras beside QV1 and Neyora, not a replacement for them.",
+      "Free browser utilities that process files locally: audio, PDF, images, text, and quick tools, alongside QV1 and Neyora.",
     toolsName: "Tools",
     toolsStatus: "Free",
     toolsCardTitle: "Free browser tools — QVI utilities",
@@ -143,7 +143,7 @@ export const en = {
     toolsSectionKicker: "Helpful extras",
     toolsSectionTitle: "Free browser tools",
     toolsSectionLead:
-      "These utilities are extras, not the product. They process files in your browser while QV1 and Neyora — the desktop audio software — are what QVI is building.",
+      "Free browser utilities for audio, PDF, images, and text. They process files on your device, alongside QV1 and Neyora.",
     viewAllTools: "Open full tools hub",
     exploreKicker: "Site map",
     exploreTitle: "Explore the platform",
@@ -188,7 +188,7 @@ export const en = {
   },
   footer: {
     blurb:
-      "QV1 and Neyora — desktop intelligent audio. Free browser utilities are extras, and they never upload your files.",
+      "On-device AI audio for stem separation and instrument performance. Free browser tools never upload your files.",
     explore: "Explore",
     home: "Home",
     siteMap: "Site map",
@@ -205,6 +205,7 @@ export const en = {
     qv1: {
       name: "QV1",
       status: "Coming Soon",
+      h1: "QV1 – AI stem separation & vocal remover",
       title: "QV1 — Stem Separation & Audio Processing Engine",
       description:
         "Desktop intelligent audio: a professional engine for vocal and instrumental separation and track processing.",
@@ -262,6 +263,7 @@ export const en = {
     neyora: {
       name: "Neyora",
       status: "In Development",
+      h1: "Neyora – AI instrument performance",
       title: "Neyora — DDSP Instrument Synthesis",
       description:
         "Desktop intelligent audio: turn text, voice, or MIDI into realistic instrument performance with DDSP.",
@@ -1634,6 +1636,7 @@ export const en = {
   },
   studio: {
     title: "QVI Studio",
+    pageHeading: "QVI Studio – free online multitrack mixer",
     lead: "A small multitrack studio in your browser. Files stay on this device.",
     addFiles: "Add files",
     addTrack: "Add track",

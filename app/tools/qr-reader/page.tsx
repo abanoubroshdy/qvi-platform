@@ -1,26 +1,16 @@
-import type { Metadata } from "next";
 import { QrReader } from "@/components/tools/QrReader";
 import { LiveToolView } from "@/components/views/LiveToolView";
-import { siteConfig } from "@/lib/site";
+import { toolPageMeta } from "@/lib/page-meta";
+import { buildPageMetadata } from "@/lib/seo";
 
-const pageTitle = "قارئ رمز QR من صورة — بدون كاميرا وبدون رفع";
-const pageDescription =
-  "افك رمز QR من صورة أو لقطة شاشة على جهازك. لا كاميرا ولا رفع إلى خادم — jsQR يعمل في المتصفح.";
+const meta = toolPageMeta["qr-reader"];
 
-export function generateMetadata(): Metadata {
-  return {
-    title: pageTitle,
-    description: pageDescription,
-    alternates: { canonical: "/tools/qr-reader" },
-    openGraph: {
-      title: pageTitle,
-      description: pageDescription,
-      url: `${siteConfig.url}/tools/qr-reader`,
-      locale: "ar_AR",
-      type: "article",
-    },
-  };
-}
+export const metadata = buildPageMetadata({
+  title: meta.title,
+  description: meta.description,
+  path: meta.path,
+  absolute: true,
+});
 
 export default function QrReaderPage() {
   return (

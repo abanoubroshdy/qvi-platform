@@ -61,7 +61,7 @@ V1 scope is defined in `lib/studio/definition.ts`. The in-memory session lives o
 - `/` product home, with links to QVI Studio, QV1, Neyora, and free tools
 - `/studio` the QVI Studio session
 - `/products/qv1` QV1 waitlist landing
-- `/products/neyora` Neyora lab (also `/lab`)
+- `/products/neyora` Neyora lab (`/lab` permanently redirects here)
 - `/tools/image-compressor` Image Compressor
 - `/tools/webp-to-jpg` WEBP to JPG
 - `/tools/png-to-pdf` PNG to PDF

@@ -7,28 +7,30 @@ type LogoProps = {
   compact?: boolean;
 };
 
-const LOGO_WIDTH = 1600;
-const LOGO_HEIGHT = 1600;
+const WORDMARK_WIDTH = 480;
+const WORDMARK_HEIGHT = 191;
 
 export function Logo({ className, compact = false }: LogoProps) {
   return (
     <Link href="/" className={cn("qvi-logo inline-flex items-center", className)} aria-label="QVI">
       <span className={cn("qvi-logo-frame", compact ? "qvi-logo-frame-header" : "qvi-logo-frame-footer")}>
         <Image
-          src="/qvi-logo.png"
+          src="/brand/qvi-wordmark.webp"
           alt="QVI"
-          width={LOGO_WIDTH}
-          height={LOGO_HEIGHT}
+          width={WORDMARK_WIDTH}
+          height={WORDMARK_HEIGHT}
           priority
           unoptimized
+          sizes="162px"
           className="qvi-logo-light"
         />
         <Image
-          src="/qvi-logo-on-dark.png"
+          src="/brand/qvi-wordmark-on-dark.webp"
           alt=""
-          width={LOGO_WIDTH}
-          height={LOGO_HEIGHT}
+          width={WORDMARK_WIDTH}
+          height={WORDMARK_HEIGHT}
           unoptimized
+          sizes="162px"
           aria-hidden
           className="qvi-logo-dark"
         />

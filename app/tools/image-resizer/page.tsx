@@ -1,26 +1,16 @@
-import type { Metadata } from "next";
 import { ImageResizer } from "@/components/tools/ImageResizer";
 import { LiveToolView } from "@/components/views/LiveToolView";
-import { siteConfig } from "@/lib/site";
+import { toolPageMeta } from "@/lib/page-meta";
+import { buildPageMetadata } from "@/lib/seo";
 
-const pageTitle = "تغيير حجم الصورة أونلاين — بدون رفع";
-const pageDescription =
-  "غيّر عرض الصورة وارتفاعها بالبكسل مع قفل نسبة الأبعاد. المعالجة عبر Canvas على جهازك ومقارنة الحجم قبل التنزيل.";
+const meta = toolPageMeta["image-resizer"];
 
-export function generateMetadata(): Metadata {
-  return {
-    title: pageTitle,
-    description: pageDescription,
-    alternates: { canonical: "/tools/image-resizer" },
-    openGraph: {
-      title: pageTitle,
-      description: pageDescription,
-      url: `${siteConfig.url}/tools/image-resizer`,
-      locale: "ar_AR",
-      type: "article",
-    },
-  };
-}
+export const metadata = buildPageMetadata({
+  title: meta.title,
+  description: meta.description,
+  path: meta.path,
+  absolute: true,
+});
 
 export default function ImageResizerPage() {
   return (

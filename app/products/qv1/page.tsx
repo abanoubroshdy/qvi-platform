@@ -1,23 +1,20 @@
-import type { Metadata } from "next";
+import { JsonLd } from "@/components/JsonLd";
 import { Qv1View } from "@/components/views/Qv1View";
-import { siteConfig } from "@/lib/site";
+import { pageMeta } from "@/lib/page-meta";
+import { buildPageMetadata, qv1PageJsonLd } from "@/lib/seo";
 
-const pageTitle = "QV1 - AI Stem Separation Tool";
-const pageDescription =
-  "QV1 is QVI’s desktop audio engine for stem separation, de-noise, and remix. It is a core product, not a free browser tool.";
-
-export const metadata: Metadata = {
-  title: pageTitle,
-  description: pageDescription,
-  alternates: { canonical: "/products/qv1" },
-  openGraph: {
-    title: pageTitle,
-    description: pageDescription,
-    url: `${siteConfig.url}/products/qv1`,
-    type: "website",
-  },
-};
+export const metadata = buildPageMetadata({
+  title: pageMeta.qv1.title,
+  description: pageMeta.qv1.description,
+  path: pageMeta.qv1.path,
+  absolute: true,
+});
 
 export default function Qv1Page() {
-  return <Qv1View />;
+  return (
+    <>
+      <JsonLd data={qv1PageJsonLd()} />
+      <Qv1View />
+    </>
+  );
 }

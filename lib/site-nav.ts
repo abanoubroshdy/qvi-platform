@@ -19,7 +19,7 @@ export const footerExploreItems = [
   { href: "/#products", source: "nav", labelKey: "products" },
   { href: "/#tools", source: "footer", labelKey: "freeTools" },
   { href: "/studio", source: "nav", labelKey: "studio" },
-  { href: "/lab", source: "nav", labelKey: "lab" },
+  { href: "/products/neyora", source: "nav", labelKey: "lab" },
   { href: "/#explore", source: "footer", labelKey: "siteMap" },
 ] as const;
 

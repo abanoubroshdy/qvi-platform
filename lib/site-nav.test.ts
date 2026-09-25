@@ -14,7 +14,6 @@ const routeFiles: Record<string, string> = {
   "/studio": "app/(workspace)/studio/page.tsx",
   "/about": "app/about/page.tsx",
   "/contact": "app/contact/page.tsx",
-  "/lab": "app/lab/page.tsx",
   "/tools": "app/tools/page.tsx",
   "/privacy-policy": "app/privacy-policy/page.tsx",
   "/terms": "app/terms/page.tsx",

@@ -49,7 +49,7 @@ export function HomeSiteExplore() {
       icon: SlidersHorizontal,
     },
     {
-      href: "/lab",
+      href: "/#lab",
       label: copy.nav.lab,
       description: copy.products.neyora.kicker,
       icon: FlaskConical,
