@@ -1,15 +1,13 @@
 import { JsonLd } from "@/components/JsonLd";
 import { ContactView } from "@/components/views/LegalViews";
+import { pageMeta } from "@/lib/page-meta";
 import { buildPageMetadata, contactPageJsonLd } from "@/lib/seo";
 
-const pageTitle = "Contact";
-const pageDescription =
-  "Contact QVI support at support@getqvi.com about QV1, Neyora, waitlists, your account, or the free tools.";
-
 export const metadata = buildPageMetadata({
-  title: pageTitle,
-  description: pageDescription,
-  path: "/contact",
+  title: pageMeta.contact.title,
+  description: pageMeta.contact.description,
+  path: pageMeta.contact.path,
+  absolute: true,
 });
 
 export default function ContactPage() {

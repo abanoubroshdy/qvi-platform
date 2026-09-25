@@ -1,22 +1,17 @@
-import type { Metadata } from "next";
 import { LoginView } from "@/components/auth/LoginView";
 import { safeNextPath } from "@/lib/safe-next-path";
-import { siteConfig } from "@/lib/site";
+import { buildPageMetadata } from "@/lib/seo";
 
 const pageTitle = "Sign in";
-const pageDescription = "Sign in or create your QVI account to manage your waitlist spot.";
+const pageDescription = "Sign in or create your QVI account to download QV1 Evaluation and manage your waitlist spot.";
 
-export const metadata: Metadata = {
-  title: pageTitle,
-  description: pageDescription,
-  alternates: { canonical: "/login" },
-  robots: { index: false, follow: false },
-  openGraph: {
+export const metadata = {
+  ...buildPageMetadata({
     title: pageTitle,
     description: pageDescription,
-    url: `${siteConfig.url}/login`,
-    type: "website",
-  },
+    path: "/login",
+  }),
+  robots: { index: false, follow: false },
 };
 
 type LoginPageProps = {

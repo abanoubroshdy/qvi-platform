@@ -1,14 +1,12 @@
 import { ToolsHubView } from "@/components/views/ToolsHubView";
+import { pageMeta } from "@/lib/page-meta";
 import { buildPageMetadata } from "@/lib/seo";
 
-const pageTitle = "Free tools";
-const pageDescription =
-  "QVI free browser tools grouped by audio, PDF, images, text, and quick utilities. Files stay on your device.";
-
 export const metadata = buildPageMetadata({
-  title: pageTitle,
-  description: pageDescription,
-  path: "/tools",
+  title: pageMeta.tools.title,
+  description: pageMeta.tools.description,
+  path: pageMeta.tools.path,
+  absolute: true,
 });
 
 export default function ToolsHubPage() {

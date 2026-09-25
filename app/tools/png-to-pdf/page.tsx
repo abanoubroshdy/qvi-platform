@@ -1,26 +1,16 @@
-import type { Metadata } from "next";
 import { PngToPdf } from "@/components/tools/PngToPdf";
 import { LiveToolView } from "@/components/views/LiveToolView";
-import { siteConfig } from "@/lib/site";
+import { toolPageMeta } from "@/lib/page-meta";
+import { buildPageMetadata } from "@/lib/seo";
 
-const pageTitle = "Convert PNG to PDF Online — No Upload";
-const pageDescription =
-  "Turn PNG images into a PDF for sharing or print, entirely in your browser. Merge several images, with fully local processing.";
+const meta = toolPageMeta["png-to-pdf"];
 
-export function generateMetadata(): Metadata {
-  return {
-    title: pageTitle,
-    description: pageDescription,
-    alternates: { canonical: "/tools/png-to-pdf" },
-    openGraph: {
-      title: pageTitle,
-      description: pageDescription,
-      url: `${siteConfig.url}/tools/png-to-pdf`,
-      locale: "en_US",
-      type: "article",
-    },
-  };
-}
+export const metadata = buildPageMetadata({
+  title: meta.title,
+  description: meta.description,
+  path: meta.path,
+  absolute: true,
+});
 
 export default function PngToPdfPage() {
   return (

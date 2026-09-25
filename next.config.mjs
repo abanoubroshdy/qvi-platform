@@ -70,6 +70,15 @@ const nextConfig = {
     };
     return config;
   },
+  async redirects() {
+    return [
+      {
+        source: "/lab",
+        destination: "/products/neyora",
+        statusCode: 301,
+      },
+    ];
+  },
   async headers() {
     return [
       {

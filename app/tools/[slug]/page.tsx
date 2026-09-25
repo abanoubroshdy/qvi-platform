@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ToolCategoryView } from "@/components/views/ToolCategoryView";
 import { UpcomingToolView } from "@/components/views/UpcomingToolView";
 import { en } from "@/lib/i18n/en";
+import { buildPageMetadata } from "@/lib/seo";
 import { getToolBySlug, isToolCategory, toolCategoryOrder, toolCategoryPath, tools } from "@/lib/tools";
 
 type PageProps = {
@@ -20,11 +21,11 @@ export function generateStaticParams() {
 export function generateMetadata({ params }: PageProps): Metadata {
   if (isToolCategory(params.slug)) {
     const group = en.toolGroups[params.slug];
-    return {
+    return buildPageMetadata({
       title: group.title,
       description: group.lead,
-      alternates: { canonical: toolCategoryPath(params.slug) },
-    };
+      path: toolCategoryPath(params.slug),
+    });
   }
 
   const tool = getToolBySlug(params.slug);
@@ -32,11 +33,11 @@ export function generateMetadata({ params }: PageProps): Metadata {
     return { title: "Tool not found" };
   }
 
-  return {
+  return buildPageMetadata({
     title: `${tool.title} | Coming soon`,
     description: tool.description,
-    alternates: { canonical: tool.href },
-  };
+    path: tool.href,
+  });
 }
 
 export default function ToolsSlugPage({ params }: PageProps) {

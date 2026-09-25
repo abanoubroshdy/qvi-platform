@@ -1,7 +1,6 @@
 "use client";
 
 import { NeyoraDemo } from "@/components/NeyoraDemo";
-import { JsonLd } from "@/components/JsonLd";
 import { WaitlistForm } from "@/components/WaitlistForm";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import {
@@ -17,21 +16,10 @@ export function NeyoraView() {
 
   return (
     <div>
-      <JsonLd
-        data={{
-          "@context": "https://schema.org",
-          "@type": "SoftwareApplication",
-          name: "Neyora",
-          applicationCategory: "MultimediaApplication",
-          operatingSystem: "Coming soon",
-          description: page.description,
-        }}
-      />
-
       <section className="hero-grid border-b border-border">
         <div className="mx-auto max-w-4xl px-4 py-16 sm:py-20">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.24em] text-primary">{page.kicker}</p>
-          <h1 className="text-4xl font-semibold leading-tight sm:text-5xl">Neyora</h1>
+          <h1 className="text-4xl font-semibold leading-tight sm:text-5xl">{page.h1}</h1>
           <p className="mt-3 text-xl text-muted-foreground">{page.title}</p>
           <p className="mt-4 max-w-2xl text-base leading-8 text-muted-foreground">
             {page.description} {page.extra}

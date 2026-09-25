@@ -1,23 +1,20 @@
-import type { Metadata } from "next";
+import { JsonLd } from "@/components/JsonLd";
 import { Qv1View } from "@/components/views/Qv1View";
-import { siteConfig } from "@/lib/site";
+import { pageMeta } from "@/lib/page-meta";
+import { buildPageMetadata, qv1PageJsonLd } from "@/lib/seo";
 
-const pageTitle = "QV1 Evaluation";
-const pageDescription =
-  "QV1 Evaluation is a free Windows app: 4 AI stems with non-commercial third-party models, plus Drum Split (DSP), stem editing, and mix tools.";
-
-export const metadata: Metadata = {
-  title: pageTitle,
-  description: pageDescription,
-  alternates: { canonical: "/products/qv1" },
-  openGraph: {
-    title: pageTitle,
-    description: pageDescription,
-    url: `${siteConfig.url}/products/qv1`,
-    type: "website",
-  },
-};
+export const metadata = buildPageMetadata({
+  title: pageMeta.qv1.title,
+  description: pageMeta.qv1.description,
+  path: pageMeta.qv1.path,
+  absolute: true,
+});
 
 export default function Qv1Page() {
-  return <Qv1View />;
+  return (
+    <>
+      <JsonLd data={qv1PageJsonLd()} />
+      <Qv1View />
+    </>
+  );
 }

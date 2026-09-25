@@ -31,7 +31,7 @@ export function HomeLabSection() {
           </ul>
           <div className="qvi-actions mt-8 flex flex-wrap gap-3">
             <Button asChild size="lg" className="qvi-btn">
-              <Link href="/lab">
+              <Link href="/products/neyora">
                 {copy.common.exploreLab}
                 <ArrowRight />
               </Link>
@@ -52,7 +52,7 @@ export function HomeLabSection() {
             <p className="text-lg font-semibold">{neyora.name}</p>
             <p className="text-sm leading-7 text-muted-foreground">{neyora.ddspBody}</p>
             <Link
-              href="/lab"
+              href="/products/neyora"
               className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
             >
               {copy.common.exploreLab}

@@ -18,7 +18,6 @@ const staticRouteConfig: Record<
   "/products/qv1": { changeFrequency: "weekly", priority: 0.95 },
   "/products/neyora": { changeFrequency: "weekly", priority: 0.95 },
   "/tools": { changeFrequency: "weekly", priority: 0.9 },
-  "/lab": { changeFrequency: "weekly", priority: 0.85 },
   "/studio": { changeFrequency: "weekly", priority: 0.92 },
 };
 

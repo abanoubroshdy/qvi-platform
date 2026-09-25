@@ -1,11 +1,11 @@
 import { PrivacyView } from "@/components/views/LegalViews";
+import { pageMeta } from "@/lib/page-meta";
 import { buildPageMetadata } from "@/lib/seo";
 
 export const metadata = buildPageMetadata({
-  title: "Privacy Policy",
-  description:
-    "QVI privacy policy: account and waitlist data, the QV1 desktop app, on-device tools, and your rights.",
-  path: "/privacy-policy",
+  title: pageMeta.privacy.title,
+  description: pageMeta.privacy.description,
+  path: pageMeta.privacy.path,
 });
 
 export default function PrivacyPolicyPage() {

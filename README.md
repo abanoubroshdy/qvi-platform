@@ -84,7 +84,7 @@ V1 scope is defined in `lib/studio/definition.ts`. The in-memory session lives o
 - `/qv1/models` third-party model sources and licenses
 - `/qv1/download` signed-in presigned R2 redirect, or `/qv1?download=soon` when R2 is unset
 - `/products/qv1` QV1 product page
-- `/products/neyora` Neyora lab (also `/lab`)
+- `/products/neyora` Neyora lab (`/lab` permanently redirects here)
 - `/tools/image-compressor` Image Compressor
 - `/tools/webp-to-jpg` WEBP to JPG
 - `/tools/png-to-pdf` PNG to PDF

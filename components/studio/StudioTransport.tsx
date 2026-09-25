@@ -14,6 +14,9 @@ export function StudioTransport({ copy }: { copy: Messages["studio"] }) {
   const studio = useStudio();
   return (
     <div className="studio-transport studio-chrome-top flex flex-wrap items-center gap-x-2 gap-y-2 px-2 py-2 sm:px-3">
+      <h1 className="max-w-[11rem] text-xs font-semibold leading-tight text-foreground sm:max-w-[18rem] sm:text-sm">
+        {copy.pageHeading}
+      </h1>
       <ProjectName copy={copy} />
       <SnapControl
         label={copy.snap}

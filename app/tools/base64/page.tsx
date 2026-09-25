@@ -1,26 +1,16 @@
-import type { Metadata } from "next";
 import { Base64Tool } from "@/components/tools/Base64Tool";
 import { LiveToolView } from "@/components/views/LiveToolView";
-import { siteConfig } from "@/lib/site";
+import { toolPageMeta } from "@/lib/page-meta";
+import { buildPageMetadata } from "@/lib/seo";
 
-const pageTitle = "أداة Base64 ترميز وفك ترميز — بدون رفع";
-const pageDescription =
-  "رمّز نصًا أو ملفات إلى Base64 وفك الترميز إلى نص داخل المتصفح. بلا رفع وبلا حساب.";
+const meta = toolPageMeta["base64"];
 
-export function generateMetadata(): Metadata {
-  return {
-    title: pageTitle,
-    description: pageDescription,
-    alternates: { canonical: "/tools/base64" },
-    openGraph: {
-      title: pageTitle,
-      description: pageDescription,
-      url: `${siteConfig.url}/tools/base64`,
-      locale: "ar_AR",
-      type: "article",
-    },
-  };
-}
+export const metadata = buildPageMetadata({
+  title: meta.title,
+  description: meta.description,
+  path: meta.path,
+  absolute: true,
+});
 
 export default function Base64Page() {
   return (

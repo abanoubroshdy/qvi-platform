@@ -1,26 +1,16 @@
-import type { Metadata } from "next";
 import { Mp4ToMp3 } from "@/components/tools/Mp4ToMp3";
 import { LiveToolView } from "@/components/views/LiveToolView";
-import { siteConfig } from "@/lib/site";
+import { toolPageMeta } from "@/lib/page-meta";
+import { buildPageMetadata } from "@/lib/seo";
 
-const pageTitle = "تحويل فيديو إلى صوت - استخراج MP3 وWAV والمزيد";
-const pageDescription =
-  "استخرج الصوت من MP4 وWEBM وMOV إلى MP3 أو WAV أو M4A أو OGG أو FLAC داخل المتصفح. بلا رفع إلى خادم.";
+const meta = toolPageMeta["mp4-to-mp3"];
 
-export function generateMetadata(): Metadata {
-  return {
-    title: pageTitle,
-    description: pageDescription,
-    alternates: { canonical: "/tools/mp4-to-mp3" },
-    openGraph: {
-      title: pageTitle,
-      description: pageDescription,
-      url: `${siteConfig.url}/tools/mp4-to-mp3`,
-      locale: "ar_AR",
-      type: "article",
-    },
-  };
-}
+export const metadata = buildPageMetadata({
+  title: meta.title,
+  description: meta.description,
+  path: meta.path,
+  absolute: true,
+});
 
 export default function Mp4ToMp3Page() {
   return (

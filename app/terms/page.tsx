@@ -1,10 +1,11 @@
 import { TermsView } from "@/components/views/LegalViews";
+import { pageMeta } from "@/lib/page-meta";
 import { buildPageMetadata } from "@/lib/seo";
 
 export const metadata = buildPageMetadata({
-  title: "Terms of Use",
-  description: "Terms of use for the QVI platform, products, and free browser tools.",
-  path: "/terms",
+  title: pageMeta.terms.title,
+  description: pageMeta.terms.description,
+  path: pageMeta.terms.path,
 });
 
 export default function TermsPage() {

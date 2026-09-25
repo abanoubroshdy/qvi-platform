@@ -1,22 +1,13 @@
-import type { Metadata } from "next";
 import { QviStudioApp } from "@/components/studio/QviStudioApp";
-import { siteConfig } from "@/lib/site";
+import { pageMeta } from "@/lib/page-meta";
+import { buildPageMetadata } from "@/lib/seo";
 
-const title = "QVI Studio";
-const description = "Miniature multitrack studio in the browser. Mix tracks, change tempo and pitch, and play on your device.";
-
-export function generateMetadata(): Metadata {
-  return {
-    title,
-    description,
-    alternates: { canonical: "/studio" },
-    openGraph: {
-      title,
-      description,
-      url: `${siteConfig.url}/studio`,
-    },
-  };
-}
+export const metadata = buildPageMetadata({
+  title: pageMeta.studio.title,
+  description: pageMeta.studio.description,
+  path: pageMeta.studio.path,
+  absolute: true,
+});
 
 export default function StudioPage() {
   return <QviStudioApp />;

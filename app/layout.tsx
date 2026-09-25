@@ -4,6 +4,8 @@ import { AppProviders } from "@/components/AppProviders";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { adsenseVerificationClient } from "@/lib/adsense";
+import { pageMeta } from "@/lib/page-meta";
+import { openGraphImage } from "@/lib/seo";
 import { siteConfig } from "@/lib/site";
 import "./globals.css";
 
@@ -26,10 +28,12 @@ const ibmPlexSansArabic = IBM_Plex_Sans_Arabic({
   variable: "--font-ibm-plex-sans-arabic",
 });
 
+const defaultOg = openGraphImage("/");
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: {
-    default: "QVI - Quality Virtual Instruments | AI Audio Tools & Software",
+    default: pageMeta.home.title,
     template: "%s | QVI",
   },
   description: siteConfig.description,
@@ -39,21 +43,27 @@ export const metadata: Metadata = {
   publisher: siteConfig.fullName,
   applicationName: siteConfig.name,
   category: "music",
-  alternates: {
-    canonical: "/",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "48x48" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
   },
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: siteConfig.url,
     siteName: siteConfig.fullName,
-    title: "QVI - Quality Virtual Instruments | AI Audio Tools & Software",
+    title: pageMeta.home.title,
     description: siteConfig.description,
+    images: [defaultOg],
   },
   twitter: {
     card: "summary_large_image",
-    title: "QVI - Quality Virtual Instruments",
+    title: pageMeta.home.title,
     description: siteConfig.description,
+    images: [defaultOg.url],
   },
   robots: {
     index: true,
@@ -92,7 +102,7 @@ export default function RootLayout({
       <body className="min-h-screen font-sans">
         <script dangerouslySetInnerHTML={{ __html: localeBootScript }} />
         {/* eslint-disable-next-line @next/next/no-css-tags */}
-        <link rel="stylesheet" href="/brand.css?v=12" />
+        <link rel="stylesheet" href="/brand.css?v=13" />
         <AppProviders>
           <div className="qvi-shell flex min-h-screen flex-col">
             <Header />

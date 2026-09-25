@@ -1,26 +1,16 @@
-import type { Metadata } from "next";
 import { ImageCompressor } from "@/components/tools/ImageCompressor";
 import { LiveToolView } from "@/components/views/LiveToolView";
-import { siteConfig } from "@/lib/site";
+import { toolPageMeta } from "@/lib/page-meta";
+import { buildPageMetadata } from "@/lib/seo";
 
-const pageTitle = "Free Image Compressor — No Upload";
-const pageDescription =
-  "Compress JPG, PNG, and WEBP in your browser. Free, instant, and your files never leave your device.";
+const meta = toolPageMeta["image-compressor"];
 
-export function generateMetadata(): Metadata {
-  return {
-    title: pageTitle,
-    description: pageDescription,
-    alternates: { canonical: "/tools/image-compressor" },
-    openGraph: {
-      title: pageTitle,
-      description: pageDescription,
-      url: `${siteConfig.url}/tools/image-compressor`,
-      locale: "en_US",
-      type: "article",
-    },
-  };
-}
+export const metadata = buildPageMetadata({
+  title: meta.title,
+  description: meta.description,
+  path: meta.path,
+  absolute: true,
+});
 
 export default function ImageCompressorPage() {
   return (

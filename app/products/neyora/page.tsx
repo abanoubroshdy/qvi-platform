@@ -1,23 +1,20 @@
-import type { Metadata } from "next";
+import { JsonLd } from "@/components/JsonLd";
 import { NeyoraView } from "@/components/views/NeyoraView";
-import { siteConfig } from "@/lib/site";
+import { pageMeta } from "@/lib/page-meta";
+import { buildPageMetadata, neyoraPageJsonLd } from "@/lib/seo";
 
-const pageTitle = "Neyora - DDSP Instrument Synthesis";
-const pageDescription =
-  "Neyora is QVI’s desktop DDSP instrument for text, voice, or MIDI. A core product, still in the lab — not a free browser utility.";
-
-export const metadata: Metadata = {
-  title: pageTitle,
-  description: pageDescription,
-  alternates: { canonical: "/products/neyora" },
-  openGraph: {
-    title: pageTitle,
-    description: pageDescription,
-    url: `${siteConfig.url}/products/neyora`,
-    type: "website",
-  },
-};
+export const metadata = buildPageMetadata({
+  title: pageMeta.neyora.title,
+  description: pageMeta.neyora.description,
+  path: pageMeta.neyora.path,
+  absolute: true,
+});
 
 export default function NeyoraPage() {
-  return <NeyoraView />;
+  return (
+    <>
+      <JsonLd data={neyoraPageJsonLd()} />
+      <NeyoraView />
+    </>
+  );
 }
