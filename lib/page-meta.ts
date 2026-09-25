@@ -38,7 +38,7 @@ export const pageMeta = {
   tools: {
     title: "Free Online Tools – Audio, PDF, Image, No Upload | QVI",
     description:
-      "17 free browser tools: video to MP3, audio cutter, PDF to Word, PDF merge, image compressor, QR codes and more. Files are processed on your device.",
+      "18 free browser tools: video to audio, video converter, PDF to Word, image compressor, QR codes and more. Files stay on your device.",
     path: "/tools",
   },
   about: {
@@ -68,10 +68,16 @@ export const pageMeta = {
 
 export const toolPageMeta = {
   "mp4-to-mp3": {
-    title: "MP4 to MP3 Converter – Free, No Upload | QVI",
+    title: "Video to Audio – Batch MP3, WAV, FLAC | QVI",
     description:
-      "Extract MP3, WAV, M4A, OGG, or FLAC from MP4, MOV, or WEBM in your browser. Choose bitrate and sample rate. Free, no signup, nothing uploaded.",
+      "Extract MP3, WAV, FLAC, AAC, OGG, Opus, or AIFF from common videos in a batch. Download each file or a ZIP. Free, and nothing is uploaded.",
     path: "/tools/mp4-to-mp3",
+  },
+  "video-converter": {
+    title: "Video Converter – MP4, WebM, MKV | QVI",
+    description:
+      "Convert MP4, MOV, MKV, WebM, and more to MP4, WebM, MKV, MOV, AVI, or GIF. Remux or re-encode in your browser. Files never leave your device.",
+    path: "/tools/video-converter",
   },
   "mp3-to-wav": {
     title: "Audio Converter – Batch MP3, WAV, FLAC | QVI",

@@ -93,6 +93,10 @@ const nextConfig = {
         // AdSense display frames do not send COEP. credentialless still blocks
         // them (coep-frame-resource-needs-coep-header) and the slot paints a
         // broken "refused to connect" frame instead of an ad.
+        // Video tools therefore are not cross-origin isolated. ffmpeg.wasm
+        // detects that and uses the single-thread core. Do not set COEP on
+        // these routes: it would break ads on every free tool, including the
+        // converters. Other pages keep credentialless (studio included).
         source: "/tools/:slug",
         headers: [{ key: "Cross-Origin-Embedder-Policy", value: "unsafe-none" }],
       },

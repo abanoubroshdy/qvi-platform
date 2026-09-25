@@ -7,38 +7,38 @@ import { Stat } from "@/components/Stat";
 import { ToolLayout } from "@/components/ToolLayout";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { ConversionQueueList } from "@/components/tools/ConversionQueueList";
-import { VideoAudioSettings } from "@/components/tools/VideoAudioSettings";
+import { VideoConvertSettings } from "@/components/tools/VideoConvertSettings";
 import { useConversionQueue, type QueueItem } from "@/components/tools/useConversionQueue";
-import { defaultAudioExportSettings, type AudioExportSettings } from "@/lib/audio-export";
 import { downloadBlob } from "@/lib/download";
 import { FFMPEG_LARGE_FILE_BYTES, inputNameFor, runFFmpeg } from "@/lib/ffmpeg";
 import { formatBytes } from "@/lib/format";
 import { interpolate } from "@/lib/i18n";
 import { uniqueOutputName } from "@/lib/media-output";
-import { clampVideoAudioSettings, videoAudioExportSpec, videoAudioFormats, type VideoAudioFormat } from "@/lib/video-audio";
+import {
+  clampVideoConvertSettings,
+  defaultVideoConvertSettings,
+  videoConvertSpec,
+  type VideoConvertSettings as Settings,
+} from "@/lib/video-convert";
 import { isVideoFile, videoInputAccept } from "@/lib/video-input";
 
-export function Mp4ToMp3() {
+export function VideoConverter() {
   const { copy } = useI18n();
-  const t = copy.mp4ToMp3;
-  const [format, setFormat] = useState<VideoAudioFormat>("mp3");
-  const [settings, setSettings] = useState<AudioExportSettings>(defaultAudioExportSettings);
+  const t = copy.videoConverter;
+  const [settings, setSettings] = useState<Settings>(defaultVideoConvertSettings);
   const [listError, setListError] = useState<string | null>(null);
   const usedNames = useRef(new Set<string>());
-  const formatRef = useRef(format);
   const settingsRef = useRef(settings);
-  formatRef.current = format;
   settingsRef.current = settings;
 
   const queue = useConversionQueue({
     acceptFile: isVideoFile,
-    zipName: () => `video-audio-${formatRef.current}.zip`,
+    zipName: () => `video-convert-${settingsRef.current.container}.zip`,
     convertFile: async (file, index, ctx) => {
-      const currentFormat = formatRef.current;
+      const current = clampVideoConvertSettings(settingsRef.current);
       const inputName = inputNameFor(file, `in${index}`);
-      const spec = videoAudioExportSpec(currentFormat, inputName, settingsRef.current);
+      const spec = videoConvertSpec(inputName, current);
       const blob = await runFFmpeg({
         file,
         inputName,
@@ -51,7 +51,7 @@ export function Mp4ToMp3() {
       });
       return {
         blob,
-        downloadName: uniqueOutputName(file.name, currentFormat, usedNames.current, "audio"),
+        downloadName: uniqueOutputName(file.name, spec.extension, usedNames.current, "video"),
       };
     },
   });
@@ -59,7 +59,7 @@ export function Mp4ToMp3() {
   const doneItems = queue.items.filter((item) => item.status === "done" && item.blob);
   const hasResults = doneItems.length > 0;
   const largeFile = queue.items.some((item) => item.file.size >= FFMPEG_LARGE_FILE_BYTES);
-  const formatLabel = t.formats[format];
+  const containerLabel = t.containers[settings.container];
 
   function onFiles(files: File[]) {
     const result = queue.addFiles(files);
@@ -70,15 +70,8 @@ export function Mp4ToMp3() {
     setListError(result.rejected ? t.someSkipped : null);
   }
 
-  function onFormat(next: VideoAudioFormat) {
-    setFormat(next);
-    setSettings((current) => clampVideoAudioSettings(next, current));
-    setListError(null);
-    queue.clearResults();
-  }
-
-  function onSettings(next: AudioExportSettings) {
-    setSettings(clampVideoAudioSettings(format, next));
+  function onSettings(next: Settings) {
+    setSettings(clampVideoConvertSettings(next));
     setListError(null);
     queue.clearResults();
   }
@@ -115,7 +108,7 @@ export function Mp4ToMp3() {
       actionDisabled={!queue.items.length || queue.busy}
       actionLoading={queue.phase !== "idle"}
       downloadLabel={
-        doneItems.length > 1 ? interpolate(t.downloadZip, { count: doneItems.length }) : interpolate(t.download, { format: formatLabel })
+        doneItems.length > 1 ? interpolate(t.downloadZip, { count: doneItems.length }) : interpolate(t.download, { format: containerLabel })
       }
       onDownload={() => void downloadAll()}
       downloadDisabled={!hasResults || queue.busy}
@@ -147,27 +140,8 @@ export function Mp4ToMp3() {
       }
       leading={
         <div className="space-y-4 rounded-xl border bg-card p-4 shadow-sm">
-          <div className="space-y-2">
-            <Label className="text-start">{t.format}</Label>
-            <p className="text-sm text-muted-foreground">{t.unifiedHint}</p>
-            <div className="flex flex-wrap gap-2" role="group" aria-label={t.format}>
-              {videoAudioFormats.map((item) => (
-                <Button
-                  key={item}
-                  type="button"
-                  size="sm"
-                  variant={format === item ? "default" : "outline"}
-                  onClick={() => onFormat(item)}
-                  disabled={queue.busy}
-                  aria-pressed={format === item}
-                  dir="ltr"
-                >
-                  {t.formats[item]}
-                </Button>
-              ))}
-            </div>
-          </div>
-          <VideoAudioSettings format={format} settings={settings} disabled={queue.busy} onChange={onSettings} />
+          <p className="text-sm text-muted-foreground">{t.unifiedHint}</p>
+          <VideoConvertSettings settings={settings} disabled={queue.busy} onChange={onSettings} />
         </div>
       }
       preview={
@@ -175,9 +149,9 @@ export function Mp4ToMp3() {
           <div className="space-y-4" aria-busy={queue.busy}>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <Stat label={t.filesCountLabel} value={String(queue.items.length)} />
-              <Stat label={t.format} value={formatLabel} />
+              <Stat label={t.container} value={containerLabel} />
               <Stat
-                label={t.output.replace("{format}", formatLabel)}
+                label={t.output}
                 value={doneItems.length ? formatBytes(doneItems.reduce((sum, item) => sum + (item.blob?.size ?? 0), 0)) : "—"}
                 valueDir="ltr"
               />
@@ -189,7 +163,7 @@ export function Mp4ToMp3() {
                 queueLabel: t.queueLabel,
                 removeFile: t.removeFile,
                 cancelFile: t.cancelFile,
-                download: t.downloadOne.replace("{format}", formatLabel),
+                download: t.downloadOne,
                 statusReady: t.statusReady,
                 statusConverting: t.statusConverting,
                 statusDone: t.statusDone,
@@ -203,9 +177,13 @@ export function Mp4ToMp3() {
               onRemove={queue.removeItem}
               onCancel={queue.cancelItem}
               onDownload={downloadOne}
-              renderPreview={(item) =>
-                item.url ? <audio controls src={item.url} className="mt-3 w-full" preload="metadata" /> : null
-              }
+              renderPreview={(item) => {
+                if (!item.url || !item.downloadName) return null;
+                if (item.downloadName.toLowerCase().endsWith(".gif")) {
+                  return <img src={item.url} alt="" className="mt-3 max-h-48 rounded-lg" />;
+                }
+                return <video controls src={item.url} className="mt-3 max-h-64 w-full rounded-lg" preload="metadata" />;
+              }}
             />
             {hasResults && doneItems.length > 1 ? (
               <Button type="button" variant="secondary" disabled={queue.busy} onClick={() => void downloadAll()}>

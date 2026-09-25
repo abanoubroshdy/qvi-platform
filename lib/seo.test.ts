@@ -105,8 +105,8 @@ describe("page metadata", () => {
   });
 
   it("counts the free tools named in the tools hub description", () => {
-    expect(tools).toHaveLength(17);
-    expect(pageMeta.tools.description.startsWith("17 free browser tools")).toBe(true);
+    expect(tools).toHaveLength(18);
+    expect(pageMeta.tools.description.startsWith("18 free browser tools")).toBe(true);
   });
 });
 
