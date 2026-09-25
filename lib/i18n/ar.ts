@@ -128,7 +128,7 @@ export const ar: Messages = {
       "صوت سطح المكتب الذكي يأتي أولًا. حمّل QV1 Evaluation لويندوز، أو تابع Neyora في المختبر. الأدوات المجانية في الأسفل إضافات.",
     extrasNote:
       "QVI Studio مكسر صغير في المتصفح. والأدوات المجانية أدوات محلية. لا يغني أي منهما عن QV1 أو Neyora.",
-    qv1Cta: "حمّل QV1 Evaluation",
+    qv1Cta: "افتح QV1 Evaluation",
     neyoraCta: "استكشف Neyora",
     toolsKicker: "أدوات مساعدة",
     toolsTitle: "أدوات مجانية عبر المتصفح — من QVI",
@@ -219,6 +219,7 @@ export const ar: Messages = {
       "البرنامج بالكامل مجاني. QV1 Evaluation تفصل المزيج إلى 4 ستيمز بأوزان طرف ثالث غير تجارية، وتشمل أدوات QVI: فصل الطبول، تحرير الستيمز، معالجة DSP، مكسر، تصدير المزيج، والمشاريع.",
     chip: "نسخة تقييم — نماذج غير تجارية",
     download: "حمّل QV1 Evaluation لويندوز",
+    paused: "تحميل QV1 متوقف مؤقتًا لحين حل مشكلة. نرجع قريبًا.",
     comingSoon: "لم يبدأ التحميل. المثبّت غير متاح بعد.",
     limited: "لم يبدأ التحميل. وصلت إلى حد هذه الساعة. حاول مرة أخرى لاحقًا.",
     unavailable: "لم يبدأ التحميل. حاول بعد لحظات.",
@@ -284,7 +285,7 @@ export const ar: Messages = {
       kicker: "المحرك الرئيسي",
       extra:
         "البرنامج بالكامل هو نسخة التقييم المجانية. أوزان الفصل تبقى من طرف ثالث وغير تجارية. وباقي الأدوات كود QVI وتأتي في التحميل نفسه.",
-      evaluationCta: "حمّل QV1 Evaluation لويندوز",
+      evaluationCta: "افتح QV1 Evaluation",
       specsTitle: "المواصفات",
       waitlistHeading: "انضم لقائمة انتظار QV1",
       specs: [

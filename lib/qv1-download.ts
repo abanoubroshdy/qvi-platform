@@ -7,11 +7,15 @@ export { QV1_DOWNLOAD_WINDOW_MS };
 
 export { safeNextPath };
 
+/** Flip to true when the installer issue is fixed and downloads should resume. */
+export const QV1_DOWNLOAD_ENABLED = false;
+
 /** Signed-in download route. Anonymous visitors are sent to sign in and returned here. */
 export const QV1_DOWNLOAD_PATH = "/qv1/download";
 export const QV1_DOWNLOAD_SOON_PATH = "/qv1?download=soon";
 export const QV1_DOWNLOAD_LIMITED_PATH = "/qv1?download=limited";
 export const QV1_DOWNLOAD_UNAVAILABLE_PATH = "/qv1?download=unavailable";
+export const QV1_DOWNLOAD_PAUSED_PATH = "/qv1?download=paused";
 
 /** Short-lived presign. Long enough for a multi-gigabyte zip, not a standing public link. */
 export const QV1_PRESIGN_SECONDS = 60 * 60;
@@ -25,10 +29,10 @@ export type R2DownloadConfig = {
   objectKey: string;
 };
 
-export type Qv1DownloadKind = "login" | "soon" | "limited" | "unavailable" | "redirect";
+export type Qv1DownloadKind = "login" | "soon" | "limited" | "unavailable" | "paused" | "redirect";
 
 export type Qv1DownloadDecision =
-  | { kind: "login" | "soon" | "limited" | "unavailable" }
+  | { kind: "login" | "soon" | "limited" | "unavailable" | "paused" }
   | { kind: "redirect"; url: string };
 
 function required(value: string | undefined): string {
@@ -102,7 +106,9 @@ export async function planQv1Download(input: {
   sign: (config: R2DownloadConfig) => Promise<string>;
   record: () => Promise<void>;
   report?: (stage: "sign" | "record", error: unknown) => void;
+  enabled?: boolean;
 }): Promise<Qv1DownloadDecision> {
+  if (!(input.enabled ?? true)) return { kind: "paused" };
   if (!input.userId) return { kind: "login" };
   if (!input.config) return { kind: "soon" };
   if (isQv1DownloadRateLimited(input.recentCount)) return { kind: "limited" };
@@ -133,6 +139,7 @@ export function qv1DownloadLocation(decision: Qv1DownloadDecision): string {
   if (decision.kind === "login") return loginPathForDownload();
   if (decision.kind === "soon") return QV1_DOWNLOAD_SOON_PATH;
   if (decision.kind === "limited") return QV1_DOWNLOAD_LIMITED_PATH;
+  if (decision.kind === "paused") return QV1_DOWNLOAD_PAUSED_PATH;
   return QV1_DOWNLOAD_UNAVAILABLE_PATH;
 }
 

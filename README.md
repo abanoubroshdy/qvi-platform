@@ -29,11 +29,9 @@ Optional: copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_SITE_URL` bef
 
 ## QV1 Evaluation download
 
-`/qv1` is the public page for **QV1 Evaluation** (Windows). `/qv1/models` lists third-party model sources and licenses. `/qv1/download` is signed-in only. An anonymous visitor is redirected to `/login?next=/qv1/download`, then returned to the download after sign-in or sign-up.
+`/qv1` is the public page for **QV1 Evaluation** (Windows). `/qv1/models` lists third-party model sources and licenses. The installer download is **temporarily disabled** (`QV1_DOWNLOAD_ENABLED` in `lib/qv1-download.ts`) while a problem is fixed. `/qv1/download` redirects to `/qv1?download=paused` and does not issue a file URL.
 
-A signed-in request records a row in `qv1_downloads` and redirects with HTTP 307 to a short-lived (1 hour) presigned GET for the installer in Cloudflare R2. The public download domain is not used. The file is a zip: extract the whole archive into one folder, then run the exe. The `.bin` slices must stay next to the exe. The account page lists that user’s downloads (version, date and time, and a count).
-
-The download control is a normal link, so the browser does a full navigation and can follow the redirect into the file. If any R2 variable below is unset, `/qv1/download` redirects to `/qv1?download=soon` and the page shows an error. A user who hits the hourly cap (8 signed URLs) is sent to `/qv1?download=limited`. A failed history insert is logged and does not block the file.
+When `QV1_DOWNLOAD_ENABLED` is true again, a signed-in request records a row in `qv1_downloads` and redirects with HTTP 307 to a short-lived (1 hour) presigned GET for the installer in Cloudflare R2. The account page still lists any earlier downloads.
 
 Set these in **Vercel → Project Settings → Environment Variables** (Production and Preview). They are server-only. Do not prefix them with `NEXT_PUBLIC_` and do not commit real values.
 
@@ -80,9 +78,9 @@ V1 scope is defined in `lib/studio/definition.ts`. The in-memory session lives o
 
 - `/` product home, with links to QVI Studio, QV1, Neyora, and free tools
 - `/studio` the QVI Studio session
-- `/qv1` QV1 Evaluation download (Windows)
+- `/qv1` QV1 Evaluation (Windows). Installer download is paused
 - `/qv1/models` third-party model sources and licenses
-- `/qv1/download` signed-in presigned R2 redirect, or `/qv1?download=soon` when R2 is unset
+- `/qv1/download` redirects to `/qv1?download=paused` until downloads are re-enabled
 - `/products/qv1` QV1 product page
 - `/products/neyora` Neyora lab (`/lab` permanently redirects here)
 - `/tools/image-compressor` Image Compressor

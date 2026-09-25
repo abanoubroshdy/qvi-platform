@@ -126,7 +126,7 @@ export const en = {
       "Desktop intelligent audio comes first. Download QV1 Evaluation for Windows, or follow Neyora in the lab. The free tools further down are extras.",
     extrasNote:
       "QVI Studio is a small browser mixer. The free tools are local utilities. Neither one replaces QV1 or Neyora.",
-    qv1Cta: "Download QV1 Evaluation",
+    qv1Cta: "Open QV1 Evaluation",
     neyoraCta: "Explore Neyora",
     toolsKicker: "Utilities",
     toolsTitle: "Free online tools — powered by QVI",
@@ -217,6 +217,7 @@ export const en = {
       "The whole app is free. QV1 Evaluation separates a mix into 4 AI stems with third-party, non-commercial weights, and includes QVI’s own tools: Drum Split, stem editing, DSP processing, a mixer, mix export, and projects.",
     chip: "Evaluation — non-commercial models",
     download: "Download QV1 Evaluation for Windows",
+    paused: "QV1 download is temporarily disabled while we fix a problem. Check back soon.",
     comingSoon: "The download didn’t start. The installer isn’t available yet.",
     limited: "The download didn’t start. You’ve reached the limit for this hour. Try again later.",
     unavailable: "The download didn’t start. Try again in a moment.",
@@ -282,7 +283,7 @@ export const en = {
       kicker: "Flagship engine",
       extra:
         "The whole program is the free Evaluation. Separation weights stay third-party and non-commercial. Everything else is QVI’s own code and ships in the same download.",
-      evaluationCta: "Download QV1 Evaluation for Windows",
+      evaluationCta: "Open QV1 Evaluation",
       specsTitle: "Tech specs",
       waitlistHeading: "Join the QV1 waitlist",
       specs: [

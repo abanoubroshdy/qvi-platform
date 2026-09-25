@@ -5,7 +5,7 @@
  * The zip lives in a private R2 bucket. /qv1/download issues a short-lived
  * presigned URL for a signed-in user. It does not use a public download domain.
  */
-export type Qv1DownloadNotice = "ready" | "soon" | "limited" | "unavailable";
+export type Qv1DownloadNotice = "ready" | "soon" | "limited" | "unavailable" | "paused";
 
 export type Qv1Release = {
   version: string;

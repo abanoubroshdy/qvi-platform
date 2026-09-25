@@ -7,6 +7,7 @@ import { useI18n } from "@/components/i18n/I18nProvider";
 import { Button } from "@/components/ui/button";
 import { qv1Changelog } from "@/lib/qv1-changelog";
 import { formatBytes } from "@/lib/format";
+import { QV1_DOWNLOAD_ENABLED } from "@/lib/qv1-download";
 import { qv1DownloadSummary, qv1HasSha256, qv1Release, type Qv1DownloadNotice } from "@/lib/qv1-release";
 import { siteConfig } from "@/lib/site";
 
@@ -27,8 +28,17 @@ export function Qv1EvaluationView({ notice }: { notice: Qv1DownloadNotice }) {
   const summary = qv1DownloadSummary(qv1Release, formatBytes);
   const showHash = qv1HasSha256(qv1Release);
   const releaseNotesExternal = /^https?:\/\//i.test(qv1Release.releaseNotesUrl);
+  const effectiveNotice = QV1_DOWNLOAD_ENABLED ? notice : "paused";
   const status =
-    notice === "soon" ? page.comingSoon : notice === "limited" ? page.limited : notice === "unavailable" ? page.unavailable : null;
+    effectiveNotice === "paused"
+      ? page.paused
+      : effectiveNotice === "soon"
+        ? page.comingSoon
+        : effectiveNotice === "limited"
+          ? page.limited
+          : effectiveNotice === "unavailable"
+            ? page.unavailable
+            : null;
 
   return (
     <div>
@@ -46,7 +56,7 @@ export function Qv1EvaluationView({ notice }: { notice: Qv1DownloadNotice }) {
             price: "0",
             priceCurrency: "USD",
           },
-          downloadUrl: `${siteConfig.url}/qv1/download`,
+          ...(QV1_DOWNLOAD_ENABLED ? { downloadUrl: `${siteConfig.url}/qv1/download` } : {}),
         }}
       />
 
@@ -72,19 +82,32 @@ export function Qv1EvaluationView({ notice }: { notice: Qv1DownloadNotice }) {
             ) : null}
 
             <div className="mt-5">
-              {/* Plain anchor: Next.js Link soft-navigates, so a 307 to the zip never becomes a download. */}
-              <Button asChild size="lg" className="h-12 w-full bg-primary text-base text-primary-foreground">
-                <a href="/qv1/download" aria-describedby={status ? "qv1-download-status" : undefined}>
+              {QV1_DOWNLOAD_ENABLED ? (
+                <Button asChild size="lg" className="h-12 w-full bg-primary text-base text-primary-foreground">
+                  <a href="/qv1/download" aria-describedby={status ? "qv1-download-status" : undefined}>
+                    {page.download}
+                  </a>
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  size="lg"
+                  className="h-12 w-full bg-primary text-base text-primary-foreground"
+                  disabled
+                  aria-describedby="qv1-download-status"
+                >
                   {page.download}
-                </a>
-              </Button>
+                </Button>
+              )}
             </div>
 
             <p className="mt-3 text-center text-sm text-muted-foreground">{summary}</p>
             {qv1Release.fileName ? (
               <p className="mt-1 text-center font-mono text-xs text-muted-foreground">{qv1Release.fileName}</p>
             ) : null}
-            <p className="mt-3 text-center text-sm leading-6 text-muted-foreground">{page.signInHint}</p>
+            {QV1_DOWNLOAD_ENABLED ? (
+              <p className="mt-3 text-center text-sm leading-6 text-muted-foreground">{page.signInHint}</p>
+            ) : null}
             <p className="mt-3 text-sm leading-6 text-muted-foreground">{page.extractNote}</p>
 
             {showHash ? (
