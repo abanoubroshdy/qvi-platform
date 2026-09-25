@@ -17,7 +17,7 @@ import {
   type Locale,
   type Messages,
 } from "@/lib/i18n";
-import { isLocalizedRoute, stripLocale, withLocale } from "@/lib/i18n/locale-path";
+import { isLocalizedRoute, localeFromPath, stripLocale, withLocale } from "@/lib/i18n/locale-path";
 
 type I18nContextValue = {
   locale: Locale;
@@ -43,9 +43,9 @@ export function I18nProvider({
   children: ReactNode;
   initialLocale?: Locale;
 }) {
-  const locale = isLocale(initialLocale) ? initialLocale : "en";
   const router = useRouter();
-  const pathname = usePathname() || "/";
+  const pathname = usePathname();
+  const locale = pathname ? localeFromPath(pathname) : isLocale(initialLocale) ? initialLocale : "en";
 
   useEffect(() => {
     applyDocumentLocale(locale);
@@ -58,7 +58,7 @@ export function I18nProvider({
 
   const setLocale = useCallback(
     (next: Locale) => {
-      const bare = stripLocale(pathname);
+      const bare = stripLocale(pathname || "/");
       const hash = window.location.hash;
       const target = isLocalizedRoute(bare) ? withLocale(bare, next) : withLocale("/", next);
       router.push(`${target}${hash}`);
