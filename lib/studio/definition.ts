@@ -236,8 +236,9 @@ export const qviStudioV1Capabilities = [
     summary: "Each track has tempo by BPM or percent, and pitch by semitones and cents.",
     acceptance: [
       "Ranges match the Tempo Pitch tool.",
-      "Preview renders offline after the debounce, then plays the rendered buffer.",
-      "Unchanged tempo and pitch skip that render.",
+      "While a SoundTouch worklet is registered, pitch and tempo update the playing voices in place.",
+      "Without a worklet, preview renders offline after the debounce, then plays the rendered buffer.",
+      "Unchanged tempo and pitch skip that offline render.",
     ],
   },
   {

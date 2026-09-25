@@ -4,6 +4,7 @@ import {
   studioPeakBarCount,
   studioPeaksFromBuffer,
   studioPeaksFromBufferRegion,
+  studioPeaksFromBufferRegionCooperative,
   visiblePeaks,
 } from "@/lib/studio/peaks";
 
@@ -37,7 +38,7 @@ describe("studio peaks", () => {
     expect(peaks[0]).toBe(0);
   });
 
-  it("resamples a trim window when the draw needs more bars than the overview", () => {
+  it("resamples a trim window when the draw needs more bars than the overview", async () => {
     const samples = Array.from({ length: 100 }, (_, index) => (index >= 50 && index < 60 ? 1 : 0));
     const buffer = bufferOf(samples);
     const overview = studioPeaksFromBuffer(buffer, 4);
@@ -55,5 +56,6 @@ describe("studio peaks", () => {
     expect(detail).toHaveLength(20);
     expect(Math.max(...detail)).toBeGreaterThan(0.5);
     expect(visiblePeaks(overview, 0, 5, 10).length).toBeGreaterThan(0);
+    expect(await studioPeaksFromBufferRegionCooperative(buffer, 5, 6, 8)).toEqual(region);
   });
 });

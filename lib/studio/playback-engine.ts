@@ -2,24 +2,28 @@
  * Live QVI Studio playback.
  *
  * Web Audio schedules the plan from `playback-schedule`. When the host can
- * create a SoundTouch worklet, tempo and pitch run there while playing.
- * Otherwise a rendered track buffer is used once the offline preview has one.
+ * create a SoundTouch worklet, every audible clip plays through it. Pitch,
+ * tempo, gain, pan, and EQ write AudioParams on the voices already running.
+ * They do not stop those voices, and they do not stretch the whole clip on
+ * this thread. Without a worklet, a rendered track buffer is used once the
+ * offline preview has one.
  * AnalyserNodes sit after the track and master gains so the console can read
  * peaks. They do not change the mix.
  * When the host can build them, each playing track is
- * source → optional SoundTouch worklet → EQ → compressor → pan → gain.
+ * source → fade → SoundTouch worklet → EQ → compressor → pan → gain.
  * Export does not use this graph.
  */
 
-import type { LiveStretchParams } from "@/lib/audio-stretch-live";
+import { liveStretchParams, type LiveStretchParams } from "@/lib/audio-stretch-live";
+import { resolveTempoRate } from "@/lib/audio-tempo";
 import type { StudioEngineStatus, StudioPlaybackEngine } from "@/lib/studio/engine";
+import { clipFadeRamps } from "@/lib/studio/fades";
 import { loadStudioFile, type StudioDecodeResult } from "@/lib/studio/load-clip";
 import { peakFromTimeDomain, type StudioMeterReading } from "@/lib/studio/meters";
-import { planPlayback } from "@/lib/studio/playback-schedule";
-import { clipFadeRamps } from "@/lib/studio/fades";
 import { compressorFromAmount, STUDIO_EQ_FREQUENCIES } from "@/lib/studio/mix";
+import { playbackArrangementKey, planPlayback } from "@/lib/studio/playback-schedule";
 import { canPlayStudioProject, projectDuration } from "@/lib/studio/project";
-import type { StudioProject, StudioTrack } from "@/lib/studio/types";
+import type { StudioClip, StudioProject, StudioTrack } from "@/lib/studio/types";
 
 export interface StudioAudioNode {
   connect(destination: StudioAudioNode): void;
@@ -109,6 +113,13 @@ type TrackStrip = {
   nodes: StudioAudioNode[];
 };
 
+type PlayingVoice = {
+  trackId: string;
+  clipId: string | null;
+  source: StudioBufferSource;
+  fade: StudioGainNode;
+};
+
 export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
   private readonly host: StudioAudioHost;
   private readonly onTransport?: (snapshot: StudioTransportSnapshot) => void;
@@ -119,9 +130,14 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
   private masterAnalyser: StudioAnalyserNode | null = null;
   private meterScratch = new Float32Array(256);
   private readonly rendered = new Map<string, AudioBuffer>();
-  private sources: StudioBufferSource[] = [];
+  private voices: PlayingVoice[] = [];
   private readonly stretchByTrack = new Map<string, StudioLiveStretch>();
+  private readonly stretchParamKey = new Map<string, string>();
   private armedKey = "";
+  private armedLive = false;
+  private armedFadeKey = "";
+  /** Heard end used while playing, so a faster tempo does not cut the take off. */
+  private horizonSec = 0;
   private activeProject: StudioProject | null = null;
   private status: StudioEngineStatus = "idle";
   private playheadSec = 0;
@@ -154,19 +170,16 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
 
   currentPlayhead(): number {
     if (this.status !== "playing") return this.playheadSec;
-    const elapsed = this.host.currentTime - this.anchorContextTime;
-    const duration = this.activeProject ? projectDuration(this.activeProject) : 0;
-    return Math.min(duration, Math.max(0, this.anchorPlayhead + elapsed));
+    return Math.min(this.playheadEnd(), Math.max(0, this.wallPlayhead()));
   }
 
   poll(): StudioTransportSnapshot {
     if (this.status === "playing" && this.activeProject) {
-      const duration = projectDuration(this.activeProject);
-      const playhead = this.currentPlayhead();
-      if (playhead >= duration) {
+      const playhead = this.wallPlayhead();
+      if (playhead >= this.playheadEnd()) {
         this.stopSources();
         this.status = "paused";
-        this.playheadSec = duration;
+        this.playheadSec = this.playheadEnd();
         this.emit();
       } else {
         this.playheadSec = playhead;
@@ -247,14 +260,12 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
       return;
     }
     const playhead = this.currentPlayhead();
-    const plan = this.planFor(project, playhead);
-    if (this.scheduleKey(plan) === this.armedKey) {
-      this.applyGains(project);
-      this.applyStretch(plan);
+    if (playbackArrangementKey(project) !== this.armedKey || this.needsLiveGraph()) {
+      this.arm(project, playhead);
       this.emit();
       return;
     }
-    this.arm(project, playhead);
+    this.applyPerformance(project);
     this.emit();
   }
 
@@ -275,6 +286,16 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
     void this.host.close().catch(() => undefined);
   }
 
+  private wallPlayhead(): number {
+    return this.anchorPlayhead + (this.host.currentTime - this.anchorContextTime);
+  }
+
+  /** Heard end while playing. A faster tempo must not cut off audio that already started. */
+  private playheadEnd(): number {
+    const duration = this.activeProject ? projectDuration(this.activeProject) : 0;
+    return Math.max(duration, this.horizonSec);
+  }
+
   private planFor(project: StudioProject, playhead: number) {
     return planPlayback({
       project,
@@ -284,24 +305,8 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
     });
   }
 
-  private scheduleKey(plan: ReturnType<typeof planPlayback>): string {
-    return plan.events
-      .map((event) =>
-        [
-          event.trackId,
-          event.clipId ?? "",
-          event.delaySec,
-          event.offsetSec,
-          event.durationSec,
-          event.playbackRate,
-          event.fadeInSec,
-          event.fadeOutSec,
-          event.fromHeardSec,
-          event.buffer.length,
-          event.buffer.sampleRate,
-        ].join(":"),
-      )
-      .join("|");
+  private needsLiveGraph(): boolean {
+    return typeof this.host.createLiveStretch === "function" && !this.armedLive;
   }
 
   private arm(project: StudioProject, playhead: number): void {
@@ -310,7 +315,11 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
     this.anchorPlayhead = playhead;
     this.playheadSec = playhead;
     const plan = this.planFor(project, playhead);
-    this.armedKey = this.scheduleKey(plan);
+    this.armedKey = playbackArrangementKey(project);
+    this.armedLive = typeof this.host.createLiveStretch === "function";
+    this.armedFadeKey = this.fadeSignature(project);
+    this.horizonSec = projectDuration(project);
+    this.stretchParamKey.clear();
     this.master.gain.value = plan.masterGain;
     this.retainStrips(new Set(project.tracks.map((track) => track.id)));
     const whenBase = this.host.currentTime;
@@ -342,8 +351,9 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
         fadeGain.connect(input);
       }
       source.start(whenBase + event.delaySec, event.offsetSec, event.durationSec);
-      this.sources.push(source);
+      this.voices.push({ trackId: event.trackId, clipId: event.clipId, source, fade: fadeGain });
       playingTracks.add(event.trackId);
+      if (event.stretch) this.stretchParamKey.set(event.trackId, stretchParamKey(event.stretch));
     }
     this.stretchByTrack.forEach((node, trackId) => {
       if (playingTracks.has(trackId)) return;
@@ -395,13 +405,63 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
     return node;
   }
 
-  private applyStretch(plan: ReturnType<typeof planPlayback>): void {
-    const seen = new Set<string>();
-    for (const event of plan.events) {
-      if (!event.stretch || seen.has(event.trackId)) continue;
-      seen.add(event.trackId);
-      this.stretchByTrack.get(event.trackId)?.apply(event.stretch);
+  private applyPerformance(project: StudioProject): void {
+    this.applyGains(project);
+    this.horizonSec = Math.max(this.horizonSec, projectDuration(project), this.currentPlayhead());
+    if (this.armedLive) this.applyStretchParams(project);
+    this.applyFadeUpdates(project);
+  }
+
+  private applyStretchParams(project: StudioProject): void {
+    const paramsByTrack = new Map<string, LiveStretchParams>();
+    for (const track of project.tracks) {
+      paramsByTrack.set(
+        track.id,
+        liveStretchParams({
+          tempoRate: resolveTempoRate(track.tempo),
+          semitones: track.pitchSemitones,
+          cents: track.pitchCents,
+          preset: track.stretchPreset,
+        }),
+      );
     }
+    for (const voice of this.voices) {
+      const params = paramsByTrack.get(voice.trackId);
+      const stretch = this.stretchByTrack.get(voice.trackId);
+      if (!params || !stretch) continue;
+      if (voice.source.playbackRate) voice.source.playbackRate.value = params.playbackRate;
+      const key = stretchParamKey(params);
+      if (this.stretchParamKey.get(voice.trackId) === key) continue;
+      this.stretchParamKey.set(voice.trackId, key);
+      stretch.apply(params);
+    }
+  }
+
+  private applyFadeUpdates(project: StudioProject): void {
+    const next = this.fadeSignature(project);
+    if (next === this.armedFadeKey) return;
+    this.armedFadeKey = next;
+    const playhead = this.currentPlayhead();
+    const now = this.host.currentTime;
+    for (const voice of this.voices) {
+      if (!voice.clipId) continue;
+      const track = project.tracks.find((item) => item.id === voice.trackId);
+      const clip = track?.clips.find((item) => item.id === voice.clipId);
+      if (!track || !clip) continue;
+      const envelope = fadeEnvelopeForClip(track, clip, playhead, this.armedLive);
+      this.applyFadeEnvelope(voice.fade, now, envelope.initialGain, envelope.ramps);
+    }
+  }
+
+  private fadeSignature(project: StudioProject): string {
+    return project.tracks
+      .map((track) => {
+        const rate = this.armedLive ? resolveTempoRate(track.tempo) : 1;
+        return track.clips
+          .map((clip) => [clip.id, clip.fadeInSec, clip.fadeOutSec, rate].join(":"))
+          .join(",");
+      })
+      .join("|");
   }
 
   private applyGains(project: StudioProject): void {
@@ -511,17 +571,22 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
   }
 
   private stopSources(): void {
-    const previous = this.sources;
-    this.sources = [];
-    for (const source of previous) {
-      source.onended = null;
+    const previous = this.voices;
+    this.voices = [];
+    for (const voice of previous) {
+      voice.source.onended = null;
       try {
-        source.stop();
+        voice.source.stop();
       } catch {
         /* already stopped */
       }
       try {
-        source.disconnect();
+        voice.source.disconnect();
+      } catch {
+        /* already disconnected */
+      }
+      try {
+        voice.fade.disconnect();
       } catch {
         /* already disconnected */
       }
@@ -639,6 +704,35 @@ function wrapBufferSource(source: AudioBufferSourceNode): StudioBufferSource {
 
 function gainFor(gains: { trackId: string; linear: number }[], trackId: string): number {
   return gains.find((gain) => gain.trackId === trackId)?.linear ?? 1;
+}
+
+function stretchParamKey(params: LiveStretchParams): string {
+  const stretch = params.stretch;
+  return [
+    params.playbackRate,
+    params.pitch,
+    params.pitchSemitones,
+    stretch.sequenceMs,
+    stretch.seekWindowMs,
+    stretch.overlapMs,
+    stretch.quickSeek ? 1 : 0,
+  ].join(":");
+}
+
+function fadeEnvelopeForClip(track: StudioTrack, clip: StudioClip, playhead: number, live: boolean) {
+  const rate = Math.max(live ? resolveTempoRate(track.tempo) : 1, 1e-6);
+  const sourceDuration = Math.max(0, clip.trimEndSec - clip.trimStartSec);
+  const heardDuration = sourceDuration / rate;
+  const heardStart = Math.max(0, clip.offsetSec);
+  const intoHeard = Math.max(0, playhead - heardStart);
+  const remaining = Math.max(0, heardDuration - intoHeard);
+  return clipFadeRamps({
+    heardDurationSec: heardDuration,
+    fromHeardSec: intoHeard,
+    sliceHeardSec: remaining,
+    fadeInSec: clip.fadeInSec ?? 0,
+    fadeOutSec: clip.fadeOutSec ?? 0,
+  });
 }
 
 function clampTime(value: number, duration: number): number {

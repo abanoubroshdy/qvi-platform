@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createPcmBuffer, stretchAudioBuffer } from "@/lib/audio-stretch";
-import { stretchAudioBufferOffThread } from "@/lib/audio-stretch-task";
+import { copyBufferChannels, stretchAudioBufferOffThread, stretchOnCallingThreadAllowed, MAIN_THREAD_STRETCH_FRAMES } from "@/lib/audio-stretch-task";
 
 function sine(frames: number, sampleRate: number, frequencies: number[], amplitude = 0.6): AudioBuffer {
   const buffer = createPcmBuffer(frequencies.length, frames, sampleRate);
@@ -104,6 +104,18 @@ describe("stretchAudioBuffer", () => {
 });
 
 describe("stretchAudioBufferOffThread", () => {
+  it("copies channels in slices and refuses a full-clip stretch on the calling thread", async () => {
+    const source = sine(8, 8000, [440, 660]);
+    const copied = await copyBufferChannels(source, undefined, 3);
+    expect(copied).toHaveLength(2);
+    expect(Array.from(copied[0]!.subarray(0, 8))).toEqual(Array.from(source.getChannelData(0)));
+    expect(Array.from(copied[1]!.subarray(0, 8))).toEqual(Array.from(source.getChannelData(1)));
+    expect(stretchOnCallingThreadAllowed(MAIN_THREAD_STRETCH_FRAMES)).toBe(true);
+    expect(stretchOnCallingThreadAllowed(MAIN_THREAD_STRETCH_FRAMES + 1)).toBe(false);
+    const long = createPcmBuffer(1, MAIN_THREAD_STRETCH_FRAMES + 1, 48000);
+    await expect(stretchAudioBufferOffThread(long, { tempoRate: 1.25, semitones: 1, cents: 0 })).rejects.toThrow(/worker/i);
+  });
+
   it("returns a stretched buffer when no worker is available", async () => {
     const frames = 4096;
     const source = sine(frames, 8000, [440]);

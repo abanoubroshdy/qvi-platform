@@ -33,7 +33,42 @@ export function studioPeaksFromBufferRegion(
   endSec: number,
   bars: number,
 ): number[] {
-  const count = Math.max(1, Math.floor(bars) || 1);
+  const peaks = new Array<number>(Math.max(1, Math.floor(bars) || 1));
+  fillPeakBars(buffer, startSec, endSec, peaks, 0, peaks.length);
+  return peaks;
+}
+
+/** Samples a long waveform in short turns so a zoomed clip does not freeze the UI. */
+export async function studioPeaksFromBufferRegionCooperative(
+  buffer: AudioBuffer,
+  startSec: number,
+  endSec: number,
+  bars: number,
+): Promise<number[]> {
+  const peaks = new Array<number>(Math.max(1, Math.floor(bars) || 1));
+  const slice = 512;
+  let sliceStart = performance.now();
+  for (let index = 0; index < peaks.length; index += slice) {
+    fillPeakBars(buffer, startSec, endSec, peaks, index, Math.min(peaks.length, index + slice));
+    if (performance.now() - sliceStart >= 12) {
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 0);
+      });
+      sliceStart = performance.now();
+    }
+  }
+  return peaks;
+}
+
+function fillPeakBars(
+  buffer: AudioBuffer,
+  startSec: number,
+  endSec: number,
+  peaks: number[],
+  fromBar: number,
+  toBar: number,
+): void {
+  const count = peaks.length;
   const rate = buffer.sampleRate > 0 ? buffer.sampleRate : 1;
   const startSample = Math.max(0, Math.floor((Number.isFinite(startSec) ? startSec : 0) * rate));
   const endSample = Math.min(
@@ -44,8 +79,7 @@ export function studioPeaksFromBufferRegion(
   const block = Math.max(1, Math.floor(span / count));
   const step = Math.max(1, Math.floor(block / SAMPLES_PER_BAR));
   const channels = Math.max(1, buffer.numberOfChannels);
-  const peaks: number[] = [];
-  for (let index = 0; index < count; index += 1) {
+  for (let index = fromBar; index < toBar; index += 1) {
     const start = startSample + index * block;
     const end = Math.min(endSample, start + block);
     let max = 0;
@@ -55,9 +89,8 @@ export function studioPeaksFromBufferRegion(
         max = Math.max(max, Math.abs(data[offset] ?? 0));
       }
     }
-    peaks.push(max);
+    peaks[index] = max;
   }
-  return peaks;
 }
 
 /**
