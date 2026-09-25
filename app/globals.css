@@ -502,3 +502,32 @@ body:has(.studio-console) {
 .studio-meter-x[data-meter-level="hot"] .studio-meter-fill {
   background: linear-gradient(to right, hsl(var(--studio-teal)), hsl(var(--warning)) 46%, hsl(var(--destructive)));
 }
+
+/*
+ * In-viewport unfilled AdSense units keep a blank 300×250 frame (often a light-gray
+ * broken image). Collapse the whole tool slot, and cover the request with the page
+ * background until a creative is actually filled.
+ */
+.qvi-ad-slot[data-ad-state="hidden"],
+.qvi-ad-slot:has(.adsbygoogle[data-ad-status="unfilled"]) {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+}
+
+.qvi-ad-slot .adsbygoogle,
+.qvi-ad-slot .adsbygoogle iframe {
+  background-color: transparent !important;
+}
+
+.qvi-ad-slot .adsbygoogle[data-ad-status="unfilled"] {
+  display: none !important;
+}
+
+.qvi-ad-slot:has(.adsbygoogle[data-ad-status="filled"]) .qvi-ad-mask {
+  display: none !important;
+}
