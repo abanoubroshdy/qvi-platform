@@ -71,25 +71,61 @@ export function isQv1DownloadRateLimited(
   return Number.isFinite(recentCount) && recentCount >= limit;
 }
 
+const R2_ENV_KEYS = [
+  "R2_ACCOUNT_ID",
+  "R2_ACCESS_KEY_ID",
+  "R2_SECRET_ACCESS_KEY",
+  "R2_BUCKET",
+  "QV1_OBJECT_KEY",
+] as const;
+
+/** Names only. Never include the values; those are secrets. */
+export function missingR2DownloadEnv(env: Record<string, string | undefined>): string[] {
+  return R2_ENV_KEYS.filter((key) => !env[key]?.trim());
+}
+
+export function qv1DownloadErrorDetail(error: unknown): string {
+  if (error instanceof Error) return `${error.name}: ${error.message}`;
+  return "unknown error";
+}
+
+/** One log line. Long tokens (signatures, keys) are redacted. */
+export function qv1DownloadLogLine(stage: string, detail: string): string {
+  const redacted = detail.replace(/[A-Za-z0-9+/_=-]{24,}/g, "[redacted]").replace(/[\r\n]+/g, " ");
+  return `[qv1-download] ${stage}: ${redacted.slice(0, 300)}`;
+}
+
 export async function planQv1Download(input: {
   userId: string | null;
   config: R2DownloadConfig | null;
   recentCount: number;
   sign: (config: R2DownloadConfig) => Promise<string>;
   record: () => Promise<void>;
+  report?: (stage: "sign" | "record", error: unknown) => void;
 }): Promise<Qv1DownloadDecision> {
   if (!input.userId) return { kind: "login" };
   if (!input.config) return { kind: "soon" };
   if (isQv1DownloadRateLimited(input.recentCount)) return { kind: "limited" };
 
+  let url: string;
   try {
-    const url = await input.sign(input.config);
-    await input.record();
-    if (!url.startsWith("https://")) return { kind: "unavailable" };
-    return { kind: "redirect", url };
-  } catch {
+    url = await input.sign(input.config);
+  } catch (error) {
+    input.report?.("sign", error);
     return { kind: "unavailable" };
   }
+  if (!url.startsWith("https://")) {
+    input.report?.("sign", new Error("presigned url was not https"));
+    return { kind: "unavailable" };
+  }
+
+  try {
+    await input.record();
+  } catch (error) {
+    // A missing qv1_downloads table must not stop the file from downloading.
+    input.report?.("record", error);
+  }
+  return { kind: "redirect", url };
 }
 
 export function qv1DownloadLocation(decision: Qv1DownloadDecision): string {

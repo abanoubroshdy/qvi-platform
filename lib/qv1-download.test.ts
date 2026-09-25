@@ -5,15 +5,24 @@ import {
   contentDispositionAttachment,
   isQv1DownloadRateLimited,
   loginPathForDownload,
+  missingR2DownloadEnv,
   planQv1Download,
   qv1DownloadLocation,
+  qv1DownloadLogLine,
   resolveR2DownloadConfig,
   safeNextPath,
   type R2DownloadConfig,
 } from "@/lib/qv1-download";
+import { getRequestSupabaseSession } from "@/lib/supabase/request-session";
+import { countRecentQv1Downloads, insertQv1Download } from "@/lib/supabase/qv1-downloads";
 
 vi.mock("@/lib/supabase/request-session", () => ({
   getRequestSupabaseSession: vi.fn(async () => null),
+}));
+
+vi.mock("@/lib/supabase/qv1-downloads", () => ({
+  countRecentQv1Downloads: vi.fn(async () => 0),
+  insertQv1Download: vi.fn(async () => undefined),
 }));
 
 const ENV_KEYS = [
@@ -33,6 +42,9 @@ afterEach(() => {
     if (ORIGINAL[key] === undefined) delete process.env[key];
     else process.env[key] = ORIGINAL[key];
   }
+  vi.mocked(getRequestSupabaseSession).mockResolvedValue(null);
+  vi.mocked(countRecentQv1Downloads).mockResolvedValue(0);
+  vi.mocked(insertQv1Download).mockResolvedValue(undefined);
 });
 
 const config: R2DownloadConfig = {
@@ -144,24 +156,86 @@ describe("planQv1Download", () => {
     expect(record).toHaveBeenCalledOnce();
   });
 
-  it("does not hand out a URL when the history insert fails", async () => {
+  it("still returns the presigned URL when the history insert fails", async () => {
+    const report = vi.fn();
+    const signed = "https://example.r2.cloudflarestorage.com/file";
     const decision = await planQv1Download({
       userId: "user-1",
       config,
       recentCount: 0,
-      sign: async () => "https://example.r2.cloudflarestorage.com/file",
+      sign: async () => signed,
       record: async () => {
-        throw new Error("insert failed");
+        throw new Error("relation qv1_downloads does not exist");
       },
+      report,
     });
-    expect(decision.kind).toBe("unavailable");
+    expect(decision).toEqual({ kind: "redirect", url: signed });
+    expect(report).toHaveBeenCalledOnce();
+    expect(report.mock.calls[0][0]).toBe("record");
+  });
+});
+
+describe("download logs", () => {
+  it("names missing env vars and redacts long secrets", () => {
+    expect(missingR2DownloadEnv({ R2_BUCKET: "qv1-downloads" })).toEqual([
+      "R2_ACCOUNT_ID",
+      "R2_ACCESS_KEY_ID",
+      "R2_SECRET_ACCESS_KEY",
+      "QV1_OBJECT_KEY",
+    ]);
+    const secret = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY";
+    const line = qv1DownloadLogLine("record", `insert failed token=${secret}`);
+    expect(line.startsWith("[qv1-download] record:")).toBe(true);
+    expect(line).not.toContain(secret);
+    expect(line).toContain("[redacted]");
   });
 });
 
 describe("GET /qv1/download", () => {
   it("redirects an anonymous request to login with a return path", async () => {
+    vi.mocked(getRequestSupabaseSession).mockResolvedValue(null);
     const response = await GET(new Request("https://getqvi.com/qv1/download"));
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe("https://getqvi.com/login?next=%2Fqv1%2Fdownload");
+  });
+
+  it("sends a signed-in user to the presigned file even when history writes fail", async () => {
+    for (const [key, value] of Object.entries(fullEnv())) process.env[key] = value;
+    vi.mocked(getRequestSupabaseSession).mockResolvedValue({
+      client: {} as never,
+      userId: "user-1",
+    });
+    vi.mocked(countRecentQv1Downloads).mockRejectedValue(new Error("relation qv1_downloads does not exist"));
+    vi.mocked(insertQv1Download).mockRejectedValue(new Error("relation qv1_downloads does not exist"));
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    const response = await GET(new Request("https://getqvi.com/qv1/download"));
+
+    expect(response.status).toBe(307);
+    const location = response.headers.get("location") ?? "";
+    expect(location.startsWith("https://")).toBe(true);
+    expect(location).toContain("QV1-Setup-Evaluation.zip");
+    const logged = errorSpy.mock.calls.flat().join(" ");
+    expect(logged).toContain("[qv1-download] history count:");
+    expect(logged).toContain("[qv1-download] record:");
+    expect(logged).not.toContain(fullEnv().R2_SECRET_ACCESS_KEY);
+    errorSpy.mockRestore();
+  });
+
+  it("returns a signed-in user to /qv1 with a visible error when R2 is not configured", async () => {
+    vi.mocked(getRequestSupabaseSession).mockResolvedValue({
+      client: {} as never,
+      userId: "user-1",
+    });
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+    const response = await GET(new Request("https://getqvi.com/qv1/download"));
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("https://getqvi.com/qv1?download=soon");
+    const logged = errorSpy.mock.calls.flat().join(" ");
+    expect(logged).toContain("R2_SECRET_ACCESS_KEY");
+    expect(logged).not.toMatch(/secret-value|wJalr/);
+    errorSpy.mockRestore();
   });
 });

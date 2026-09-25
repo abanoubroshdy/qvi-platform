@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import {
+  missingR2DownloadEnv,
   planQv1Download,
   presignQv1Object,
+  qv1DownloadErrorDetail,
   qv1DownloadLocation,
+  qv1DownloadLogLine,
   resolveR2DownloadConfig,
 } from "@/lib/qv1-download";
 import { qv1Release } from "@/lib/qv1-release";
@@ -17,12 +20,16 @@ export async function GET(request: Request) {
   const config = resolveR2DownloadConfig(process.env);
   let recentCount = 0;
 
+  if (session && !config) {
+    console.error(qv1DownloadLogLine("missing config", missingR2DownloadEnv(process.env).join(", ") || "unknown"));
+  }
+
   if (session && config) {
     try {
       recentCount = await countRecentQv1Downloads(session.client, session.userId);
-    } catch {
-      const location = new URL(qv1DownloadLocation({ kind: "unavailable" }), request.url);
-      return NextResponse.redirect(location, 307);
+    } catch (error) {
+      console.error(qv1DownloadLogLine("history count", qv1DownloadErrorDetail(error)));
+      recentCount = 0;
     }
   }
 
@@ -38,6 +45,9 @@ export async function GET(request: Request) {
         version: qv1Release.version,
         userAgent: request.headers.get("user-agent"),
       });
+    },
+    report: (stage, error) => {
+      console.error(qv1DownloadLogLine(stage, qv1DownloadErrorDetail(error)));
     },
   });
 

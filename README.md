@@ -33,7 +33,7 @@ Optional: copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_SITE_URL` bef
 
 A signed-in request records a row in `qv1_downloads` and redirects with HTTP 307 to a short-lived (1 hour) presigned GET for the installer in Cloudflare R2. The public download domain is not used. The file is a zip: extract the whole archive into one folder, then run the exe. The `.bin` slices must stay next to the exe. The account page lists that user’s downloads (version, date and time, and a count).
 
-If any R2 variable below is unset, `/qv1/download` redirects to `/qv1?download=soon` and the download button is disabled. A user who hits the hourly cap (8 signed URLs) is sent to `/qv1?download=limited`.
+The download control is a normal link, so the browser does a full navigation and can follow the redirect into the file. If any R2 variable below is unset, `/qv1/download` redirects to `/qv1?download=soon` and the page shows an error. A user who hits the hourly cap (8 signed URLs) is sent to `/qv1?download=limited`. A failed history insert is logged and does not block the file.
 
 Set these in **Vercel → Project Settings → Environment Variables** (Production and Preview). They are server-only. Do not prefix them with `NEXT_PUBLIC_` and do not commit real values.
 

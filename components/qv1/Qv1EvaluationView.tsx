@@ -27,7 +27,6 @@ export function Qv1EvaluationView({ notice }: { notice: Qv1DownloadNotice }) {
   const summary = qv1DownloadSummary(qv1Release, formatBytes);
   const showHash = qv1HasSha256(qv1Release);
   const releaseNotesExternal = /^https?:\/\//i.test(qv1Release.releaseNotesUrl);
-  const downloadSoon = notice === "soon";
   const status =
     notice === "soon" ? page.comingSoon : notice === "limited" ? page.limited : notice === "unavailable" ? page.unavailable : null;
 
@@ -63,27 +62,22 @@ export function Qv1EvaluationView({ notice }: { notice: Qv1DownloadNotice }) {
             </p>
 
             {status ? (
-              <p id="qv1-download-status" className="mt-5 text-sm leading-6 text-muted-foreground" role="status">
+              <p
+                id="qv1-download-status"
+                className="mt-5 rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm leading-6 text-foreground"
+                role="alert"
+              >
                 {status}
               </p>
             ) : null}
 
             <div className="mt-5">
-              {downloadSoon ? (
-                <Button
-                  type="button"
-                  size="lg"
-                  className="h-12 w-full bg-primary text-base text-primary-foreground"
-                  disabled
-                  aria-describedby="qv1-download-status"
-                >
+              {/* Plain anchor: Next.js Link soft-navigates, so a 307 to the zip never becomes a download. */}
+              <Button asChild size="lg" className="h-12 w-full bg-primary text-base text-primary-foreground">
+                <a href="/qv1/download" aria-describedby={status ? "qv1-download-status" : undefined}>
                   {page.download}
-                </Button>
-              ) : (
-                <Button asChild size="lg" className="h-12 w-full bg-primary text-base text-primary-foreground">
-                  <Link href="/qv1/download">{page.download}</Link>
-                </Button>
-              )}
+                </a>
+              </Button>
             </div>
 
             <p className="mt-3 text-center text-sm text-muted-foreground">{summary}</p>
