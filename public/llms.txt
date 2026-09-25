@@ -1,11 +1,11 @@
 # QVI — Quality Virtual Instruments
 
-> QVI (getqvi.com) is an audio software studio building on-device AI audio tools. Its core products are QV1, a desktop AI stem separation and audio processing engine (coming soon, waitlist open), and Neyora, a DDSP-based instrument synthesis engine that turns text, voice, or MIDI into realistic solo instrument performances (in development). QVI also offers free browser tools (audio, image, PDF, text, QR, and passwords) that process files locally on the user's device — nothing is uploaded. Pages are published in English. A client-side control can switch visible copy to Arabic; there are no separate Arabic URLs.
+> QVI (getqvi.com) is an audio software studio building on-device AI audio tools. Its core products are QV1 Evaluation, a free Windows app for AI stem separation plus Drum Split (DSP) and mix tools, and Neyora, a DDSP-based instrument synthesis engine that turns text, voice, or MIDI into realistic solo instrument performances (in development). QVI also offers free browser tools (audio, image, PDF, text, QR, and passwords) that process files locally on the user's device — nothing is uploaded. Pages are published in English. A client-side control can switch visible copy to Arabic; there are no separate Arabic URLs.
 
 Note: QVI (getqvi.com, audio software) is unrelated to Quality Vision International (qvii.com, industrial metrology).
 
 ## Core products
-- [QV1 — AI Stem Separation & Audio Processing Engine](https://getqvi.com/products/qv1): Desktop engine to split mixed tracks into vocals, drums, bass and accompaniment, de-noise, and re-balance. Formats: WAV, AIFF, FLAC, MP3. Source audio stays on the user's machine. Status: coming soon; waitlist open. There is no public download yet.
+- [QV1 Evaluation](https://getqvi.com/qv1): Free Windows installer (`QV1-Setup-Evaluation.zip`). 4 AI stems (third-party, non-commercial) plus Drum Split (DSP), stem editing, and mix tools. Source audio stays on the user's machine. Download requires a signed-in account. Model sources and licenses: https://getqvi.com/qv1/models. Product page: https://getqvi.com/products/qv1.
 - [Neyora — DDSP Instrument Synthesis](https://getqvi.com/products/neyora): Desktop instrument that renders expressive solo instrument performance from text prompts, sung input, or MIDI using Differentiable DSP. Status: in development. The on-site demo is a placeholder; real synthesis is not available yet.
 - [QVI Studio](https://getqvi.com/studio): Free miniature multitrack mixer in the browser (tempo, pitch, metronome, export). Files stay local.
 
