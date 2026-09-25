@@ -130,7 +130,7 @@ export function ImageResizer() {
       }}
       downloadDisabled={!result || isResizing}
       error={error}
-      extra={
+      settings={
         file ? (
           <div className="space-y-3 rounded-xl border bg-card p-4 shadow-sm">
             <div className="grid gap-3 sm:grid-cols-2">

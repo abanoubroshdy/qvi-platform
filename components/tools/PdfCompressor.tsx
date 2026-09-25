@@ -100,7 +100,7 @@ export function PdfCompressor() {
       }}
       downloadDisabled={!result || isWorking}
       error={error}
-      extra={
+      settings={
         file ? (
           <div className="rounded-xl border bg-card p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between gap-3">

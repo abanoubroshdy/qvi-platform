@@ -16,9 +16,14 @@ type ToolLayoutProps = {
   replaceLabel?: string;
   /** Skip the dashed empty preview box when `preview` is unset. */
   hideEmptyPreview?: boolean;
+  /** Tool-specific controls after upload (trim, quality, text input, clip list, …). */
+  settings?: ReactNode;
+  /** @deprecated Use `settings`. Rendered in the settings slot when `settings` is omitted. */
   leading?: ReactNode;
   preview?: ReactNode;
   extra?: ReactNode;
+  /** Output format and export-quality options immediately above the action buttons. */
+  trailing?: ReactNode;
   actionLabel: string;
   onAction: () => void;
   actionDisabled?: boolean;
@@ -39,9 +44,11 @@ export function ToolLayout({
   hideDropzone = false,
   replaceLabel,
   hideEmptyPreview = false,
+  settings,
   leading,
   preview,
   extra,
+  trailing,
   actionLabel,
   onAction,
   actionDisabled,
@@ -60,6 +67,7 @@ export function ToolLayout({
   const resolvedDropTitle = dropTitle ?? copy.layout.dropTitle;
   const resolvedDropHint = dropHint ?? copy.layout.dropHint;
   const resolvedEmpty = emptyPreviewText ?? copy.layout.emptyPreview;
+  const resolvedSettings = settings ?? leading;
 
   function handleFiles(fileList: FileList | File[]) {
     const files = Array.from(fileList);
@@ -92,8 +100,6 @@ export function ToolLayout({
     <div className="space-y-4">
       <AdSenseScript />
       <ToolAd position="top" />
-
-      {leading}
 
       {hideDropzone ? null : (
         <div className="relative">
@@ -132,6 +138,8 @@ export function ToolLayout({
 
       {hideDropzone && onFiles && !replaceLabel ? fileInput : null}
 
+      {resolvedSettings}
+
       {error ? (
         <p className="whitespace-pre-wrap break-words rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
           {error}
@@ -147,6 +155,8 @@ export function ToolLayout({
       )}
 
       {extra}
+
+      {trailing}
 
       <div className="flex flex-col gap-3 sm:flex-row">
         <Button

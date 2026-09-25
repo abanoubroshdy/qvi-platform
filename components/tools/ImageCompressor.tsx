@@ -129,29 +129,29 @@ export function ImageCompressor() {
       dropTitle={copy.compressor.dropTitle}
       dropHint={copy.compressor.dropHint}
       error={error}
-      extra={
-        <div className="rounded-xl border bg-card p-4 shadow-sm">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <Label htmlFor="quality" className="text-sm font-bold">
-              {copy.compressor.quality}
-            </Label>
-            <span className="text-sm font-semibold tabular-nums text-primary">{quality}%</span>
+      settings={
+        file ? (
+          <div className="rounded-xl border bg-card p-4 shadow-sm">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <Label htmlFor="quality" className="text-sm font-bold">
+                {copy.compressor.quality}
+              </Label>
+              <span className="text-sm font-semibold tabular-nums text-primary">{quality}%</span>
+            </div>
+            <div dir="ltr">
+              <Slider
+                id="quality"
+                min={10}
+                max={100}
+                step={5}
+                value={[quality]}
+                onValueChange={(value) => setQuality(value[0] ?? 80)}
+                aria-label={copy.compressor.quality}
+              />
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">{copy.compressor.qualityHint}</p>
           </div>
-          <div dir="ltr">
-            <Slider
-              id="quality"
-              min={10}
-              max={100}
-              step={5}
-              value={[quality]}
-              onValueChange={(value) => setQuality(value[0] ?? 80)}
-              aria-label={copy.compressor.quality}
-            />
-          </div>
-          <p className="mt-2 text-xs text-muted-foreground">
-            {copy.compressor.qualityHint}
-          </p>
-        </div>
+        ) : null
       }
       preview={
         file ? (

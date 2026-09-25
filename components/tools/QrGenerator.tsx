@@ -86,42 +86,42 @@ export function QrGenerator() {
       }}
       downloadDisabled={!blob || isGenerating}
       error={error}
-      leading={
-        <div className="rounded-xl border bg-card p-4 shadow-sm">
-          <Label htmlFor="qr-text" className="text-sm font-bold">
-            {copy.qr.label}
-          </Label>
-          <textarea
-            id="qr-text"
-            rows={5}
-            value={text}
-            onChange={(event) => setText(event.target.value)}
-            placeholder={copy.qr.placeholder}
-            className="mt-2 flex min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm outline-none placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring"
-          />
-          <p className="mt-2 text-xs text-muted-foreground">
-            {t(copy.qr.counter, { count: text.trim().length, max: MAX_CHARS })}
-          </p>
-        </div>
-      }
-      extra={
-        <div className="rounded-xl border bg-card p-4 shadow-sm">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <Label htmlFor="qr-size" className="text-sm font-bold">
-              {copy.qr.size}
+      settings={
+        <div className="space-y-4 rounded-xl border bg-card p-4 shadow-sm">
+          <div>
+            <Label htmlFor="qr-text" className="text-sm font-bold">
+              {copy.qr.label}
             </Label>
-            <span className="text-sm font-semibold tabular-nums text-primary">{size} px</span>
-          </div>
-          <div dir="ltr">
-            <Slider
-              id="qr-size"
-              min={256}
-              max={1024}
-              step={64}
-              value={[size]}
-              onValueChange={(value) => setSize(value[0] ?? 512)}
-              aria-label={copy.qr.size}
+            <textarea
+              id="qr-text"
+              rows={5}
+              value={text}
+              onChange={(event) => setText(event.target.value)}
+              placeholder={copy.qr.placeholder}
+              className="mt-2 flex min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm outline-none placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring"
             />
+            <p className="mt-2 text-xs text-muted-foreground">
+              {t(copy.qr.counter, { count: text.trim().length, max: MAX_CHARS })}
+            </p>
+          </div>
+          <div>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <Label htmlFor="qr-size" className="text-sm font-bold">
+                {copy.qr.size}
+              </Label>
+              <span className="text-sm font-semibold tabular-nums text-primary">{size} px</span>
+            </div>
+            <div dir="ltr">
+              <Slider
+                id="qr-size"
+                min={256}
+                max={1024}
+                step={64}
+                value={[size]}
+                onValueChange={(value) => setSize(value[0] ?? 512)}
+                aria-label={copy.qr.size}
+              />
+            </div>
           </div>
         </div>
       }
