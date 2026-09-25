@@ -29,11 +29,23 @@ Optional: copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_SITE_URL` bef
 
 ## QV1 Evaluation download
 
-`/qv1` is the public page for **QV1 Evaluation** (Windows). `/qv1/models` lists third-party model sources and licenses. `/qv1/download` redirects with HTTP 307 to `QV1_DOWNLOAD_URL`, the installer file on a GitHub Release.
+`/qv1` is the public page for **QV1 Evaluation** (Windows). `/qv1/models` lists third-party model sources and licenses. `/qv1/download` is signed-in only. An anonymous visitor is redirected to `/login?next=/qv1/download`, then returned to the download after sign-in or sign-up.
 
-If `QV1_DOWNLOAD_URL` is unset or blank, `/qv1/download` redirects to `/qv1?download=soon` and the download button is disabled with a “Download coming soon” note. Do not invent a file URL in the repo.
+A signed-in request records a row in `qv1_downloads` and redirects with HTTP 307 to a short-lived (1 hour) presigned GET for the installer in Cloudflare R2. The public download domain is not used. The file is a zip: extract the whole archive into one folder, then run the exe. The `.bin` slices must stay next to the exe. The account page lists that user’s downloads (version, date and time, and a count).
 
-Set `QV1_DOWNLOAD_URL` in **Vercel → Project Settings → Environment Variables** (Production and Preview) when the Release asset exists, then redeploy. Version, file name, size, SHA256, and code-signing state live in `lib/qv1-release.ts`. Ads stay on `/tools` only; `/qv1` and `/qv1/models` do not render ad units.
+If any R2 variable below is unset, `/qv1/download` redirects to `/qv1?download=soon` and the download button is disabled. A user who hits the hourly cap (8 signed URLs) is sent to `/qv1?download=limited`.
+
+Set these in **Vercel → Project Settings → Environment Variables** (Production and Preview). They are server-only. Do not prefix them with `NEXT_PUBLIC_` and do not commit real values.
+
+- `R2_ACCOUNT_ID`
+- `R2_ACCESS_KEY_ID`
+- `R2_SECRET_ACCESS_KEY`
+- `R2_BUCKET` — `qv1-downloads`
+- `QV1_OBJECT_KEY` — `qv1/1.2.0/QV1-Setup-Evaluation.zip`
+
+`QV1_DOWNLOAD_URL` is retired. Do not set it.
+
+Run `supabase/migrations/0005_qv1_downloads.sql` in the Supabase SQL editor so the history table and row-level security exist, then redeploy. Version, file name, size, SHA256, and code-signing state live in `lib/qv1-release.ts`. Ads stay on `/tools` only; `/qv1` and `/qv1/models` do not render ad units.
 
 ## Contact form (Vercel)
 
@@ -70,7 +82,7 @@ V1 scope is defined in `lib/studio/definition.ts`. The in-memory session lives o
 - `/studio` the QVI Studio session
 - `/qv1` QV1 Evaluation download (Windows)
 - `/qv1/models` third-party model sources and licenses
-- `/qv1/download` redirect to `QV1_DOWNLOAD_URL`, or back to `/qv1?download=soon`
+- `/qv1/download` signed-in presigned R2 redirect, or `/qv1?download=soon` when R2 is unset
 - `/products/qv1` QV1 product page
 - `/products/neyora` Neyora lab (also `/lab`)
 - `/tools/image-compressor` Image Compressor
@@ -90,7 +102,7 @@ V1 scope is defined in `lib/studio/definition.ts`. The in-memory session lives o
 - `/tools/mp3-to-wav` Convert any audio format in batch (shared quality + ZIP)
 - `/tools/audio-cutter` Trim audio
 - `/login` sign in or create an account (name, gender, country, date of birth, phone)
-- `/account` signed-in profile
+- `/account` signed-in profile and QV1 download history
 - `/about` · `/privacy-policy` · `/contact` · `/terms`
 
 Free tools stay 100% client-side. Waitlist emails are stored in Supabase (`waitlist_signups`) when the backend is configured, otherwise in `localStorage`. New accounts collect name, gender, country, date of birth, and phone and save them on `profiles`.

@@ -1,52 +1,167 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { GET } from "@/app/qv1/download/route";
-import { QV1_DOWNLOAD_SOON_PATH, resolveQv1DownloadRedirect } from "@/lib/qv1-download";
+import {
+  QV1_DOWNLOADS_PER_HOUR,
+  contentDispositionAttachment,
+  isQv1DownloadRateLimited,
+  loginPathForDownload,
+  planQv1Download,
+  qv1DownloadLocation,
+  resolveR2DownloadConfig,
+  safeNextPath,
+  type R2DownloadConfig,
+} from "@/lib/qv1-download";
 
-const ORIGINAL = process.env.QV1_DOWNLOAD_URL;
+vi.mock("@/lib/supabase/request-session", () => ({
+  getRequestSupabaseSession: vi.fn(async () => null),
+}));
+
+const ENV_KEYS = [
+  "R2_ACCOUNT_ID",
+  "R2_ACCESS_KEY_ID",
+  "R2_SECRET_ACCESS_KEY",
+  "R2_BUCKET",
+  "QV1_OBJECT_KEY",
+  "QV1_DOWNLOAD_URL",
+] as const;
+
+const ORIGINAL: Record<string, string | undefined> = {};
+for (const key of ENV_KEYS) ORIGINAL[key] = process.env[key];
 
 afterEach(() => {
-  if (ORIGINAL === undefined) delete process.env.QV1_DOWNLOAD_URL;
-  else process.env.QV1_DOWNLOAD_URL = ORIGINAL;
+  for (const key of ENV_KEYS) {
+    if (ORIGINAL[key] === undefined) delete process.env[key];
+    else process.env[key] = ORIGINAL[key];
+  }
 });
 
-describe("resolveQv1DownloadRedirect", () => {
-  it("sends an unset variable back to the coming-soon page", () => {
-    expect(resolveQv1DownloadRedirect(undefined)).toEqual({
-      location: QV1_DOWNLOAD_SOON_PATH,
-      status: 307,
-    });
-    expect(resolveQv1DownloadRedirect("   ")).toEqual({
-      location: QV1_DOWNLOAD_SOON_PATH,
-      status: 307,
-    });
-    expect(resolveQv1DownloadRedirect(null)).toEqual({
-      location: QV1_DOWNLOAD_SOON_PATH,
-      status: 307,
-    });
+const config: R2DownloadConfig = {
+  accountId: "account",
+  accessKeyId: "key",
+  secretAccessKey: "secret",
+  bucket: "qv1-downloads",
+  objectKey: "qv1/1.2.0/QV1-Setup-Evaluation.zip",
+};
+
+function fullEnv(): Record<string, string> {
+  return {
+    R2_ACCOUNT_ID: config.accountId,
+    R2_ACCESS_KEY_ID: config.accessKeyId,
+    R2_SECRET_ACCESS_KEY: config.secretAccessKey,
+    R2_BUCKET: config.bucket,
+    QV1_OBJECT_KEY: config.objectKey,
+  };
+}
+
+describe("resolveR2DownloadConfig", () => {
+  it("returns null when any required variable is missing", () => {
+    expect(resolveR2DownloadConfig({})).toBeNull();
+    const partial = fullEnv();
+    delete (partial as { R2_SECRET_ACCESS_KEY?: string }).R2_SECRET_ACCESS_KEY;
+    expect(resolveR2DownloadConfig(partial)).toBeNull();
+    expect(resolveR2DownloadConfig({ ...fullEnv(), R2_BUCKET: "  " })).toBeNull();
   });
 
-  it("redirects to the configured URL without inventing one", () => {
-    const location = "https://github.com/example/qv1/releases/download/v1.2.0/QV1-Evaluation.exe";
-    expect(resolveQv1DownloadRedirect(`  ${location}  `)).toEqual({
-      location,
-      status: 307,
+  it("reads the five server variables and ignores a leftover public URL", () => {
+    expect(resolveR2DownloadConfig({ ...fullEnv(), QV1_DOWNLOAD_URL: "https://dl.getqvi.com/file.zip" })).toEqual(
+      config,
+    );
+  });
+});
+
+describe("download guards", () => {
+  it("keeps the return path on this site", () => {
+    expect(safeNextPath("/qv1/download")).toBe("/qv1/download");
+    expect(safeNextPath("https://evil.example/steal")).toBe("/account");
+    expect(safeNextPath("//evil.example")).toBe("/account");
+    expect(loginPathForDownload()).toBe("/login?next=%2Fqv1%2Fdownload");
+  });
+
+  it("sets an attachment filename and a per-hour cap", () => {
+    expect(contentDispositionAttachment('QV1-Setup-Evaluation.zip')).toBe(
+      'attachment; filename="QV1-Setup-Evaluation.zip"',
+    );
+    expect(isQv1DownloadRateLimited(QV1_DOWNLOADS_PER_HOUR - 1)).toBe(false);
+    expect(isQv1DownloadRateLimited(QV1_DOWNLOADS_PER_HOUR)).toBe(true);
+  });
+});
+
+describe("planQv1Download", () => {
+  it("sends an anonymous visitor to sign in", async () => {
+    const sign = vi.fn();
+    const record = vi.fn();
+    const decision = await planQv1Download({
+      userId: null,
+      config,
+      recentCount: 0,
+      sign,
+      record,
     });
+    expect(decision).toEqual({ kind: "login" });
+    expect(sign).not.toHaveBeenCalled();
+    expect(record).not.toHaveBeenCalled();
+    expect(qv1DownloadLocation(decision)).toBe("/login?next=%2Fqv1%2Fdownload");
+  });
+
+  it("shows coming soon when R2 is not configured", async () => {
+    const decision = await planQv1Download({
+      userId: "user-1",
+      config: null,
+      recentCount: 0,
+      sign: vi.fn(),
+      record: vi.fn(),
+    });
+    expect(qv1DownloadLocation(decision)).toBe("/qv1?download=soon");
+  });
+
+  it("stops when the hourly cap is reached", async () => {
+    const sign = vi.fn();
+    const decision = await planQv1Download({
+      userId: "user-1",
+      config,
+      recentCount: QV1_DOWNLOADS_PER_HOUR,
+      sign,
+      record: vi.fn(),
+    });
+    expect(decision.kind).toBe("limited");
+    expect(sign).not.toHaveBeenCalled();
+  });
+
+  it("records the download and returns the presigned URL", async () => {
+    const signed = "https://account.r2.cloudflarestorage.com/qv1-downloads/qv1/1.2.0/QV1-Setup-Evaluation.zip?X-Amz-Signature=test";
+    const record = vi.fn(async () => undefined);
+    const decision = await planQv1Download({
+      userId: "user-1",
+      config,
+      recentCount: 1,
+      sign: async (given) => {
+        expect(given).toEqual(config);
+        return signed;
+      },
+      record,
+    });
+    expect(decision).toEqual({ kind: "redirect", url: signed });
+    expect(record).toHaveBeenCalledOnce();
+  });
+
+  it("does not hand out a URL when the history insert fails", async () => {
+    const decision = await planQv1Download({
+      userId: "user-1",
+      config,
+      recentCount: 0,
+      sign: async () => "https://example.r2.cloudflarestorage.com/file",
+      record: async () => {
+        throw new Error("insert failed");
+      },
+    });
+    expect(decision.kind).toBe("unavailable");
   });
 });
 
 describe("GET /qv1/download", () => {
-  it("redirects to QV1_DOWNLOAD_URL when set", async () => {
-    const location = "https://github.com/example/qv1/releases/download/v1.2.0/QV1-Evaluation.exe";
-    process.env.QV1_DOWNLOAD_URL = location;
+  it("redirects an anonymous request to login with a return path", async () => {
     const response = await GET(new Request("https://getqvi.com/qv1/download"));
     expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe(location);
-  });
-
-  it("redirects to /qv1?download=soon when the variable is unset", async () => {
-    delete process.env.QV1_DOWNLOAD_URL;
-    const response = await GET(new Request("https://getqvi.com/qv1/download"));
-    expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe("https://getqvi.com/qv1?download=soon");
+    expect(response.headers.get("location")).toBe("https://getqvi.com/login?next=%2Fqv1%2Fdownload");
   });
 });

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Qv1EvaluationView } from "@/components/qv1/Qv1EvaluationView";
+import type { Qv1DownloadNotice } from "@/lib/qv1-release";
 import { buildPageMetadata } from "@/lib/seo";
 
 const pageTitle = "QV1 Evaluation";
@@ -16,8 +17,12 @@ type Qv1PageProps = {
   searchParams?: { download?: string | string[] };
 };
 
+function noticeFrom(flag: string | string[] | undefined): Qv1DownloadNotice {
+  const value = Array.isArray(flag) ? flag[0] : flag;
+  if (value === "soon" || value === "limited" || value === "unavailable") return value;
+  return "ready";
+}
+
 export default function Qv1EvaluationPage({ searchParams }: Qv1PageProps) {
-  const flag = searchParams?.download;
-  const downloadSoon = flag === "soon" || (Array.isArray(flag) && flag.includes("soon"));
-  return <Qv1EvaluationView downloadSoon={downloadSoon} />;
+  return <Qv1EvaluationView notice={noticeFrom(searchParams?.download)} />;
 }

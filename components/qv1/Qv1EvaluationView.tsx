@@ -7,7 +7,7 @@ import { useI18n } from "@/components/i18n/I18nProvider";
 import { Button } from "@/components/ui/button";
 import { qv1Changelog } from "@/lib/qv1-changelog";
 import { formatBytes } from "@/lib/format";
-import { qv1DownloadSummary, qv1HasSha256, qv1Release } from "@/lib/qv1-release";
+import { qv1DownloadSummary, qv1HasSha256, qv1Release, type Qv1DownloadNotice } from "@/lib/qv1-release";
 import { siteConfig } from "@/lib/site";
 
 function formatReleaseDate(iso: string, locale: "en" | "ar") {
@@ -21,12 +21,15 @@ function formatReleaseDate(iso: string, locale: "en" | "ar") {
   }).format(new Date(Date.UTC(year, month - 1, day)));
 }
 
-export function Qv1EvaluationView({ downloadSoon }: { downloadSoon: boolean }) {
+export function Qv1EvaluationView({ notice }: { notice: Qv1DownloadNotice }) {
   const { copy, locale } = useI18n();
   const page = copy.qv1Page;
   const summary = qv1DownloadSummary(qv1Release, formatBytes);
   const showHash = qv1HasSha256(qv1Release);
   const releaseNotesExternal = /^https?:\/\//i.test(qv1Release.releaseNotesUrl);
+  const downloadSoon = notice === "soon";
+  const status =
+    notice === "soon" ? page.comingSoon : notice === "limited" ? page.limited : notice === "unavailable" ? page.unavailable : null;
 
   return (
     <div>
@@ -59,13 +62,9 @@ export function Qv1EvaluationView({ downloadSoon }: { downloadSoon: boolean }) {
               {page.chip}
             </p>
 
-            {downloadSoon ? (
-              <p
-                id="qv1-download-soon"
-                className="mt-5 text-sm leading-6 text-muted-foreground"
-                role="status"
-              >
-                {page.comingSoon}
+            {status ? (
+              <p id="qv1-download-status" className="mt-5 text-sm leading-6 text-muted-foreground" role="status">
+                {status}
               </p>
             ) : null}
 
@@ -76,7 +75,7 @@ export function Qv1EvaluationView({ downloadSoon }: { downloadSoon: boolean }) {
                   size="lg"
                   className="h-12 w-full bg-primary text-base text-primary-foreground"
                   disabled
-                  aria-describedby="qv1-download-soon"
+                  aria-describedby="qv1-download-status"
                 >
                   {page.download}
                 </Button>
@@ -91,6 +90,8 @@ export function Qv1EvaluationView({ downloadSoon }: { downloadSoon: boolean }) {
             {qv1Release.fileName ? (
               <p className="mt-1 text-center font-mono text-xs text-muted-foreground">{qv1Release.fileName}</p>
             ) : null}
+            <p className="mt-3 text-center text-sm leading-6 text-muted-foreground">{page.signInHint}</p>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">{page.extractNote}</p>
 
             {showHash ? (
               <div className="mt-6 rounded-xl border border-border bg-muted/40 p-4">
