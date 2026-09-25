@@ -77,6 +77,11 @@ const nextConfig = {
         destination: "/products/neyora",
         statusCode: 301,
       },
+      {
+        source: "/ar/lab",
+        destination: "/ar/products/neyora",
+        statusCode: 301,
+      },
     ];
   },
   async headers() {

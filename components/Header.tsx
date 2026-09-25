@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { LocaleLink as Link } from "@/components/LocaleLink";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Menu, X } from "lucide-react";
@@ -10,13 +10,14 @@ import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { Button } from "@/components/ui/button";
+import { stripLocale } from "@/lib/i18n/locale-path";
 import { headerNavItems, qv1Path } from "@/lib/site-nav";
 import { cn } from "@/lib/utils";
 
 export function Header() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-  const studio = pathname === "/studio";
+  const studio = stripLocale(pathname) === "/studio";
   const { copy } = useI18n();
   const menuButtonRef = useRef<HTMLButtonElement>(null);
 

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { LocaleLink as Link } from "@/components/LocaleLink";
 import { JsonLd } from "@/components/JsonLd";
 import { CopyHashButton } from "@/components/qv1/CopyHashButton";
 import { useI18n } from "@/components/i18n/I18nProvider";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { qv1Changelog } from "@/lib/qv1-changelog";
 import { formatBytes } from "@/lib/format";
 import { qv1DownloadSummary, qv1HasSha256, qv1Release, type Qv1DownloadNotice } from "@/lib/qv1-release";
+import { withLocale } from "@/lib/i18n/locale-path";
 import { siteConfig } from "@/lib/site";
 
 function formatReleaseDate(iso: string, locale: "en" | "ar") {
@@ -40,6 +41,8 @@ export function Qv1EvaluationView({ notice }: { notice: Qv1DownloadNotice }) {
           applicationCategory: "MultimediaApplication",
           operatingSystem: qv1Release.minOs,
           softwareVersion: qv1Release.version,
+          inLanguage: locale,
+          url: `${siteConfig.url}${withLocale("/qv1", locale)}`,
           description: page.metaDescription,
           offers: {
             "@type": "Offer",

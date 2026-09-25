@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { LocaleLink as Link } from "@/components/LocaleLink";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { qv1AppCopyright, qv1Dependencies, qv1ModelSources } from "@/lib/qv1-models";
 

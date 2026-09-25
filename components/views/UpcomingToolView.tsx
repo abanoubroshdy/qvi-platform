@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { LocaleLink as Link } from "@/components/LocaleLink";
 import { AdSenseScript, ToolAd } from "@/components/ToolAd";
 import { ToolArt } from "@/components/ToolArt";
 import { ToolCard } from "@/components/ToolCard";
