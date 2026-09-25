@@ -54,9 +54,18 @@ describe("QV1 public copy", () => {
     expect(surfaces).not.toMatch(forbiddenStemCount);
     expect(en.qv1Page.stemsTitle).toContain("4 AI stems");
     expect(en.qv1Page.proTitle).toMatch(/Drum Split \(DSP\)/);
-    expect(en.qv1Page.proTitle).toMatch(/Pro/);
+    expect(en.qv1Page.proTitle).toMatch(/free \(Evaluation\)/);
+    expect(en.qv1Page.lead).toMatch(/whole app is free/i);
     expect(ar.qv1Page.stemsTitle).toContain("4");
-    expect(ar.qv1Page.proTitle).toMatch(/Pro/);
+    expect(ar.qv1Page.proTitle).toMatch(/مجانًا/);
+    expect(ar.qv1Page.lead).toMatch(/بالكامل مجاني/);
+    const qv1Copy = JSON.stringify({
+      enPage: en.qv1Page,
+      arPage: ar.qv1Page,
+      enProduct: en.products.qv1,
+      arProduct: ar.products.qv1,
+    });
+    expect(qv1Copy).not.toMatch(/\bPro\b/);
   });
 
   it("does not place ad units on /qv1 routes", () => {

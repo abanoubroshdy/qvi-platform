@@ -204,12 +204,12 @@ export const en = {
   },
   qv1Page: {
     metaDescription:
-      "Download QV1 Evaluation for Windows. Free 4 AI stems (vocals, drums, bass, other) with non-commercial third-party models. Drum Split (DSP) is Pro, coming soon.",
+      "Download QV1 Evaluation for Windows, free. 4 AI stems (vocals, drums, bass, other) with non-commercial third-party models, plus Drum Split (DSP), stem editing, and mix tools.",
     kicker: "Windows desktop",
     title: "QV1 Evaluation",
     shortName: "QV1 Evaluation",
     lead:
-      "A free Windows app that separates a mix into 4 AI stems. The separation weights are third-party and non-commercial. Drum Split and the rest of Pro are QVI’s own code, and they are not in this build.",
+      "The whole app is free. QV1 Evaluation separates a mix into 4 AI stems with third-party, non-commercial weights, and includes QVI’s own tools: Drum Split, stem editing, DSP processing, a mixer, mix export, and projects.",
     chip: "Evaluation — non-commercial models",
     download: "Download QV1 Evaluation for Windows",
     comingSoon: "Download coming soon",
@@ -224,11 +224,10 @@ export const en = {
       "Vocals, drums, bass, and other. The weights are BS-RoFormer from ZFTurbo, converted by QVI from .ckpt to ONNX. They are not QVI’s own models, and they are not inside the installer.",
     stems: ["Vocals", "Drums", "Bass", "Other"],
     stemsNote: "Model Manager downloads them from a GitHub Release after you accept a non-commercial notice.",
-    proTitle: "Drum Split (DSP): Kick, Snare, Hi-hat, Other — Pro, coming soon — works on any drum track",
-    proLead:
-      "Pro unlocks QVI’s own code only. There is no price and no purchase button yet.",
+    proTitle: "Drum Split (DSP): Kick, Snare, Hi-hat, Other — free (Evaluation) — works on any drum track",
+    proLead: "QVI’s own code, included in this free Evaluation. Works on any drum track.",
     proItems: ["Kick", "Snare", "Hi-hat", "Other Drums"],
-    proAlso: "Also coming with Pro: stem editing, DSP processing, a mixer, mix export, and projects.",
+    proAlso: "Also included: stem editing, DSP processing, a mixer, mix export, and projects.",
     requirementsTitle: "System requirements",
     requirementOs: "System",
     requirementGpu: "Graphics",
@@ -261,23 +260,23 @@ export const en = {
     qv1: {
       name: "QV1",
       status: "Evaluation",
-      title: "QV1 — 4 AI stems, Drum Split (DSP) in Pro",
+      title: "QV1 — 4 AI stems and Drum Split (DSP)",
       description:
-        "Free Windows evaluation: 4 AI stems (vocals, drums, bass, other) with non-commercial third-party models. Drum Split (DSP) is Pro, coming soon.",
+        "QV1 Evaluation is free for Windows: 4 AI stems with non-commercial third-party models, plus Drum Split (DSP) and the rest of QVI’s tools.",
       features: [
-        "4 AI stems — vocals, drums, bass, and other — free in QV1 Evaluation",
-        "Drum Split (DSP): Kick, Snare, Hi-hat, and Other Drums — Pro, coming soon, on any drum track",
-        "Audio stays on your PC. Models download only after a non-commercial notice",
+        "4 AI stems — vocals, drums, bass, and other — included in the free Evaluation",
+        "Drum Split (DSP): Kick, Snare, Hi-hat, and Other Drums — included, on any drum track",
+        "Stem editing, DSP processing, a mixer, mix export, and projects are included",
       ],
       kicker: "Flagship engine",
       extra:
-        "QV1 Evaluation is the free Windows download. Pro later unlocks QVI’s own code — stem editing, DSP processing, a mixer, mix export, and projects. No price and no buy button yet.",
+        "The whole program is the free Evaluation. Separation weights stay third-party and non-commercial. Everything else is QVI’s own code and ships in the same download.",
       evaluationCta: "Download QV1 Evaluation for Windows",
       specsTitle: "Tech specs",
       waitlistHeading: "Join the QV1 waitlist",
       specs: [
         ["AI separation", "4 AI stems: vocals, drums, bass, other"],
-        ["Drum Split (DSP)", "Kick, Snare, Hi-hat, Other Drums — Pro, coming soon"],
+        ["Drum Split (DSP)", "Kick, Snare, Hi-hat, Other Drums — included"],
         ["Processing", "On your PC. Models are not in the installer"],
         ["Privacy", "Source audio stays on your machine"],
         ["Status", "Evaluation for Windows"],
@@ -289,8 +288,8 @@ export const en = {
           text: "Vocals, drums, bass, and other, from third-party BS-RoFormer weights. Not a QVI original model.",
         },
         {
-          title: "Drum Split (DSP) — Pro",
-          text: "Kick, Snare, Hi-hat, and Other Drums. Coming soon. Works on any drum track. This is QVI’s own code.",
+          title: "Drum Split (DSP) — free",
+          text: "Kick, Snare, Hi-hat, and Other Drums. Included in the Evaluation. Works on any drum track. This is QVI’s own code.",
         },
         {
           title: "On your PC",
@@ -300,7 +299,7 @@ export const en = {
       faqs: [
         {
           q: "Can I download QV1?",
-          a: "QV1 Evaluation is a free Windows download: 4 AI stems. Drum Split (DSP) and the rest of Pro are coming soon. There is no price yet.",
+          a: "Yes. QV1 Evaluation is a free Windows download of the whole app: 4 AI stems, Drum Split (DSP), stem editing, DSP processing, a mixer, mix export, and projects.",
         },
         {
           q: "Does QV1 upload my tracks?",
@@ -308,11 +307,11 @@ export const en = {
         },
         {
           q: "How is QV1 different from the free tools?",
-          a: "The free tools are browser extras for everyday files. QV1 is the Windows desktop app: 4 AI stems now, and Drum Split (DSP) in Pro.",
+          a: "The free tools are browser extras for everyday files. QV1 Evaluation is the free Windows app: 4 AI stems and Drum Split (DSP), plus editing and mix tools.",
         },
         {
           q: "Who owns the separation model?",
-          a: "The 4 AI stems use third-party BS-RoFormer weights (ZFTurbo). The license is not stated by the author and the weights were trained on MUSDB18. They are non-commercial. Pro unlocks QVI’s own code only.",
+          a: "The 4 AI stems use third-party BS-RoFormer weights (ZFTurbo). The license is not stated by the author and the weights were trained on MUSDB18. They are non-commercial. Drum Split and the other tools are QVI’s own code and are included in the free Evaluation.",
         },
       ],
     },
@@ -1809,7 +1808,7 @@ export const en = {
     updated: "September 13, 2026",
     p1: "These terms govern your use of QVI — Quality Virtual Instruments, including product pages and free utilities. Entering the site or using a tool means you agree to these terms and the Privacy Policy.",
     h1: "1. The service",
-    p2: "QVI provides information about upcoming audio software (including QV1 and Neyora) and free in-browser utilities. Waitlists, demos, and “coming soon” labels are not a promise of a ship date. The site is provided as-is.",
+    p2: "QVI provides QV1 Evaluation, a free Windows app, information about Neyora, and free in-browser utilities. Waitlists, demos, and “coming soon” labels are not a promise of a ship date. The site is provided as-is.",
     h2: "2. Your files",
     p3: "You are responsible for the files and text you process. You must have the right to use that content. Local tools do not keep a copy after you close the tab.",
     h3: "3. Acceptable use",

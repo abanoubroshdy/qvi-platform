@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { Qv1View } from "@/components/views/Qv1View";
 import { siteConfig } from "@/lib/site";
 
-const pageTitle = "QV1 - 4 AI stems";
+const pageTitle = "QV1 Evaluation";
 const pageDescription =
-  "QV1 Evaluation for Windows separates a mix into 4 AI stems (vocals, drums, bass, other) with non-commercial third-party models. Drum Split (DSP) is Pro, coming soon.";
+  "QV1 Evaluation is a free Windows app: 4 AI stems with non-commercial third-party models, plus Drum Split (DSP), stem editing, and mix tools.";
 
 export const metadata: Metadata = {
   title: pageTitle,

@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { AudioLines, Mic2, Music2, Sparkles } from "lucide-react";
 import { JsonLd } from "@/components/JsonLd";
-import { WaitlistForm } from "@/components/WaitlistForm";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { Button } from "@/components/ui/button";
+import { qv1Release } from "@/lib/qv1-release";
 import { qv1Path } from "@/lib/site-nav";
 import {
   Accordion,
@@ -28,7 +28,7 @@ export function Qv1View() {
           "@type": "SoftwareApplication",
           name: "QV1",
           applicationCategory: "MultimediaApplication",
-          operatingSystem: "Coming soon",
+          operatingSystem: qv1Release.minOs,
           description: page.description,
         }}
       />
@@ -73,10 +73,6 @@ export function Qv1View() {
             </div>
           ))}
         </dl>
-      </section>
-
-      <section className="mx-auto max-w-4xl px-4 pb-12">
-        <WaitlistForm product="qv1" heading={page.waitlistHeading} />
       </section>
 
       <section className="mx-auto max-w-4xl px-4 pb-16">

@@ -4,7 +4,7 @@ import { buildPageMetadata } from "@/lib/seo";
 
 const pageTitle = "QV1 Evaluation";
 const pageDescription =
-  "Download QV1 Evaluation for Windows. Free 4 AI stems (vocals, drums, bass, other) with non-commercial third-party models. Drum Split (DSP) is Pro, coming soon.";
+  "Download QV1 Evaluation for Windows, free. 4 AI stems (vocals, drums, bass, other) with non-commercial third-party models, plus Drum Split (DSP), stem editing, and mix tools.";
 
 export const metadata: Metadata = buildPageMetadata({
   title: pageTitle,

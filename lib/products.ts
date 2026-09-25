@@ -4,13 +4,13 @@ export const products = {
     name: "QV1",
     href: "/products/qv1",
     status: "Evaluation",
-    title: "QV1 - 4 AI stems, Drum Split (DSP) in Pro",
+    title: "QV1 - 4 AI stems and Drum Split (DSP)",
     description:
-      "Free Windows evaluation: 4 AI stems (vocals, drums, bass, other) with non-commercial third-party models. Drum Split (DSP) is Pro, coming soon.",
+      "QV1 Evaluation is free for Windows: 4 AI stems with non-commercial third-party models, plus Drum Split (DSP) and the rest of QVI’s tools.",
     features: [
-      "4 AI stems — vocals, drums, bass, and other — free in QV1 Evaluation",
-      "Drum Split (DSP): Kick, Snare, Hi-hat, and Other Drums — Pro, coming soon, on any drum track",
-      "Audio stays on your PC. Models download only after a non-commercial notice",
+      "4 AI stems — vocals, drums, bass, and other — included in the free Evaluation",
+      "Drum Split (DSP): Kick, Snare, Hi-hat, and Other Drums — included, on any drum track",
+      "Stem editing, DSP processing, a mixer, mix export, and projects are included",
     ],
   },
   neyora: {
