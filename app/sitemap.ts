@@ -13,6 +13,8 @@ const staticRouteConfig: Record<
   "/contact": { changeFrequency: "monthly", priority: 0.8 },
   "/privacy-policy": { changeFrequency: "monthly", priority: 0.65 },
   "/terms": { changeFrequency: "monthly", priority: 0.65 },
+  "/qv1": { changeFrequency: "weekly", priority: 0.95 },
+  "/qv1/models": { changeFrequency: "monthly", priority: 0.7 },
   "/products/qv1": { changeFrequency: "weekly", priority: 0.95 },
   "/products/neyora": { changeFrequency: "weekly", priority: 0.95 },
   "/tools": { changeFrequency: "weekly", priority: 0.9 },

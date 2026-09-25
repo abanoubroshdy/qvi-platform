@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { LoginView } from "@/components/auth/LoginView";
+import { safeNextPath } from "@/lib/safe-next-path";
 import { siteConfig } from "@/lib/site";
 
 const pageTitle = "Sign in";
@@ -19,10 +20,10 @@ export const metadata: Metadata = {
 };
 
 type LoginPageProps = {
-  searchParams?: { mode?: string };
+  searchParams?: { mode?: string; next?: string };
 };
 
 export default function LoginPage({ searchParams }: LoginPageProps) {
   const initialMode = searchParams?.mode === "signup" ? "signup" : "signin";
-  return <LoginView initialMode={initialMode} />;
+  return <LoginView initialMode={initialMode} nextPath={safeNextPath(searchParams?.next)} />;
 }

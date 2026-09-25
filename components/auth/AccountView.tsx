@@ -9,6 +9,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { fetchProfile, fieldsFromUserMetadata, saveProfile } from "@/lib/supabase/profile";
+import { fetchQv1Downloads, type Qv1DownloadRow } from "@/lib/supabase/qv1-downloads";
 import { Button } from "@/components/ui/button";
 import {
   isProfileComplete,
@@ -29,7 +30,7 @@ function toFormValues(fields: ReturnType<typeof recordToFields>): ProfileFormVal
 
 export function AccountView() {
   const { user, loading, signOut, refresh } = useAuth();
-  const { copy, locale } = useI18n();
+  const { copy, locale, t } = useI18n();
   const router = useRouter();
   const a = copy.auth;
 
@@ -43,6 +44,11 @@ export function AccountView() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [touched, setTouched] = useState(false);
+  const [downloads, setDownloads] = useState<
+    | { status: "loading" }
+    | { status: "ready"; rows: Qv1DownloadRow[]; count: number }
+    | { status: "error" }
+  >({ status: "loading" });
 
   const issueCopy = useMemo<Record<ProfileIssue, string>>(
     () => ({
@@ -89,6 +95,29 @@ export function AccountView() {
     }
 
     void load();
+    return () => {
+      active = false;
+    };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const currentUser = user;
+    let active = true;
+
+    async function loadDownloads() {
+      const supabase = getSupabaseClient();
+      if (!supabase) {
+        if (active) setDownloads({ status: "error" });
+        return;
+      }
+      const result = await fetchQv1Downloads(supabase, currentUser.id);
+      if (!active) return;
+      if (result.error) setDownloads({ status: "error" });
+      else setDownloads({ status: "ready", rows: result.rows, count: result.count });
+    }
+
+    void loadDownloads();
     return () => {
       active = false;
     };
@@ -276,6 +305,36 @@ export function AccountView() {
             </Button>
           </div>
         )}
+
+        <div className="space-y-3 border-t border-border pt-4">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="text-sm font-semibold">{a.downloadsTitle}</h2>
+            {downloads.status === "ready" ? (
+              <p className="text-xs text-muted-foreground">{t(a.downloadsCount, { count: downloads.count })}</p>
+            ) : null}
+          </div>
+          {downloads.status === "loading" ? (
+            <p className="text-sm text-muted-foreground">{a.loading}</p>
+          ) : downloads.status === "error" ? (
+            <p className="text-sm text-muted-foreground">{a.downloadsUnavailable}</p>
+          ) : downloads.rows.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{a.downloadsEmpty}</p>
+          ) : (
+            <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border">
+              {downloads.rows.map((row) => (
+                <li key={row.id} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+                  <span>{t(a.downloadsVersion, { version: row.version })}</span>
+                  <time dateTime={row.created_at} className="text-muted-foreground">
+                    {new Date(row.created_at).toLocaleString(locale === "ar" ? "ar" : "en-GB", {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    })}
+                  </time>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
 
         <div className="flex flex-col gap-3 sm:flex-row">
           <Button type="button" variant="outline" className="flex-1" onClick={handleSignOut}>

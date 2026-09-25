@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { safeNextPath } from "@/lib/safe-next-path";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
@@ -21,15 +22,18 @@ export default function AuthCallbackPage() {
       return;
     }
 
+    const next = safeNextPath(new URLSearchParams(window.location.search).get("next"));
+    const loginPath = next === "/account" ? "/login" : `/login?next=${encodeURIComponent(next)}`;
+
     let cancelled = false;
     void supabase.auth.getSession().then(({ data }) => {
       if (cancelled) return;
       if (data.session || user) {
-        router.replace("/account");
+        router.replace(next);
         return;
       }
       window.setTimeout(() => {
-        if (!cancelled) router.replace("/login");
+        if (!cancelled) router.replace(loginPath);
       }, 1500);
     });
 

@@ -5,6 +5,7 @@
  */
 export const headerNavItems = [
   { href: "/studio", labelKey: "studio" },
+  { href: "/qv1", labelKey: "qv1" },
   { href: "/#products", labelKey: "products" },
   { href: "/#tools", labelKey: "tools" },
   { href: "/#lab", labelKey: "lab" },
@@ -12,7 +13,8 @@ export const headerNavItems = [
   { href: "/contact", labelKey: "contact" },
 ] as const;
 
-export const qv1Path = "/products/qv1";
+/** Public QV1 Evaluation download page. */
+export const qv1Path = "/qv1";
 
 export const footerExploreItems = [
   { href: "/", source: "footer", labelKey: "home" },

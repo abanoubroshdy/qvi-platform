@@ -10,6 +10,7 @@ import { ProductSpotlight } from "@/components/ProductSpotlight";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { Button } from "@/components/ui/button";
 import { products } from "@/lib/products";
+import { qv1Path } from "@/lib/site-nav";
 
 export function HomeView() {
   const { copy } = useI18n();
@@ -25,7 +26,7 @@ export function HomeView() {
           <p className="qvi-lead mt-5 max-w-2xl text-base leading-8 text-muted-foreground sm:text-lg">{copy.home.lead}</p>
           <div className="qvi-actions mt-8 flex flex-wrap gap-3">
             <Button asChild size="lg" className="qvi-btn">
-              <Link href={products.qv1.href}>
+              <Link href={qv1Path}>
                 {copy.home.qv1Cta}
                 <ArrowRight />
               </Link>
@@ -58,7 +59,7 @@ export function HomeView() {
             description={copy.products.qv1.description}
             status={copy.products.qv1.status}
             features={[...copy.products.qv1.features]}
-            href={products.qv1.href}
+            href={qv1Path}
             cta={copy.home.qv1Cta}
             tone="violet"
           />

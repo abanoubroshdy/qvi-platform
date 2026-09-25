@@ -15,7 +15,7 @@ export function AboutView() {
       <p>{page.p1}</p>
       <h2 className="text-xl font-bold">{page.h2ecosystem}</h2>
       <p>
-        <Link href="/products/qv1" className="font-semibold text-primary hover:underline">
+        <Link href="/qv1" className="font-semibold text-primary hover:underline">
           QV1
         </Link>{" "}
         ·{" "}
@@ -208,6 +208,19 @@ export function PrivacyView({ isPlaceholder = false }: { isPlaceholder?: boolean
       <section className="space-y-3">
         <h2 className="text-xl font-bold">{page.changesTitle}</h2>
         <p>{page.changes}</p>
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-xl font-bold">{page.qv1AppTitle}</h2>
+        {page.qv1App.map((paragraph) => (
+          <p key={paragraph}>{paragraph}</p>
+        ))}
+        <p>
+          {page.qv1AppContact}{" "}
+          <a className="font-semibold text-primary hover:underline" href={`mailto:${privacyEmail}`}>
+            {privacyEmail}
+          </a>
+        </p>
       </section>
 
       <section className="space-y-3">

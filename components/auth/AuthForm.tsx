@@ -22,6 +22,7 @@ import {
   type ProfileIssue,
 } from "@/lib/auth/profile";
 import { detectCountryFromLocale, isCountryCode } from "@/lib/geo/countries";
+import { safeNextPath } from "@/lib/safe-next-path";
 
 type Mode = "signin" | "signup";
 
@@ -41,7 +42,13 @@ function FormSection({ title, children }: { title: string; children: ReactNode }
   );
 }
 
-export function AuthForm({ initialMode = "signin" }: { initialMode?: Mode }) {
+export function AuthForm({
+  initialMode = "signin",
+  nextPath = "/account",
+}: {
+  initialMode?: Mode;
+  nextPath?: string;
+}) {
   const { copy, t, locale } = useI18n();
   const { configured, loading } = useAuth();
   const router = useRouter();
@@ -64,6 +71,7 @@ export function AuthForm({ initialMode = "signin" }: { initialMode?: Mode }) {
 
   const a = copy.auth;
   const isSignUp = mode === "signup";
+  const destination = safeNextPath(nextPath);
 
   const issueCopy = useMemo<Record<ProfileIssue, string>>(
     () => ({
@@ -164,7 +172,7 @@ export function AuthForm({ initialMode = "signin" }: { initialMode?: Mode }) {
           setError(signInError.message || a.genericError);
           return;
         }
-        router.push("/account");
+        router.push(destination);
         router.refresh();
       } catch {
         setError(a.genericError);
@@ -194,7 +202,7 @@ export function AuthForm({ initialMode = "signin" }: { initialMode?: Mode }) {
         email: value,
         password,
         options: {
-          emailRedirectTo: `${origin}/auth/callback`,
+          emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(destination)}`,
           data: {
             ...toAuthMetadata(fields),
             privacy_consent: true,
@@ -208,7 +216,7 @@ export function AuthForm({ initialMode = "signin" }: { initialMode?: Mode }) {
       }
       if (data.user && data.session) {
         await saveProfile(supabase, data.user.id, fields);
-        router.push("/account");
+        router.push(destination);
         router.refresh();
         return;
       }
