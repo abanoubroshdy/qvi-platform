@@ -17,8 +17,16 @@ export const tools: Tool[] = [
   {
     slug: "mp4-to-mp3",
     title: "MP4 to audio",
-    description: "Extract audio from a video file and download MP3, WAV, M4A, OGG, or FLAC on your device.",
+    description: "Extract MP3, WAV, FLAC, AAC, OGG, Opus, AIFF, or WMA from many videos at once on your device.",
     href: "/tools/mp4-to-mp3",
+    available: true,
+    category: "audio",
+  },
+  {
+    slug: "video-converter",
+    title: "Video converter",
+    description: "Convert videos to MP4, WebM, MKV, MOV, AVI, or GIF. Remux compatible streams or re-encode in your browser.",
+    href: "/tools/video-converter",
     available: true,
     category: "audio",
   },

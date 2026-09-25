@@ -98,7 +98,8 @@ V1 scope is defined in `lib/studio/definition.ts`. The in-memory session lives o
 - `/tools/base64` Base64 encode / decode
 - `/tools/image-resizer` Image resizer
 - `/tools/word-counter` Word and character counter
-- `/tools/mp4-to-mp3` Extract audio from video (MP3, WAV, M4A, OGG, FLAC) with sample rate, bitrate or bit depth, and quality. Runs in the browser via ffmpeg.wasm; files over ~80 MB may fail because the whole video is loaded into memory.
+- `/tools/mp4-to-mp3` Batch video to audio (MP3, WAV, FLAC, AAC, M4A, OGG, Opus, AIFF, WMA) with sample rate, channels, and bitrate. Runs in the browser via ffmpeg.wasm. Files over ~80 MB may fail; files over ~250 MB are skipped.
+- `/tools/video-converter` Batch video to video (MP4 H.264/AAC, WebM VP9 or VP8/Opus, MKV, MOV, AVI, GIF) with resolution, frame rate, CRF or bitrate, keep/remove audio, and a remux/copy path. Same in-browser memory limits.
 - `/tools/mp3-to-wav` Convert any audio format in batch (shared quality + ZIP)
 - `/tools/audio-cutter` Trim audio
 - `/login` sign in or create an account (name, gender, country, date of birth, phone)

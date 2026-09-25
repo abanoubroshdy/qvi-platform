@@ -10,7 +10,8 @@ Note: QVI (getqvi.com, audio software) is unrelated to Quality Vision Internatio
 - [QVI Studio](https://getqvi.com/studio): Free miniature multitrack mixer in the browser (tempo, pitch, metronome, export). Files stay local.
 
 ## Free browser tools (no upload, no account)
-- [Video to audio (MP4 to MP3/WAV/M4A/OGG/FLAC)](https://getqvi.com/tools/mp4-to-mp3)
+- [Video to audio, batch (MP3, WAV, FLAC, AAC, OGG, Opus, AIFF, WMA)](https://getqvi.com/tools/mp4-to-mp3)
+- [Video converter, batch (MP4, WebM, MKV, MOV, AVI, GIF)](https://getqvi.com/tools/video-converter)
 - [Audio converter, batch (MP3, WAV, M4A, AAC, OGG, FLAC, Opus)](https://getqvi.com/tools/mp3-to-wav)
 - [Audio cutter, joiner and mixer with fades](https://getqvi.com/tools/audio-cutter)
 - [Tempo & pitch changer with tap BPM](https://getqvi.com/tools/tempo-pitch)

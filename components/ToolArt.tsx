@@ -573,8 +573,43 @@ function PasswordScene() {
   );
 }
 
+function VideoConverterScene({ uid }: SceneProps) {
+  return (
+    <>
+      <defs>
+        <linearGradient id={`${uid}-screen`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#6D28D9" />
+          <stop offset="100%" stopColor="#0891B2" />
+        </linearGradient>
+        <linearGradient id={`${uid}-orb`} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#0891B2" />
+          <stop offset="100%" stopColor="#6D28D9" />
+        </linearGradient>
+      </defs>
+      <g transform="translate(22 36)">
+        <rect width="78" height="88" rx="14" fill="#0b1524" />
+        <rect x="8" y="8" width="62" height="48" rx="8" fill={`url(#${uid}-screen)`} />
+        <path d="M32 24v16l14-8z" fill="#fff" />
+        <text x="39" y="76" textAnchor="middle" fontSize="11" fontWeight="800" fill="#fff" fontFamily="Inter, ui-sans-serif">
+          ANY
+        </text>
+      </g>
+      <ConvertOrb x={128} y={80} uid={uid} />
+      <g transform="translate(168 36)">
+        <rect width="86" height="88" rx="14" fill="#6D28D9" />
+        <rect x="10" y="12" width="66" height="40" rx="8" fill="#fff" opacity="0.92" />
+        <path d="M36 24v16l14-8z" fill="#6D28D9" />
+        <text x="43" y="74" textAnchor="middle" fontSize="12" fontWeight="800" fill="#fff" fontFamily="Inter, ui-sans-serif">
+          MP4
+        </text>
+      </g>
+    </>
+  );
+}
+
 const scenes: Record<ToolSlug, (props: SceneProps) => ReactElement> = {
   "mp4-to-mp3": Mp4ToMp3Scene,
+  "video-converter": VideoConverterScene,
   "mp3-to-wav": Mp3ToWavScene,
   "audio-cutter": AudioCutterScene,
   "tempo-pitch": TempoPitchScene,
