@@ -126,8 +126,10 @@ describe("QV1 public copy", () => {
         },
       ]),
     );
+    const middleware = fs.readFileSync("middleware.ts", "utf8");
+    expect(middleware).toContain("x-qvi-pathname");
+    expect(middleware).not.toMatch(/login|auth\.|downloads|NextResponse\.redirect/i);
     for (const file of [
-      "middleware.ts",
       "middleware.js",
       "src/middleware.ts",
       "src/middleware.js",
