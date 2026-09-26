@@ -153,9 +153,17 @@ export const qviStudioEngines = {
      */
     stretch: "phase-vocoder",
     debounceMs: qviStudioLimits.previewDebounceMs,
+    /**
+     * Cap on simultaneous live SoundTouch nodes during play. Identity tracks
+     * never consume a slot; extras beyond the cap use the offline bake.
+     */
+    maxLiveStretchTracks: qviStudioLimits.maxLiveStretchTracks,
     /** playbackRate changes pitch with speed and is not the preview path. */
     forbiddenStrategies: ["playback-rate-only"],
-    /** Identity tempo and pitch skip the offline render. */
+    /**
+     * Identity tempo and pitch skip both the live worklet and the offline
+     * bake — they play trimmed source buffers directly.
+     */
     skipWhenUnchanged: true,
     /**
      * ffmpeg.wasm has no rubberband filter. Tempo and pitch use SoundTouchJS
@@ -241,7 +249,7 @@ export const qviStudioV1Capabilities = [
     summary: "Each track has tempo by BPM or percent, and pitch by semitones and cents.",
     acceptance: [
       "Ranges match the Tempo Pitch tool.",
-      "Identity tracks play without SoundTouch so dense mixes stay audible.",
+      "Identity tracks play without the live worklet; only non-identity tracks use SoundTouch or the offline bake.",
       "While a SoundTouch worklet is registered, non-identity tracks (up to maxLiveStretchTracks) update pitch and tempo in place.",
       "Non-identity tracks beyond that cap, or without a worklet, preview offline after the debounce then play the rendered buffer.",
       "Unchanged tempo and pitch skip that offline render.",
