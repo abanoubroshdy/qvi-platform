@@ -319,6 +319,25 @@ body:has(.studio-console) {
   font-variant-numeric: tabular-nums;
 }
 
+.studio-bpm-field {
+  width: 3.6rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+  padding: 0;
+  cursor: ns-resize;
+}
+
+.studio-bpm-field:focus {
+  outline: none;
+  cursor: text;
+  background: hsl(var(--studio-well));
+  border-radius: 0.25rem;
+}
+
 .studio-seek {
   accent-color: hsl(var(--studio-teal));
 }

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { stretchAudioBufferOffThread } from "@/lib/audio-stretch-task";
 import { createLiveStretchNode, enableLiveStretch } from "@/lib/audio-stretch-worklet";
-import { isStudioTextTarget, sessionDisplayBpm, studioTransportCommand } from "@/lib/studio/chrome";
+import { isStudioTextTarget, readSessionBpm, studioTransportCommand } from "@/lib/studio/chrome";
 import { appendTap, tapBpmFromTimestamps } from "@/lib/audio-tempo";
 import {
   STUDIO_METRONOME_LOOKAHEAD_SEC,
@@ -37,6 +37,7 @@ import {
   STUDIO_DEFAULT_PROJECT_NAME,
   removeTrack,
   seekPlayhead,
+  setSessionBpm,
   setClipOffset,
   setClipTrim,
   setClipFades,
@@ -207,6 +208,10 @@ export function useStudioSession() {
       onTransport: (snapshot) => {
         playheadRef.current = snapshot.playheadSec;
         setTransport(snapshot);
+      },
+      onLiveStretchFailed: () => {
+        host.createLiveStretch = undefined;
+        setLiveReady(false);
       },
     });
     engineRef.current = engine;
@@ -442,8 +447,7 @@ export function useStudioSession() {
       if (!metronomeEnabledRef.current) return;
       const engine = engineRef.current;
       const playing = engine?.currentStatus() === "playing";
-      const bpm =
-        sessionDisplayBpm(projectRef.current.tracks, selectedTrackIdRef.current) ?? 120;
+      const bpm = readSessionBpm(projectRef.current);
       if (playing && engine) {
         const playhead = engine.currentPlayhead();
         const from = Math.max(playhead, nextHeard);
@@ -500,25 +504,7 @@ export function useStudioSession() {
     setTapCount(next.length);
     const bpm = tapBpmFromTimestamps(next);
     if (bpm == null) return;
-    const tracks = projectRef.current.tracks;
-    const track = tracks.find((item) => item.id === selectedTrackIdRef.current) ?? tracks[0] ?? null;
-    if (!track) return;
-    if (track.tempo.mode === "bpm") {
-      const sync = Math.abs(track.tempo.targetBpm - track.tempo.originalBpm) < 0.05;
-      const result = setTrackTempo(
-        projectRef.current,
-        track.id,
-        sync ? { originalBpm: bpm, targetBpm: bpm } : { targetBpm: bpm },
-      );
-      if (result.ok) commit(result.project);
-      return;
-    }
-    const result = setTrackTempo(projectRef.current, track.id, {
-      mode: "bpm",
-      originalBpm: bpm,
-      targetBpm: bpm,
-    });
-    if (result.ok) commit(result.project);
+    commit(setSessionBpm(projectRef.current, bpm));
   }, [commit]);
 
   const resetTaps = useCallback(() => {
@@ -821,6 +807,9 @@ export function useStudioSession() {
       if (enabled) void engineRef.current?.resumeFromUserGesture();
     },
     tapTempo,
+    setSessionBpm: (bpm: number) => {
+      commit(setSessionBpm(projectRef.current, bpm));
+    },
     resetTaps,
     tapCount,
     selectClip,

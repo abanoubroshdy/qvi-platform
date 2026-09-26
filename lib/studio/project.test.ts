@@ -19,6 +19,7 @@ import {
   largeFileWarning,
   moveClipToTrack,
   projectDuration,
+  projectFromSnapshot,
   projectExportBlockReason,
   removeClip,
   seekPlayhead,
@@ -26,6 +27,7 @@ import {
   setClipTrim,
   setClipFades,
   setMasterGain,
+  setSessionBpm,
   setTrackGain,
   setTrackMuted,
   setTrackPitch,
@@ -321,6 +323,26 @@ describe("studio project model", () => {
 
   it("uses the tempo helper for the default bpm identity", () => {
     expect(resolveTempoRate(defaultTempo())).toBe(1);
+  });
+
+  it("stores session bpm without changing a track's stretch rate", () => {
+    const project = withTrack();
+    const before = project.tracks[0]!.tempo;
+    const next = setSessionBpm(project, 92.5);
+    expect(next).not.toBe(project);
+    expect(next.sessionBpm).toBe(92.5);
+    expect(next.tracks[0]!.tempo).toEqual(before);
+    expect(resolveTempoRate(next.tracks[0]!.tempo)).toBe(resolveTempoRate(before));
+    expect(setSessionBpm(next, 10).sessionBpm).toBe(20);
+    expect(setSessionBpm(next, 400).sessionBpm).toBe(300);
+    expect(setSessionBpm(next, 92.5)).toBe(next);
+    const snapshot = snapshotStudioProject(next);
+    expect(snapshot.sessionBpm).toBe(92.5);
+    expect(projectFromSnapshot(snapshot).sessionBpm).toBe(92.5);
+    const legacy = { ...snapshot };
+    delete legacy.sessionBpm;
+    expect(projectFromSnapshot(legacy).sessionBpm).toBe(120);
+    expect(createStudioProject().sessionBpm).toBe(120);
   });
 });
 

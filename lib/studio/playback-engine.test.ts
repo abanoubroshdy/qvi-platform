@@ -124,6 +124,7 @@ class FakeHost implements StudioAudioHost {
 
 class FakeStretch implements StudioLiveStretch {
   applied: LiveStretchParams | null = null;
+  readonly input: StudioAudioNode = this;
   connect() {}
   disconnect() {}
   apply(params: LiveStretchParams) {
@@ -509,7 +510,78 @@ describe("playback engine", () => {
     expect(host.compressors[0]!.links[0]).toBe(host.panners[0]);
     expect(host.panners[0]!.links[0]).toBe(host.gains[1]);
   });
+
+  it("plays the source buffer when the worklet cannot be created", () => {
+    const host = new FakeHost();
+    const failed: string[] = [];
+    (host as FakeHost & { createLiveStretch(): StudioLiveStretch }).createLiveStretch = () => {
+      throw new Error("SoundTouch worklet is not registered");
+    };
+    const engine = createStudioPlaybackEngine({
+      host,
+      onLiveStretchFailed: () => failed.push("fallback"),
+    });
+    const { project } = projectWithClip({ seconds: 1.5 });
+    engine.play(project);
+    expect(failed).toEqual(["fallback"]);
+    expect(engine.currentStatus()).toBe("playing");
+    const started = host.sources.filter((source) => source.started);
+    expect(started).toHaveLength(1);
+    expect(started[0]!.playbackRate.value).toBe(1);
+    expect(started[0]!.started).toMatchObject({ offset: 0, duration: 1.5 });
+  });
+
+  it("plays the source buffer when connecting into the worklet throws", () => {
+    const host = new StrictHost();
+    const seen: string[] = [];
+    const engine = createStudioPlaybackEngine({
+      host,
+      onTransport: (snapshot) => seen.push(snapshot.status),
+      onLiveStretchFailed: () => seen.push("fallback"),
+    });
+    const { project } = projectWithClip({ seconds: 1.5 });
+    engine.play(project);
+    expect(engine.currentStatus()).toBe("playing");
+    expect(seen).toContain("fallback");
+    expect(seen.at(-1)).toBe("playing");
+    const started = host.sources.filter((source) => source.started);
+    expect(started).toHaveLength(1);
+    expect(started[0]!.playbackRate.value).toBe(1);
+  });
 });
+
+class StrictGain implements StudioGainNode {
+  gain = { value: 1 };
+  links: StudioAudioNode[] = [];
+  connect(destination: StudioAudioNode) {
+    if ((destination as { bad?: boolean }).bad) {
+      throw new TypeError("Failed to execute 'connect' on 'AudioNode': Overload resolution failed.");
+    }
+    this.links.push(destination);
+  }
+  disconnect() {
+    this.links = [];
+  }
+}
+
+class StrictHost extends FakeHost {
+  createGain() {
+    return new StrictGain() as unknown as FakeGain;
+  }
+  createLiveStretch(): StudioLiveStretch {
+    const input: StudioAudioNode & { bad?: boolean } = {
+      bad: true,
+      connect() {},
+      disconnect() {},
+    };
+    return {
+      input,
+      connect() {},
+      disconnect() {},
+      apply() {},
+    };
+  }
+}
 
 class LinkedNode implements StudioAudioNode {
   links: StudioAudioNode[] = [];
@@ -599,6 +671,7 @@ class StripHost implements StudioAudioHost {
 }
 
 class LinkedStretch extends LinkedNode implements StudioLiveStretch {
+  readonly input: StudioAudioNode = this;
   applied: LiveStretchParams | null = null;
   apply(params: LiveStretchParams) {
     this.applied = params;

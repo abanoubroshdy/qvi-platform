@@ -1,7 +1,13 @@
 /**
  * Pure helpers for the studio console chrome.
- * Keyboard handling skips text fields. Timecode and BPM are display-only.
+ * Keyboard handling skips text fields. Session BPM is the grid clock.
+ * It does not time-stretch clips. Per-track tempo does that.
  */
+
+/** Session grid range. Wider than per-track stretch (40–240) and does not change playback rate. */
+export const SESSION_BPM_MIN = 20;
+export const SESSION_BPM_MAX = 300;
+export const SESSION_BPM_DEFAULT = 120;
 
 import type { StudioTempoSetting } from "@/lib/studio/definition";
 
@@ -54,6 +60,63 @@ type BpmTrack = {
   id: string;
   tempo: StudioTempoSetting;
 };
+
+export function clampSessionBpm(value: number): number {
+  if (!Number.isFinite(value)) return SESSION_BPM_DEFAULT;
+  const clamped = Math.min(SESSION_BPM_MAX, Math.max(SESSION_BPM_MIN, value));
+  return Math.round(clamped * 1000) / 1000;
+}
+
+/** Grid, snap, ruler, and metronome tempo. Missing values stay at 120. */
+export function readSessionBpm(project: { sessionBpm?: number } | null | undefined): number {
+  if (!project || typeof project.sessionBpm !== "number") return SESSION_BPM_DEFAULT;
+  return clampSessionBpm(project.sessionBpm);
+}
+
+/** One wheel/arrow step. Shift nudges by a tenth so values like 92.5 are reachable. */
+export function nudgeSessionBpm(current: number, steps: number, fine: boolean): number {
+  const direction = steps < 0 ? -1 : 1;
+  const count = Math.max(1, Math.round(Math.abs(steps)));
+  const delta = (fine ? 0.1 : 1) * direction * count;
+  return clampSessionBpm(readSessionBpm({ sessionBpm: current }) + delta);
+}
+
+/** Digits and one dot. Three places before the dot, three after (20–300, including 92.5). */
+export function sanitizeSessionBpmDraft(text: string): string {
+  const normalized = text.replace(/,/g, ".");
+  let cleaned = "";
+  let seenDot = false;
+  for (const char of normalized) {
+    if (char >= "0" && char <= "9") {
+      const dotIndex = cleaned.indexOf(".");
+      if (dotIndex === -1) {
+        if (cleaned.length < 3) cleaned += char;
+      } else if (cleaned.length - dotIndex - 1 < 3) {
+        cleaned += char;
+      }
+      continue;
+    }
+    if (char === "." && !seenDot) {
+      seenDot = true;
+      cleaned += char;
+    }
+  }
+  return cleaned;
+}
+
+/** Enter/blur. Empty or junk restores the current session tempo. */
+export function commitSessionBpmText(text: string, fallback: number): number {
+  const trimmed = text.trim().replace(/,/g, ".");
+  if (!trimmed || trimmed === ".") return clampSessionBpm(fallback);
+  const value = Number(trimmed);
+  if (!Number.isFinite(value)) return clampSessionBpm(fallback);
+  return clampSessionBpm(value);
+}
+
+export function formatSessionBpm(value: number): string {
+  const bpm = clampSessionBpm(value);
+  return String(bpm);
+}
 
 /** Heard BPM for the selected track, or the first track once a session has audio. */
 export function sessionDisplayBpm(tracks: readonly BpmTrack[], selectedTrackId: string | null): number | null {

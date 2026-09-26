@@ -3,7 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 import { Circle, Minus, Pause, Play, Plus, Repeat2, Square, Timer, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatStudioTimecode, sessionDisplayBpm, studioNewProjectButtonPhase, studioProjectIsOpen } from "@/lib/studio/chrome";
+import {
+  commitSessionBpmText,
+  formatSessionBpm,
+  formatStudioTimecode,
+  nudgeSessionBpm,
+  readSessionBpm,
+  sanitizeSessionBpmDraft,
+  studioNewProjectButtonPhase,
+  studioProjectIsOpen,
+} from "@/lib/studio/chrome";
 import { finishedProjectName } from "@/lib/studio/project";
 import { nextPixelsPerSecond, type StudioSnapMode } from "@/lib/studio/timeline-geometry";
 import type { Messages } from "@/lib/i18n";
@@ -39,7 +48,6 @@ export function StudioTransport({ copy }: { copy: Messages["studio"] }) {
 export function StudioTransportDock({ copy }: { copy: Messages["studio"] }) {
   const studio = useStudio();
   const playing = studio.transport.status === "playing";
-  const bpm = sessionDisplayBpm(studio.project.tracks, studio.selectedTrack?.id ?? null);
 
   return (
     <div className="studio-transport studio-transport-dock grid grid-cols-[1fr_auto_1fr] items-center gap-x-2 gap-y-2 px-2 py-2 sm:px-3">
@@ -47,16 +55,7 @@ export function StudioTransportDock({ copy }: { copy: Messages["studio"] }) {
       <div className="flex min-w-0 flex-wrap items-center justify-center gap-x-2 gap-y-1" role="group" aria-label={copy.play}>
         <SeekControl label={copy.seek} />
         <div className="flex items-center gap-1">
-          {bpm !== null ? (
-            <span className="studio-bpm" dir="ltr" title={studio.selectedTrack?.name}>
-              {bpm.toFixed(1)}
-              <span className="font-medium tracking-wide">{copy.bpm}</span>
-            </span>
-          ) : (
-            <span className="studio-bpm studio-bpm-empty" dir="ltr" aria-label={copy.bpm}>
-              —<span className="font-medium tracking-wide">{copy.bpm}</span>
-            </span>
-          )}
+          <SessionBpmField label={copy.sessionBpm} hint={copy.sessionBpmHint} unit={copy.bpm} />
           <Button
             type="button"
             size="sm"
@@ -64,7 +63,6 @@ export function StudioTransportDock({ copy }: { copy: Messages["studio"] }) {
             className="h-8 px-2 text-[0.68rem] font-semibold uppercase tracking-wide"
             aria-label={copy.tapTempo}
             title={copy.tapTempoHint}
-            disabled={studio.project.tracks.length === 0}
             onClick={studio.tapTempo}
           >
             {copy.tapTempo}
@@ -294,6 +292,122 @@ function TransportClock({ label, duration }: { label: string; duration: number }
       <span className="studio-timecode-sep">/</span>
       <span className="studio-timecode-end">{formatStudioTimecode(duration)}</span>
     </div>
+  );
+}
+
+function SessionBpmField({ label, hint, unit }: { label: string; hint: string; unit: string }) {
+  const studio = useStudio();
+  const bpm = readSessionBpm(studio.project);
+  const [draft, setDraft] = useState(() => formatSessionBpm(bpm));
+  const [editing, setEditing] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const cancelRef = useRef(false);
+  const draftRef = useRef(draft);
+  const bpmRef = useRef(bpm);
+  const commitRef = useRef(studio.setSessionBpm);
+  draftRef.current = draft;
+  bpmRef.current = bpm;
+  commitRef.current = studio.setSessionBpm;
+  const dragRef = useRef<{ y: number; origin: number; dragging: boolean } | null>(null);
+  const showRef = useRef<(value: number) => void>(() => {});
+  showRef.current = (value: number) => {
+    setDraft(formatSessionBpm(value));
+    setEditing(false);
+  };
+
+  useEffect(() => {
+    if (!editing) setDraft(formatSessionBpm(bpm));
+  }, [bpm, editing]);
+
+  useEffect(() => {
+    const node = inputRef.current;
+    if (!node) return;
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      const steps = event.deltaY < 0 ? 1 : event.deltaY > 0 ? -1 : 0;
+      if (!steps) return;
+      const next = nudgeSessionBpm(bpmRef.current, steps, event.shiftKey);
+      commitRef.current(next);
+      showRef.current(next);
+    };
+    node.addEventListener("wheel", onWheel, { passive: false });
+    return () => node.removeEventListener("wheel", onWheel);
+  }, []);
+
+  return (
+    <label className="studio-bpm" dir="ltr" title={hint}>
+      <input
+        ref={inputRef}
+        className="studio-bpm-field"
+        inputMode="decimal"
+        aria-label={label}
+        title={hint}
+        value={draft}
+        onChange={(event) => {
+          setEditing(true);
+          setDraft(sanitizeSessionBpmDraft(event.target.value));
+        }}
+        onFocus={() => setEditing(true)}
+        onBlur={() => {
+          if (cancelRef.current) {
+            cancelRef.current = false;
+            setEditing(false);
+            setDraft(formatSessionBpm(bpmRef.current));
+            return;
+          }
+          commitRef.current(commitSessionBpmText(draftRef.current, bpmRef.current));
+          setEditing(false);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            commitRef.current(commitSessionBpmText(draftRef.current, bpmRef.current));
+            setEditing(false);
+            event.currentTarget.blur();
+            return;
+          }
+          if (event.key === "Escape") {
+            event.preventDefault();
+            cancelRef.current = true;
+            setDraft(formatSessionBpm(bpmRef.current));
+            setEditing(false);
+            event.currentTarget.blur();
+            return;
+          }
+          if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+            event.preventDefault();
+            const steps = event.key === "ArrowUp" ? 1 : -1;
+            const next = nudgeSessionBpm(bpmRef.current, steps, event.shiftKey);
+            commitRef.current(next);
+            showRef.current(next);
+          }
+        }}
+        onPointerDown={(event) => {
+          if (event.button !== 0) return;
+          dragRef.current = { y: event.clientY, origin: bpmRef.current, dragging: false };
+        }}
+        onPointerMove={(event) => {
+          const drag = dragRef.current;
+          if (!drag) return;
+          const dy = drag.y - event.clientY;
+          if (!drag.dragging && Math.abs(dy) < 4) return;
+          if (!drag.dragging) {
+            drag.dragging = true;
+            event.currentTarget.setPointerCapture(event.pointerId);
+          }
+          event.preventDefault();
+          const steps = Math.round(dy / 8);
+          if (steps === 0) return;
+          const next = nudgeSessionBpm(drag.origin, steps, event.shiftKey);
+          commitRef.current(next);
+          showRef.current(next);
+        }}
+        onPointerUp={() => {
+          dragRef.current = null;
+        }}
+      />
+      <span className="font-medium tracking-wide">{unit}</span>
+    </label>
   );
 }
 

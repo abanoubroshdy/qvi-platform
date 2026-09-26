@@ -68,6 +68,7 @@ export function createLiveStretchVoice(context: AudioContext): {
 export function createLiveStretchNode(context: AudioContext): StudioLiveStretch {
   const node = createStretchNode(context);
   return {
+    input: node,
     connect(destination) {
       node.connect(destination as AudioNode);
     },

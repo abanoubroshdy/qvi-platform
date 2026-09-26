@@ -8,6 +8,9 @@ import {
 describe("studio metronome", () => {
   it("places accented downbeats on the bar grid at 120 BPM", () => {
     expect(metronomeBeatSec(120)).toBe(0.5);
+    expect(metronomeBeatSec(20)).toBe(3);
+    expect(metronomeBeatSec(300)).toBeCloseTo(0.2, 5);
+    expect(metronomeBeatSec(92.5)).toBeCloseTo(60 / 92.5, 5);
     const clicks = metronomeClicksInWindow(0, 2.1, 120, 4);
     expect(clicks).toEqual([
       { timeSec: 0, accent: true },
