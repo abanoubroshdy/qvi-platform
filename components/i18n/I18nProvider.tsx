@@ -1,12 +1,12 @@
 "use client";
 
+import { usePathname, useRouter } from "next/navigation";
 import {
   createContext,
   useCallback,
   useContext,
   useEffect,
   useMemo,
-  useState,
   type ReactNode,
 } from "react";
 import {
@@ -17,6 +17,7 @@ import {
   type Locale,
   type Messages,
 } from "@/lib/i18n";
+import { isLocalizedRoute, localeFromPath, stripLocale, withLocale } from "@/lib/i18n/locale-path";
 
 type I18nContextValue = {
   locale: Locale;
@@ -35,26 +36,35 @@ function applyDocumentLocale(locale: Locale) {
   root.dataset.locale = locale;
 }
 
-export function I18nProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>("en");
+export function I18nProvider({
+  children,
+  initialLocale = "en",
+}: {
+  children: ReactNode;
+  initialLocale?: Locale;
+}) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const locale = pathname ? localeFromPath(pathname) : isLocale(initialLocale) ? initialLocale : "en";
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(LOCALE_STORAGE_KEY);
-    if (isLocale(stored)) {
-      setLocaleState(stored);
-      applyDocumentLocale(stored);
-      return;
+    applyDocumentLocale(locale);
+    try {
+      window.localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+    } catch {
+      /* private mode */
     }
-    const next: Locale = navigator.language.toLowerCase().startsWith("ar") ? "ar" : "en";
-    setLocaleState(next);
-    applyDocumentLocale(next);
-  }, []);
+  }, [locale]);
 
-  const setLocale = useCallback((next: Locale) => {
-    setLocaleState(next);
-    window.localStorage.setItem(LOCALE_STORAGE_KEY, next);
-    applyDocumentLocale(next);
-  }, []);
+  const setLocale = useCallback(
+    (next: Locale) => {
+      const bare = stripLocale(pathname || "/");
+      const hash = window.location.hash;
+      const target = isLocalizedRoute(bare) ? withLocale(bare, next) : withLocale("/", next);
+      router.push(`${target}${hash}`);
+    },
+    [pathname, router],
+  );
 
   const value = useMemo<I18nContextValue>(() => {
     const copy = messages[locale];

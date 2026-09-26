@@ -1,9 +1,10 @@
 "use client";
 
-import Link from "next/link";
+import { LocaleLink as Link } from "@/components/LocaleLink";
 import { usePathname } from "next/navigation";
 import { Logo } from "@/components/Logo";
 import { useI18n } from "@/components/i18n/I18nProvider";
+import { stripLocale } from "@/lib/i18n/locale-path";
 import { products } from "@/lib/products";
 import { siteConfig } from "@/lib/site";
 import { footerCompanyItems, footerExploreItems, qv1Path } from "@/lib/site-nav";
@@ -12,7 +13,7 @@ export function Footer() {
   const pathname = usePathname();
   const { copy } = useI18n();
   const year = new Date().getFullYear();
-  if (pathname === "/studio") return null;
+  if (stripLocale(pathname) === "/studio") return null;
 
   const productLinks = [
     { href: products.studio.href, label: copy.products.studio.name },

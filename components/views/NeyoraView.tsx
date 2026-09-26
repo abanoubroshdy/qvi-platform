@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/accordion";
 
 export function NeyoraView() {
-  const { copy } = useI18n();
+  const { copy, locale } = useI18n();
   const page = copy.products.neyora;
 
   return (
@@ -53,14 +53,25 @@ export function NeyoraView() {
 
       <section className="mx-auto max-w-4xl px-4 pb-16">
         <h2 className="mb-4 text-2xl font-semibold">{copy.common.faq}</h2>
-        <Accordion type="single" collapsible className="rounded-2xl border border-border bg-card px-4">
-          {page.faqs.map((faq, index) => (
-            <AccordionItem key={faq.q} value={`neyora-${index}`}>
-              <AccordionTrigger className="text-base">{faq.q}</AccordionTrigger>
-              <AccordionContent className="leading-7 text-muted-foreground">{faq.a}</AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
+        {locale === "ar" ? (
+          <div className="rounded-2xl border border-border bg-card px-4">
+            {page.faqs.map((faq) => (
+              <details key={faq.q} className="border-b border-border last:border-b-0">
+                <summary className="cursor-pointer py-4 text-base font-medium">{faq.q}</summary>
+                <p className="pb-4 leading-7 text-muted-foreground">{faq.a}</p>
+              </details>
+            ))}
+          </div>
+        ) : (
+          <Accordion type="single" collapsible className="rounded-2xl border border-border bg-card px-4">
+            {page.faqs.map((faq, index) => (
+              <AccordionItem key={faq.q} value={`neyora-${index}`}>
+                <AccordionTrigger className="text-base">{faq.q}</AccordionTrigger>
+                <AccordionContent className="leading-7 text-muted-foreground">{faq.a}</AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        )}
       </section>
     </div>
   );

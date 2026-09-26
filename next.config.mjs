@@ -78,6 +78,11 @@ const nextConfig = {
         statusCode: 301,
       },
       {
+        source: "/ar/lab",
+        destination: "/ar/products/neyora",
+        statusCode: 301,
+      },
+      {
         // Public. The QV1 Setup fetches these URLs with no session.
         // Keep this off any auth middleware matcher (there is none today).
         source: "/downloads/evaluation/:path*",
@@ -105,6 +110,10 @@ const nextConfig = {
         // these routes: it would break ads on every free tool, including the
         // converters. Other pages keep credentialless (studio included).
         source: "/tools/:slug",
+        headers: [{ key: "Cross-Origin-Embedder-Policy", value: "unsafe-none" }],
+      },
+      {
+        source: "/ar/tools/:slug",
         headers: [{ key: "Cross-Origin-Embedder-Policy", value: "unsafe-none" }],
       },
       {

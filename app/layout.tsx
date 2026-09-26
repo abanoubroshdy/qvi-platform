@@ -1,9 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans_Arabic, Inter } from "next/font/google";
+import { headers } from "next/headers";
 import { AppProviders } from "@/components/AppProviders";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { adsenseVerificationClient } from "@/lib/adsense";
+import { localeFromPath } from "@/lib/i18n/locale-path";
 import { pageMeta } from "@/lib/page-meta";
 import { openGraphImage } from "@/lib/seo";
 import { siteConfig } from "@/lib/site";
@@ -90,20 +92,27 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-const localeBootScript = `(function(){try{var l=localStorage.getItem("qvi-locale");if(l!=="ar"&&l!=="en"){l=(navigator.language||"").toLowerCase().indexOf("ar")===0?"ar":"en"}var d=document.documentElement;d.lang=l;d.dir=l==="ar"?"rtl":"ltr";d.dataset.locale=l;}catch(e){}})();`;
-
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const pathname = headers().get("x-qvi-pathname") ?? "/";
+  const locale = localeFromPath(pathname);
+  const dir = locale === "ar" ? "rtl" : "ltr";
+
   return (
-    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${ibmPlexSansArabic.variable}`}>
+    <html
+      lang={locale}
+      dir={dir}
+      data-locale={locale}
+      suppressHydrationWarning
+      className={`${inter.variable} ${ibmPlexSansArabic.variable}`}
+    >
       <body className="min-h-screen font-sans">
-        <script dangerouslySetInnerHTML={{ __html: localeBootScript }} />
         {/* eslint-disable-next-line @next/next/no-css-tags */}
         <link rel="stylesheet" href="/brand.css?v=13" />
-        <AppProviders>
+        <AppProviders initialLocale={locale}>
           <div className="qvi-shell flex min-h-screen flex-col">
             <Header />
             <main className="flex-1">{children}</main>

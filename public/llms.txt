@@ -1,6 +1,6 @@
 # QVI — Quality Virtual Instruments
 
-> QVI (getqvi.com) is an audio software studio building on-device AI audio tools. Its core products are QV1 Evaluation, a free Windows app for AI stem separation plus Drum Split (DSP) and mix tools, and Neyora, a DDSP-based instrument synthesis engine that turns text, voice, or MIDI into realistic solo instrument performances (in development). QVI also offers free browser tools (audio, image, PDF, text, QR, and passwords) that process files locally on the user's device — nothing is uploaded. Pages are published in English. A client-side control can switch visible copy to Arabic; there are no separate Arabic URLs.
+> QVI (getqvi.com) is an audio software studio building on-device AI audio tools. Its core products are QV1 Evaluation, a free Windows app for AI stem separation plus Drum Split (DSP) and mix tools, and Neyora, a DDSP-based instrument synthesis engine that turns text, voice, or MIDI into realistic solo instrument performances (in development). QVI also offers free browser tools (audio, image, PDF, text, QR, and passwords) that process files locally on the user's device — nothing is uploaded. Pages are published in English and in Modern Standard Arabic. Each indexable English URL has an Arabic counterpart under /ar (for example https://getqvi.com/ar and https://getqvi.com/ar/products/qv1). The language control navigates between those URLs.
 
 Note: QVI (getqvi.com, audio software) is unrelated to Quality Vision International (qvii.com, industrial metrology).
 
@@ -31,6 +31,23 @@ Note: QVI (getqvi.com, audio software) is unrelated to Quality Vision Internatio
 
 ## How the free tools work
 All processing happens in the browser (FFmpeg.wasm for audio/video, Canvas for images, PDF libraries for PDF, crypto.getRandomValues for passwords). Files are never sent to a QVI server. Free tools may show ads.
+
+## Arabic pages
+The same public pages are server-rendered in Arabic at the /ar prefix. Examples:
+- https://getqvi.com/ar
+- https://getqvi.com/ar/qv1
+- https://getqvi.com/ar/qv1/models
+- https://getqvi.com/ar/products/qv1
+- https://getqvi.com/ar/products/neyora
+- https://getqvi.com/ar/studio
+- https://getqvi.com/ar/tools
+- https://getqvi.com/ar/tools/mp4-to-mp3 (and every other tool and tool category)
+- https://getqvi.com/ar/about
+- https://getqvi.com/ar/contact
+- https://getqvi.com/ar/privacy-policy
+- https://getqvi.com/ar/terms
+
+QV1 Evaluation remains a free Windows download. Neyora remains in development. https://getqvi.com/ar/lab permanently redirects to https://getqvi.com/ar/products/neyora.
 
 ## Company
 - [About](https://getqvi.com/about)
