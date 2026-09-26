@@ -138,7 +138,7 @@ export function VideoConverter() {
           ) : null}
         </>
       }
-      leading={
+      trailing={
         <div className="space-y-4 rounded-xl border bg-card p-4 shadow-sm">
           <p className="text-sm text-muted-foreground">{t.unifiedHint}</p>
           <VideoConvertSettings settings={settings} disabled={queue.busy} onChange={onSettings} />

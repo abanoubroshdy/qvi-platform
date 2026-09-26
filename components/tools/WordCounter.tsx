@@ -48,7 +48,7 @@ export function WordCounter() {
       downloadLabel={copy.wordCounter.download}
       onDownload={() => text && void copyText(text)}
       downloadDisabled={!text}
-      leading={
+      settings={
         <div className="space-y-2 rounded-xl border bg-card p-4 shadow-sm">
           <Label htmlFor="word-counter-text">{copy.wordCounter.label}</Label>
           <textarea

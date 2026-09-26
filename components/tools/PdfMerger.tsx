@@ -107,7 +107,7 @@ export function PdfMerger() {
       }}
       downloadDisabled={!result || isWorking}
       error={error}
-      extra={
+      settings={
         files.length ? (
           <ul className="space-y-2 rounded-xl border bg-card p-4 shadow-sm">
             {files.map((file, index) => (

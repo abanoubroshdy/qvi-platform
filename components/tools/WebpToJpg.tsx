@@ -117,7 +117,8 @@ export function WebpToJpg() {
       dropTitle={copy.webp.dropTitle}
       dropHint={copy.webp.dropHint}
       error={error}
-      extra={
+      settings={
+        file ? (
         <div className="rounded-xl border bg-card p-4 shadow-sm">
           <div className="mb-3 flex items-center justify-between gap-3">
             <Label htmlFor="jpg-quality" className="text-sm font-bold">
@@ -140,6 +141,7 @@ export function WebpToJpg() {
             {copy.webp.qualityHint}
           </p>
         </div>
+        ) : null
       }
       preview={
         file ? (

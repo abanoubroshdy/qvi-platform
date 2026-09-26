@@ -145,29 +145,31 @@ export function Mp4ToMp3() {
           ) : null}
         </>
       }
-      leading={
-        <div className="space-y-4 rounded-xl border bg-card p-4 shadow-sm">
-          <div className="space-y-2">
-            <Label className="text-start">{t.format}</Label>
-            <p className="text-sm text-muted-foreground">{t.unifiedHint}</p>
-            <div className="flex flex-wrap gap-2" role="group" aria-label={t.format}>
-              {videoAudioFormats.map((item) => (
-                <Button
-                  key={item}
-                  type="button"
-                  size="sm"
-                  variant={format === item ? "default" : "outline"}
-                  onClick={() => onFormat(item)}
-                  disabled={queue.busy}
-                  aria-pressed={format === item}
-                  dir="ltr"
-                >
-                  {t.formats[item]}
-                </Button>
-              ))}
-            </div>
-          </div>
+      settings={
+        queue.items.length ? (
           <VideoAudioSettings format={format} settings={settings} disabled={queue.busy} onChange={onSettings} />
+        ) : null
+      }
+      trailing={
+        <div className="space-y-2 rounded-xl border bg-card p-4 shadow-sm">
+          <Label className="text-start">{t.format}</Label>
+          <p className="text-sm text-muted-foreground">{t.unifiedHint}</p>
+          <div className="flex flex-wrap gap-2" role="group" aria-label={t.format}>
+            {videoAudioFormats.map((item) => (
+              <Button
+                key={item}
+                type="button"
+                size="sm"
+                variant={format === item ? "default" : "outline"}
+                onClick={() => onFormat(item)}
+                disabled={queue.busy}
+                aria-pressed={format === item}
+                dir="ltr"
+              >
+                {t.formats[item]}
+              </Button>
+            ))}
+          </div>
         </div>
       }
       preview={

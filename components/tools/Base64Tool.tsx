@@ -71,7 +71,7 @@ export function Base64Tool() {
       downloadDisabled={!output}
       error={error}
       onFiles={onFile}
-      leading={
+      settings={
         <div className="space-y-4 rounded-xl border bg-card p-4 shadow-sm">
           <div className="inline-flex rounded-lg border border-border p-0.5">
             {(["encode", "decode"] as const).map((item) => (

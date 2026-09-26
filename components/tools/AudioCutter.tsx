@@ -596,7 +596,7 @@ export function AudioCutter() {
       }}
       downloadDisabled={!result || busy}
       error={error}
-      leading={
+      settings={
         clips.length ? (
           <div className="space-y-4">
             <AudioClipList
@@ -752,35 +752,39 @@ export function AudioCutter() {
                 ) : null}
               </div>
 
-              <div className="space-y-3">
-                <Label className="text-start">{copy.audioCutter.outputFormat}</Label>
-                <div className="flex flex-wrap gap-2" role="group" aria-label={copy.audioCutter.outputFormat}>
-                  {cutterFormats.map((item) => (
-                    <Button
-                      key={item}
-                      type="button"
-                      size="sm"
-                      variant={format === item ? "default" : "outline"}
-                      onClick={() => onFormat(item)}
-                      disabled={busy}
-                      aria-pressed={format === item}
-                      dir="ltr"
-                    >
-                      {copy.mp4ToMp3.formats[item]}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              <AudioExportSettingsPanel format={format} settings={settings} disabled={busy} onChange={onSettings} />
-
-              <p className="text-start text-xs text-muted-foreground" dir="ltr">
-                {interpolate(copy.audioCutter.qualityCompare, {
-                  source: sourceInfo ? formatAudioSourceSummary(sourceInfo) : "—",
-                  output: exportSummary,
-                })}
-              </p>
             </div>
+          </div>
+        ) : null
+      }
+      trailing={
+        clips.length ? (
+          <div className="space-y-4 rounded-xl border bg-card p-4 shadow-sm">
+            <div className="space-y-3">
+              <Label className="text-start">{copy.audioCutter.outputFormat}</Label>
+              <div className="flex flex-wrap gap-2" role="group" aria-label={copy.audioCutter.outputFormat}>
+                {cutterFormats.map((item) => (
+                  <Button
+                    key={item}
+                    type="button"
+                    size="sm"
+                    variant={format === item ? "default" : "outline"}
+                    onClick={() => onFormat(item)}
+                    disabled={busy}
+                    aria-pressed={format === item}
+                    dir="ltr"
+                  >
+                    {copy.mp4ToMp3.formats[item]}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <AudioExportSettingsPanel format={format} settings={settings} disabled={busy} onChange={onSettings} />
+            <p className="text-start text-xs text-muted-foreground" dir="ltr">
+              {interpolate(copy.audioCutter.qualityCompare, {
+                source: sourceInfo ? formatAudioSourceSummary(sourceInfo) : "—",
+                output: exportSummary,
+              })}
+            </p>
           </div>
         ) : null
       }
