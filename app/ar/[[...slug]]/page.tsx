@@ -17,6 +17,9 @@ import { ToolsHubView } from "@/components/views/ToolsHubView";
 import { UpcomingToolView } from "@/components/views/UpcomingToolView";
 import { LoginView } from "@/components/auth/LoginView";
 import { AccountView } from "@/components/auth/AccountView";
+import { AuthCallback } from "@/components/auth/AuthCallback";
+import { ForgotPasswordView } from "@/components/auth/ForgotPasswordView";
+import { ResetPasswordView } from "@/components/auth/ResetPasswordView";
 import type { LiveToolSlug } from "@/lib/i18n";
 import { isIndexableLocalizedPath, isLocalizedRoute } from "@/lib/i18n/locale-path";
 import { arabicSeoForPath } from "@/lib/page-meta-ar";
@@ -164,6 +167,12 @@ function ArabicBody({ englishPath, searchParams }: { englishPath: string; search
       );
     case "/account":
       return <AccountView />;
+    case "/forgot-password":
+      return <ForgotPasswordView />;
+    case "/reset-password":
+      return <ResetPasswordView />;
+    case "/auth/callback":
+      return <AuthCallback />;
     default: {
       if (!englishPath.startsWith("/tools/")) return null;
       const slug = englishPath.slice("/tools/".length);

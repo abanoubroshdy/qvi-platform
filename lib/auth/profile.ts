@@ -77,6 +77,15 @@ export function validateProfile(fields: ProfileFields): ProfileIssue | null {
   return null;
 }
 
+export function validatePasswordPair(
+  password: string,
+  confirmPassword: string,
+): "password" | "passwordMismatch" | null {
+  if (password.length < MIN_PASSWORD_LENGTH) return "password";
+  if (password !== confirmPassword) return "passwordMismatch";
+  return null;
+}
+
 export function validateSignIn(email: string, password: string): ProfileIssue | null {
   if (!isValidEmail(email)) return "email";
   if (password.length < MIN_PASSWORD_LENGTH) return "password";
@@ -104,8 +113,8 @@ export function validateSignUpInput(input: SignUpInput): ProfileIssue | null {
   if (profileIssue) return profileIssue;
   if (!input.ageConfirmed) return "ageConfirm";
   if (!isValidEmail(input.email)) return "email";
-  if (input.password.length < MIN_PASSWORD_LENGTH) return "password";
-  if (input.password !== input.confirmPassword) return "passwordMismatch";
+  const passwordIssue = validatePasswordPair(input.password, input.confirmPassword);
+  if (passwordIssue) return passwordIssue;
   if (!input.privacyConsent) return "privacyConsent";
   return null;
 }

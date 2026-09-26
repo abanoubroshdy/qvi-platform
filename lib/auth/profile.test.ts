@@ -8,6 +8,7 @@ import {
   passwordStrength,
   toAuthMetadata,
   toProfileRow,
+  validatePasswordPair,
   validateProfile,
   validateSignIn,
   validateSignUpInput,
@@ -117,6 +118,9 @@ describe("profile validation", () => {
     expect(validateSignIn("you@studio.com", "secret1")).toBeNull();
     expect(validateSignIn("bad", "secret1")).toBe("email");
     expect(validateSignIn("you@studio.com", "12")).toBe("password");
+    expect(validatePasswordPair("secret1", "secret1")).toBeNull();
+    expect(validatePasswordPair("123", "123")).toBe("password");
+    expect(validatePasswordPair("secret1", "secret2")).toBe("passwordMismatch");
     expect(passwordStrength("")).toBe("empty");
     expect(passwordStrength("abc")).toBe("weak");
     expect(passwordStrength("Abcdef12!")).toBe("strong");

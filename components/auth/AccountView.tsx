@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { LocaleLink as Link } from "@/components/LocaleLink";
 import { useRouter } from "next/navigation";
 import { LogOut, Loader2 } from "lucide-react";
+import { ChangePasswordForm } from "@/components/auth/ChangePasswordForm";
 import { ProfileFields, type ProfileFormValues } from "@/components/auth/ProfileFields";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useI18n } from "@/components/i18n/I18nProvider";
@@ -19,6 +20,7 @@ import {
   type ProfileIssue,
   type ProfileRecord,
 } from "@/lib/auth/profile";
+import { readPasswordNotice } from "@/lib/auth/recovery";
 import { countryDisplayName, isCountryCode } from "@/lib/geo/countries";
 
 function toFormValues(fields: ReturnType<typeof recordToFields>): ProfileFormValues {
@@ -49,6 +51,7 @@ export function AccountView() {
     | { status: "ready"; rows: Qv1DownloadRow[]; count: number }
     | { status: "error" }
   >({ status: "loading" });
+  const [passwordNotice, setPasswordNotice] = useState<string | null>(null);
 
   const issueCopy = useMemo<Record<ProfileIssue, string>>(
     () => ({
@@ -68,6 +71,17 @@ export function AccountView() {
       router.replace("/login");
     }
   }, [loading, user, router]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const notice = readPasswordNotice(params.get("notice"));
+    if (!notice) return;
+    setPasswordNotice(notice === "password-sessions" ? a.passwordUpdatedSessions : a.passwordUpdated);
+    params.delete("notice");
+    const query = params.toString();
+    const path = `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`;
+    window.history.replaceState(window.history.state, "", path);
+  }, [a.passwordUpdated, a.passwordUpdatedSessions]);
 
   useEffect(() => {
     if (!user) return;
@@ -202,6 +216,12 @@ export function AccountView() {
       <div className="space-y-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
         <h1 className="text-2xl font-semibold">{a.accountTitle}</h1>
 
+        {passwordNotice ? (
+          <p className="rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-sm" role="status">
+            {passwordNotice}
+          </p>
+        ) : null}
+
         {!complete && !editing ? (
           <p className="rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-sm" role="status">
             {a.incompleteProfile}
@@ -305,6 +325,8 @@ export function AccountView() {
             </Button>
           </div>
         )}
+
+        <ChangePasswordForm />
 
         <div className="space-y-3 border-t border-border pt-4">
           <div className="flex items-baseline justify-between gap-3">

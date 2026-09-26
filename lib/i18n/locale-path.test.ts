@@ -27,6 +27,9 @@ describe("locale paths", () => {
     expect(alternatePath("/tools/audio-cutter")).toBe("/ar/tools/audio-cutter");
     expect(alternatePath("/ar/studio")).toBe("/studio");
     expect(alternatePath("/ar")).toBe("/");
+    expect(alternatePath("/forgot-password")).toBe("/ar/forgot-password");
+    expect(alternatePath("/ar/reset-password")).toBe("/reset-password");
+    expect(alternatePath("/ar/auth/callback")).toBe("/auth/callback");
     expect(localeFromPath("/ar/qv1/models")).toBe("ar");
     expect(stripLocale("/ar/qv1/models")).toBe("/qv1/models");
     expect(withLocale("/", "ar")).toBe("/ar");

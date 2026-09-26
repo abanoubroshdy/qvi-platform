@@ -1,12 +1,15 @@
 import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { installPasswordRecoveryListener } from "@/lib/auth/recovery-mark";
 import { resolvePublicSupabaseConfig, type PublicSupabaseConfig } from "@/lib/supabase/config";
 
 let browserClient: SupabaseClient | null = null;
 let resolved: PublicSupabaseConfig | null = resolvePublicSupabaseConfig();
 
 function createClient(config: PublicSupabaseConfig): SupabaseClient {
-  return createBrowserClient(config.url, config.anonKey);
+  const client = createBrowserClient(config.url, config.anonKey);
+  installPasswordRecoveryListener(client);
+  return client;
 }
 
 export function configureSupabase(config: PublicSupabaseConfig | null): SupabaseClient | null {

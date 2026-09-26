@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Loader2 } from "lucide-react";
+import { LocaleLink as Link } from "@/components/LocaleLink";
 import { ConsentFields } from "@/components/auth/ConsentFields";
 import { PasswordField } from "@/components/auth/PasswordField";
 import { ProfileFields, type ProfileFormValues } from "@/components/auth/ProfileFields";
@@ -271,6 +272,14 @@ export function AuthForm({
           if (error) setError(null);
         }}
       />
+
+      {!isSignUp ? (
+        <p className="text-end text-sm">
+          <Link href="/forgot-password" className="font-semibold text-primary underline-offset-4 hover:underline">
+            {a.forgotPassword}
+          </Link>
+        </p>
+      ) : null}
 
       {isSignUp ? (
         <PasswordField
