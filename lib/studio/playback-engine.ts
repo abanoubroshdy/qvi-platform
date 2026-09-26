@@ -434,13 +434,17 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
     ramps: { atSec: number; gain: number }[],
   ): void {
     const param = gain.gain;
+    const safeGain = Number.isFinite(initialGain) ? Math.min(1, Math.max(0, initialGain)) : 1;
+    // Hold the intrinsic value too — scheduled-only writes can leave a new GainNode silent
+    // until the first automation time in some browsers.
+    param.value = safeGain;
     if (typeof param.cancelScheduledValues === "function") param.cancelScheduledValues(startAt);
-    if (typeof param.setValueAtTime === "function") param.setValueAtTime(initialGain, startAt);
-    else param.value = initialGain;
+    if (typeof param.setValueAtTime === "function") param.setValueAtTime(safeGain, startAt);
     for (const ramp of ramps) {
       const when = startAt + Math.max(0, ramp.atSec);
-      if (typeof param.linearRampToValueAtTime === "function") param.linearRampToValueAtTime(ramp.gain, when);
-      else param.value = ramp.gain;
+      const next = Number.isFinite(ramp.gain) ? Math.min(1, Math.max(0, ramp.gain)) : safeGain;
+      if (typeof param.linearRampToValueAtTime === "function") param.linearRampToValueAtTime(next, when);
+      else param.value = next;
     }
   }
 
