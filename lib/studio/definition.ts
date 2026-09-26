@@ -117,6 +117,11 @@ export const qviStudioLimits = {
   },
   /** Matches the Tempo Pitch tool debounce before an offline preview render. */
   previewDebounceMs: 700,
+  /**
+   * Max simultaneous SoundTouch worklets. Extra non-identity tracks wait on the
+   * offline preview bake so a dense mix does not open one worklet per track.
+   */
+  maxLiveStretchTracks: 4,
 } as const;
 
 export const qviStudioEngines = {
@@ -148,9 +153,17 @@ export const qviStudioEngines = {
      */
     stretch: "phase-vocoder",
     debounceMs: qviStudioLimits.previewDebounceMs,
+    /**
+     * Cap on simultaneous live SoundTouch nodes during play. Identity tracks
+     * never consume a slot; extras beyond the cap use the offline bake.
+     */
+    maxLiveStretchTracks: qviStudioLimits.maxLiveStretchTracks,
     /** playbackRate changes pitch with speed and is not the preview path. */
     forbiddenStrategies: ["playback-rate-only"],
-    /** Identity tempo and pitch skip the offline render. */
+    /**
+     * Identity tempo and pitch skip both the live worklet and the offline
+     * bake — they play trimmed source buffers directly.
+     */
     skipWhenUnchanged: true,
     /**
      * ffmpeg.wasm has no rubberband filter. Tempo and pitch use SoundTouchJS
@@ -236,8 +249,9 @@ export const qviStudioV1Capabilities = [
     summary: "Each track has tempo by BPM or percent, and pitch by semitones and cents.",
     acceptance: [
       "Ranges match the Tempo Pitch tool.",
-      "While a SoundTouch worklet is registered, pitch and tempo update the playing voices in place.",
-      "Without a worklet, preview renders offline after the debounce, then plays the rendered buffer.",
+      "Identity tracks play without the live worklet; only non-identity tracks use SoundTouch or the offline bake.",
+      "While a SoundTouch worklet is registered, non-identity tracks (up to maxLiveStretchTracks) update pitch and tempo in place.",
+      "Non-identity tracks beyond that cap, or without a worklet, preview offline after the debounce then play the rendered buffer.",
       "Unchanged tempo and pitch skip that offline render.",
     ],
   },

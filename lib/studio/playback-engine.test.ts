@@ -11,10 +11,11 @@ import {
   type StudioLiveStretch,
 } from "@/lib/studio/playback-engine";
 import type { LiveStretchParams } from "@/lib/audio-stretch-live";
-import { dbToGain, planPlayback, playbackArrangementKey } from "@/lib/studio/playback-schedule";
+import { dbToGain, planPlayback, playbackArrangementKey, trackStretchModes } from "@/lib/studio/playback-schedule";
 import {
   addImportedFileAsTrack,
   createStudioProject,
+  setClipFades,
   setMasterGain,
   setClipTrim,
   setTrackGain,
@@ -24,7 +25,9 @@ import {
   setTrackSolo,
   setTrackStretchPreset,
   setTrackTempo,
+  snapshotStudioProject,
 } from "@/lib/studio/project";
+import { restoreStudioProject, studioSessionRecord, createMemoryStudioSessionStore } from "@/lib/studio/session-store";
 import { qviStudioLimits } from "@/lib/studio/definition";
 import type { StudioProject, StudioTrack } from "@/lib/studio/types";
 import {
@@ -205,16 +208,17 @@ describe("playback schedule", () => {
     expect(planPlayback({ project: solo.project, playheadSec: 0 }).events).toEqual([]);
   });
 
-  it("keeps the arrangement key when pitch, tempo, or gain change", () => {
+  it("keeps the arrangement key for gain, but not when stretch identity changes", () => {
     const { project, track } = projectWithClip({ seconds: 8 });
     const key = playbackArrangementKey(project);
+    const gained = setTrackGain(project, track.id, -3);
+    if (!gained.ok) throw new Error("edit");
+    expect(playbackArrangementKey(gained.project)).toBe(key);
     const pitched = setTrackPitch(project, track.id, { semitones: 3, cents: 15 });
     const tempo = setTrackTempo(project, track.id, { targetBpm: 180 });
-    const gained = setTrackGain(project, track.id, -3);
-    if (!pitched.ok || !tempo.ok || !gained.ok) throw new Error("edit");
-    expect(playbackArrangementKey(pitched.project)).toBe(key);
-    expect(playbackArrangementKey(tempo.project)).toBe(key);
-    expect(playbackArrangementKey(gained.project)).toBe(key);
+    if (!pitched.ok || !tempo.ok) throw new Error("edit");
+    expect(playbackArrangementKey(pitched.project)).not.toBe(key);
+    expect(playbackArrangementKey(tempo.project)).not.toBe(key);
     const muted = setTrackMuted(project, track.id, true);
     if (!muted.ok) throw new Error("mute");
     expect(playbackArrangementKey(muted.project)).not.toBe(key);
@@ -258,13 +262,100 @@ describe("playback schedule", () => {
     });
 
     const identity = planPlayback({ project, playheadSec: 0, live: true });
-    expect(identity.events[0]!.stretch).toMatchObject({ playbackRate: 1, pitch: 1, pitchSemitones: 0 });
+    expect(identity.events[0]!.stretch).toBeNull();
+    expect(identity.events[0]!.playbackRate).toBe(1);
     expect(identity.events[0]!.clipId).toBe(track.clips[0]!.id);
 
     const muted = setTrackMuted(speech.project, track.id, true);
     if (!muted.ok) throw new Error(muted.reason);
     expect(planPlayback({ project: muted.project, playheadSec: 0, live: true }).events).toEqual([]);
     expect(planPlayback({ project: muted.project, playheadSec: 0, live: true }).trackGains[0]!.linear).toBe(0);
+  });
+
+  it("keeps many identity tracks off SoundTouch when live is enabled", () => {
+    let project = createStudioProject("Many", "project-many");
+    for (let index = 0; index < 10; index += 1) {
+      const added = addImportedFileAsTrack(project, imported(`t${index}.wav`, 2), "desktop");
+      if (!added.ok) throw new Error(added.reason);
+      project = added.project;
+      project.tracks[index]!.clips[0]!.buffer = makeBuffer(20, 10, 0.2);
+    }
+    const plan = planPlayback({ project, playheadSec: 0, live: true });
+    expect(plan.events).toHaveLength(10);
+    expect(plan.events.every((event) => event.stretch === null && event.playbackRate === 1)).toBe(true);
+  });
+
+  it("uses SoundTouch only for the non-identity track among many", () => {
+    let project = createStudioProject("Mix", "project-mix");
+    for (let index = 0; index < 9; index += 1) {
+      const added = addImportedFileAsTrack(project, imported(`plain-${index}.wav`, 4), "desktop");
+      if (!added.ok) throw new Error(added.reason);
+      project = added.project;
+      project.tracks[index]!.clips[0]!.buffer = makeBuffer(40, 10, 0.2);
+    }
+    const last = addImportedFileAsTrack(project, imported("sped.wav", 8), "desktop");
+    if (!last.ok) throw new Error(last.reason);
+    project = last.project;
+    const spedTrack = project.tracks[9]!;
+    spedTrack.clips[0]!.buffer = makeBuffer(80, 10, 0.3);
+    const sped = setTrackTempo(project, spedTrack.id, { targetBpm: 240 });
+    if (!sped.ok) throw new Error(sped.reason);
+    const plan = planPlayback({ project: sped.project, playheadSec: 0, live: true });
+    expect(plan.events).toHaveLength(10);
+    const stretched = plan.events.filter((event) => event.stretch);
+    const plain = plan.events.filter((event) => !event.stretch);
+    expect(stretched).toHaveLength(1);
+    expect(stretched[0]!.trackId).toBe(spedTrack.id);
+    expect(stretched[0]!.playbackRate).toBe(2);
+    expect(plain).toHaveLength(9);
+    expect(plain.every((event) => event.playbackRate === 1)).toBe(true);
+  });
+
+  it("assigns stretch modes for live slots and offline bake", () => {
+    let project = createStudioProject("Modes", "project-modes");
+    for (let index = 0; index < 3; index += 1) {
+      const added = addImportedFileAsTrack(project, imported(`m${index}.wav`, 2), "desktop");
+      if (!added.ok) throw new Error(added.reason);
+      project = added.project;
+    }
+    const identityModes = trackStretchModes(project, { live: true, maxLiveStretchTracks: 4 });
+    expect(Array.from(identityModes.values())).toEqual(["id", "id", "id"]);
+    let mutated = project;
+    for (const track of project.tracks) {
+      const sped = setTrackTempo(mutated, track.id, { targetBpm: 150 });
+      if (!sped.ok) throw new Error(sped.reason);
+      mutated = sped.project;
+    }
+    const liveModes = trackStretchModes(mutated, { live: true, maxLiveStretchTracks: 2 });
+    expect(Array.from(liveModes.values())).toEqual(["live", "live", "bake"]);
+    const offlineModes = trackStretchModes(mutated, { live: false });
+    expect(Array.from(offlineModes.values())).toEqual(["bake", "bake", "bake"]);
+  });
+
+  it("caps simultaneous live stretch tracks and bakes the rest", () => {
+    let project = createStudioProject("Cap", "project-cap");
+    for (let index = 0; index < 6; index += 1) {
+      const added = addImportedFileAsTrack(project, imported(`s${index}.wav`, 4), "desktop");
+      if (!added.ok) throw new Error(added.reason);
+      project = added.project;
+      project.tracks[index]!.clips[0]!.buffer = makeBuffer(40, 10, 0.2);
+      const sped = setTrackTempo(project, project.tracks[index]!.id, { targetBpm: 180 });
+      if (!sped.ok) throw new Error(sped.reason);
+      project = sped.project;
+    }
+    const rendered = new Map(project.tracks.map((track) => [track.id, makeBuffer(30, 10, 0.3)] as const));
+    const plan = planPlayback({
+      project,
+      playheadSec: 0,
+      live: true,
+      maxLiveStretchTracks: 4,
+      renderedTracks: rendered,
+    });
+    expect(plan.events.filter((event) => event.stretch)).toHaveLength(4);
+    expect(plan.events.filter((event) => event.clipId === null)).toHaveLength(2);
+    const key = playbackArrangementKey(project, 4);
+    expect(key.split("|").filter((part) => part.includes("#live#"))).toHaveLength(4);
+    expect(key.split("|").filter((part) => part.includes("#bake#"))).toHaveLength(2);
   });
 });
 
@@ -420,7 +511,7 @@ describe("playback engine", () => {
     expect(host.stretches[0]!.applied?.playbackRate).toBe(2);
   });
 
-  it("updates pitch, tempo, and gain in place after the playhead has moved", () => {
+  it("rebuilds when tracks leave identity, then updates further tempo in place", () => {
     const host = new LiveHost();
     const engine = createStudioPlaybackEngine({ host });
     const first = projectWithClip({ seconds: 8 });
@@ -429,45 +520,46 @@ describe("playback engine", () => {
     second.project.tracks[1]!.clips[0]!.buffer = makeBuffer(80, 10, 0.4);
     engine.play(second.project);
     expect(host.sources).toHaveLength(2);
-    expect(host.stretches).toHaveLength(2);
-    const started = host.sources.map((source) => source.started?.when);
-    expect(started[0]).toBe(started[1]);
+    expect(host.stretches).toHaveLength(0);
     host.currentTime = 1.5;
 
     const pitched = setTrackPitch(second.project, second.project.tracks[0]!.id, { semitones: 5, cents: 20 });
     if (!pitched.ok) throw new Error("pitch");
     const tempo = setTrackTempo(pitched.project, second.project.tracks[1]!.id, { targetBpm: 180 });
     if (!tempo.ok) throw new Error("tempo");
-    const gained = setTrackGain(tempo.project, second.project.tracks[0]!.id, -6);
+    engine.sync(tempo.project);
+    expect(host.stretches).toHaveLength(2);
+    expect(host.sources.filter((source) => !source.stopped)).toHaveLength(2);
+    const voicesBefore = host.sources.length;
+    const faster = setTrackTempo(tempo.project, second.project.tracks[1]!.id, { targetBpm: 240 });
+    if (!faster.ok) throw new Error("tempo");
+    const gained = setTrackGain(faster.project, second.project.tracks[0]!.id, -6);
     if (!gained.ok) throw new Error("gain");
-    const startedAt = performance.now();
     engine.sync(gained.project);
-    expect(performance.now() - startedAt).toBeLessThan(50);
-    expect(host.sources.filter((source) => source.stopped)).toHaveLength(0);
-    expect(host.sources).toHaveLength(2);
-    expect(host.sources[0]!.playbackRate.value).toBe(1);
-    expect(host.sources[1]!.playbackRate.value).toBeCloseTo(1.5, 5);
-    expect(host.stretches[0]!.applied?.pitchSemitones).toBeCloseTo(5.2, 5);
-    expect(host.stretches[1]!.applied?.playbackRate).toBeCloseTo(1.5, 5);
-    expect(host.sources[0]!.started?.when).toBe(started[0]);
+    expect(host.sources).toHaveLength(voicesBefore);
+    const living = host.sources.filter((source) => !source.stopped);
+    expect(living).toHaveLength(2);
+    expect(living.some((source) => source.playbackRate.value === 2)).toBe(true);
+    expect(host.stretches.some((node) => node.applied?.pitchSemitones === 5.2)).toBe(true);
     expect(engine.poll().status).toBe("playing");
   });
 
-  it("does not end playback when a faster tempo shrinks the timeline behind the playhead", () => {
+  it("re-arms into a live stretch when tempo leaves identity behind the playhead", () => {
     const host = new LiveHost();
     const engine = createStudioPlaybackEngine({ host });
     const { project, track } = projectWithClip({ seconds: 8 });
     engine.play(project);
-    host.currentTime = 5;
+    expect(host.stretches).toHaveLength(0);
+    host.currentTime = 1;
     const sped = setTrackTempo(project, track.id, { targetBpm: 240 });
     if (!sped.ok) throw new Error("tempo");
     engine.sync(sped.project);
-    expect(host.sources[0]!.stopped).toBe(false);
-    expect(host.sources[0]!.playbackRate.value).toBe(2);
-    expect(engine.currentPlayhead()).toBeCloseTo(5, 5);
+    const live = host.sources.filter((source) => !source.stopped);
+    expect(live).toHaveLength(1);
+    expect(live[0]!.playbackRate.value).toBe(2);
+    expect(host.stretches).toHaveLength(1);
+    expect(engine.currentPlayhead()).toBeCloseTo(1, 5);
     expect(engine.poll().status).toBe("playing");
-    host.currentTime = 8;
-    expect(engine.poll()).toEqual({ status: "paused", playheadSec: 8 });
   });
 
   it("rebuilds when a trim changes the arrangement and keeps a later gain on the same voice", () => {
@@ -511,7 +603,38 @@ describe("playback engine", () => {
     expect(host.panners[0]!.links[0]).toBe(host.gains[1]);
   });
 
-  it("plays the source buffer when the worklet cannot be created", () => {
+  it("does not open a worklet for identity tracks", () => {
+    const host = new FakeHost();
+    let created = 0;
+    (host as FakeHost & { createLiveStretch(): StudioLiveStretch }).createLiveStretch = () => {
+      created += 1;
+      return new FakeStretch();
+    };
+    const engine = createStudioPlaybackEngine({ host });
+    const { project } = projectWithClip({ seconds: 1.5 });
+    engine.play(project);
+    expect(created).toBe(0);
+    expect(engine.currentStatus()).toBe("playing");
+    expect(host.sources.filter((source) => source.started)).toHaveLength(1);
+  });
+
+  it("arms ten identity tracks without any live stretch nodes", () => {
+    const host = new LiveHost();
+    const engine = createStudioPlaybackEngine({ host });
+    let project = createStudioProject("Ten", "project-ten");
+    for (let index = 0; index < 10; index += 1) {
+      const added = addImportedFileAsTrack(project, imported(`n${index}.wav`, 2), "desktop");
+      if (!added.ok) throw new Error(added.reason);
+      project = added.project;
+      project.tracks[index]!.clips[0]!.buffer = makeBuffer(20, 10, 0.2);
+    }
+    engine.play(project);
+    expect(engine.currentStatus()).toBe("playing");
+    expect(host.sources.filter((source) => source.started && !source.stopped)).toHaveLength(10);
+    expect(host.stretches).toHaveLength(0);
+  });
+
+  it("falls back when the worklet cannot be created for a non-identity track", () => {
     const host = new FakeHost();
     const failed: string[] = [];
     (host as FakeHost & { createLiveStretch(): StudioLiveStretch }).createLiveStretch = () => {
@@ -521,17 +644,21 @@ describe("playback engine", () => {
       host,
       onLiveStretchFailed: () => failed.push("fallback"),
     });
-    const { project } = projectWithClip({ seconds: 1.5 });
-    engine.play(project);
+    const { project, track } = projectWithClip({ seconds: 1.5 });
+    const plain = addImportedFileAsTrack(project, imported("keep.wav", 1.5), "desktop");
+    if (!plain.ok) throw new Error(plain.reason);
+    plain.project.tracks[1]!.clips[0]!.buffer = makeBuffer(15, 10, 0.2);
+    const sped = setTrackTempo(plain.project, track.id, { targetBpm: 240 });
+    if (!sped.ok) throw new Error(sped.reason);
+    engine.play(sped.project);
     expect(failed).toEqual(["fallback"]);
     expect(engine.currentStatus()).toBe("playing");
     const started = host.sources.filter((source) => source.started);
     expect(started).toHaveLength(1);
     expect(started[0]!.playbackRate.value).toBe(1);
-    expect(started[0]!.started).toMatchObject({ offset: 0, duration: 1.5 });
   });
 
-  it("plays the source buffer when connecting into the worklet throws", () => {
+  it("falls back when connecting into the worklet throws", () => {
     const host = new StrictHost();
     const seen: string[] = [];
     const engine = createStudioPlaybackEngine({
@@ -539,14 +666,181 @@ describe("playback engine", () => {
       onTransport: (snapshot) => seen.push(snapshot.status),
       onLiveStretchFailed: () => seen.push("fallback"),
     });
-    const { project } = projectWithClip({ seconds: 1.5 });
-    engine.play(project);
+    const { project, track } = projectWithClip({ seconds: 1.5 });
+    const plain = addImportedFileAsTrack(project, imported("keep.wav", 1.5), "desktop");
+    if (!plain.ok) throw new Error(plain.reason);
+    plain.project.tracks[1]!.clips[0]!.buffer = makeBuffer(15, 10, 0.2);
+    const sped = setTrackTempo(plain.project, track.id, { targetBpm: 240 });
+    if (!sped.ok) throw new Error(sped.reason);
+    engine.play(sped.project);
     expect(engine.currentStatus()).toBe("playing");
     expect(seen).toContain("fallback");
     expect(seen.at(-1)).toBe("playing");
     const started = host.sources.filter((source) => source.started);
     expect(started).toHaveLength(1);
     expect(started[0]!.playbackRate.value).toBe(1);
+  });
+});
+
+class EnvelopeParam {
+  value = 1;
+  events: { type: "cancel" | "set" | "ramp"; value: number; time: number }[] = [];
+  cancelScheduledValues(time: number) {
+    this.events.push({ type: "cancel", value: 0, time });
+  }
+  setValueAtTime(value: number, time: number) {
+    this.events.push({ type: "set", value, time });
+    this.value = value;
+  }
+  linearRampToValueAtTime(value: number, time: number) {
+    this.events.push({ type: "ramp", value, time });
+    this.value = value;
+  }
+}
+
+class EnvelopeGain implements StudioGainNode {
+  gain = new EnvelopeParam();
+  links: StudioAudioNode[] = [];
+  connect(destination: StudioAudioNode) {
+    this.links.push(destination);
+  }
+  disconnect() {
+    this.links = [];
+  }
+}
+
+class EnvelopeHost extends FakeHost {
+  envelopeGains: EnvelopeGain[] = [];
+  createGain() {
+    const gain = new EnvelopeGain();
+    this.envelopeGains.push(gain);
+    this.gains.push(gain as unknown as FakeGain);
+    return gain as unknown as FakeGain;
+  }
+}
+
+class LiveEnvelopeHost extends EnvelopeHost {
+  stretches: FakeStretch[] = [];
+  createLiveStretch() {
+    const node = new FakeStretch();
+    this.stretches.push(node);
+    return node;
+  }
+}
+
+describe("many-track playback phase 5", () => {
+  function tenTrackProject(options?: { stretchLast?: boolean }) {
+    let project = createStudioProject("Phase5", "project-phase5");
+    for (let index = 0; index < 10; index += 1) {
+      const added = addImportedFileAsTrack(project, imported(`p5-${index}.wav`, 2), "desktop");
+      if (!added.ok) throw new Error(added.reason);
+      project = added.project;
+      project.tracks[index]!.clips[0]!.buffer = makeBuffer(20, 10, 0.2);
+    }
+    if (options?.stretchLast) {
+      const last = project.tracks[9]!;
+      const sped = setTrackTempo(project, last.id, { targetBpm: 240 });
+      if (!sped.ok) throw new Error(sped.reason);
+      project = sped.project;
+    }
+    return project;
+  }
+
+  it("arms nine identity tracks plus one live stretch", () => {
+    const host = new LiveHost();
+    const engine = createStudioPlaybackEngine({ host });
+    const project = tenTrackProject({ stretchLast: true });
+    engine.play(project);
+    expect(engine.currentStatus()).toBe("playing");
+    expect(host.sources.filter((source) => source.started && !source.stopped)).toHaveLength(10);
+    expect(host.stretches).toHaveLength(1);
+    const plain = host.sources.filter((source) => source.started && source.playbackRate.value === 1);
+    const live = host.sources.filter((source) => source.started && source.playbackRate.value === 2);
+    expect(plain).toHaveLength(9);
+    expect(live).toHaveLength(1);
+  });
+
+  it("keeps nine identity tracks audible when the sole live stretch fails", () => {
+    const host = new FakeHost();
+    const failed: string[] = [];
+    (host as FakeHost & { createLiveStretch(): StudioLiveStretch }).createLiveStretch = () => {
+      throw new Error("SoundTouch worklet is not registered");
+    };
+    const engine = createStudioPlaybackEngine({
+      host,
+      onLiveStretchFailed: () => failed.push("fallback"),
+    });
+    engine.play(tenTrackProject({ stretchLast: true }));
+    expect(failed).toEqual(["fallback"]);
+    expect(engine.currentStatus()).toBe("playing");
+    const started = host.sources.filter((source) => source.started && !source.stopped);
+    expect(started).toHaveLength(9);
+    expect(started.every((source) => source.playbackRate.value === 1)).toBe(true);
+  });
+
+  it("schedules fade envelopes on plain identity and live stretch voices", () => {
+    const plainHost = new EnvelopeHost();
+    const plainEngine = createStudioPlaybackEngine({ host: plainHost });
+    const { project, track } = projectWithClip({ seconds: 4 });
+    const faded = setClipFades(project, track.id, track.clips[0]!.id, { fadeInSec: 1, fadeOutSec: 1 });
+    if (!faded.ok) throw new Error(faded.reason);
+    plainEngine.play(faded.project);
+    const plainFade = plainHost.envelopeGains.find((gain) => gain.gain.events.some((event) => event.type === "ramp"));
+    expect(plainFade).toBeDefined();
+    expect(plainFade!.gain.events.some((event) => event.type === "set" && event.value === 0)).toBe(true);
+    expect(plainFade!.gain.events.some((event) => event.type === "ramp" && event.value === 1)).toBe(true);
+
+    const liveHost = new LiveEnvelopeHost();
+    const liveEngine = createStudioPlaybackEngine({ host: liveHost });
+    const sped = setTrackTempo(faded.project, track.id, { targetBpm: 240 });
+    if (!sped.ok) throw new Error(sped.reason);
+    liveEngine.play(sped.project);
+    expect(liveHost.stretches).toHaveLength(1);
+    const liveFade = liveHost.envelopeGains.find((gain) => gain.gain.events.some((event) => event.type === "ramp"));
+    expect(liveFade).toBeDefined();
+    expect(liveFade!.links[0]).toBe(liveHost.stretches[0]);
+    expect(liveFade!.gain.events.some((event) => event.type === "ramp")).toBe(true);
+  });
+
+  it("honors mute and solo across ten identity tracks", () => {
+    const host = new LiveHost();
+    const engine = createStudioPlaybackEngine({ host });
+    let project = tenTrackProject();
+    const muted = setTrackMuted(project, project.tracks[0]!.id, true);
+    if (!muted.ok) throw new Error(muted.reason);
+    engine.play(muted.project);
+    expect(host.sources.filter((source) => source.started && !source.stopped)).toHaveLength(9);
+
+    const soloed = setTrackSolo(muted.project, muted.project.tracks[3]!.id, true);
+    if (!soloed.ok) throw new Error(soloed.reason);
+    engine.sync(soloed.project);
+    expect(host.sources.filter((source) => source.started && !source.stopped)).toHaveLength(1);
+    expect(engine.currentStatus()).toBe("playing");
+  });
+
+  it("plays after a session snapshot restore", async () => {
+    const store = createMemoryStudioSessionStore();
+    const project = tenTrackProject({ stretchLast: true });
+    const audio = new Map(
+      project.tracks.flatMap((track) =>
+        track.clips.map((clip) => [clip.id, Uint8Array.of(1, 2, 3, 4).buffer] as const),
+      ),
+    );
+    await store.write(studioSessionRecord(project, audio));
+    const loaded = await store.read();
+    expect(loaded).not.toBeNull();
+    if (!loaded) return;
+    const restored = await restoreStudioProject(loaded, async () => makeBuffer(20, 10, 0.2));
+    expect(restored).not.toBeNull();
+    if (!restored) return;
+    expect(snapshotStudioProject(restored.project).tracks).toHaveLength(10);
+
+    const host = new LiveHost();
+    const engine = createStudioPlaybackEngine({ host });
+    engine.play(restored.project);
+    expect(engine.currentStatus()).toBe("playing");
+    expect(host.sources.filter((source) => source.started && !source.stopped)).toHaveLength(10);
+    expect(host.stretches).toHaveLength(1);
   });
 });
 

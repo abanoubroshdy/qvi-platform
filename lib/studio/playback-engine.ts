@@ -1,19 +1,17 @@
 /**
  * Live QVI Studio playback.
  *
- * Web Audio schedules the plan from `playback-schedule`. When the host can
- * create a SoundTouch worklet, every audible clip plays through it. Pitch,
- * tempo, gain, pan, and EQ write AudioParams on the voices already running.
- * They do not stop those voices, and they do not stretch the whole clip on
- * this thread. Without a worklet, a rendered track buffer is used once the
- * offline preview has one.
+ * Web Audio schedules the plan from `playback-schedule`. Identity tracks play
+ * source → fade → EQ → compressor → pan → gain. Non-identity tracks add a
+ * SoundTouch worklet after the fade when the host can create one. Pitch and
+ * tempo on an already-live track write AudioParams without rebuilding; leaving
+ * or entering identity re-arms. Without a worklet, a rendered track buffer is
+ * used once the offline preview has one.
  * AnalyserNodes sit after the track and master gains so the console can read
  * peaks. They do not change the mix.
- * When the host can build them, each playing track is
- * source → fade → SoundTouch worklet → EQ → compressor → pan → gain.
  * The fade connects to the worklet node (`input`), not the wrapper object.
- * If that node cannot be created or connected, the same clip plays as a plain
- * buffer and the transport still starts.
+ * If that node cannot be created or connected, live stretch is disabled and
+ * identity clips still start; the transport does not stick.
  * Export does not use this graph.
  */
 
@@ -25,7 +23,7 @@ import { loadStudioFile, type StudioDecodeResult } from "@/lib/studio/load-clip"
 import { peakFromTimeDomain, type StudioMeterReading } from "@/lib/studio/meters";
 import { compressorFromAmount, STUDIO_EQ_FREQUENCIES } from "@/lib/studio/mix";
 import { playbackArrangementKey, planPlayback } from "@/lib/studio/playback-schedule";
-import { canPlayStudioProject, projectDuration } from "@/lib/studio/project";
+import { canPlayStudioProject, projectDuration, trackTempoPitchIsIdentity } from "@/lib/studio/project";
 import type { StudioClip, StudioProject, StudioTrack } from "@/lib/studio/types";
 
 export interface StudioAudioNode {
@@ -142,6 +140,7 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
   private readonly stretchByTrack = new Map<string, StudioLiveStretch>();
   private readonly stretchParamKey = new Map<string, string>();
   private armedKey = "";
+  /** True when the host offered live stretch at the last successful arm (not "every voice uses a worklet"). */
   private armedLive = false;
   private liveBroken = false;
   private armedFadeKey = "";
@@ -323,6 +322,7 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
     });
   }
 
+  /** Re-arm once when the worklet becomes available after a plain-buffer arm. */
   private needsLiveGraph(): boolean {
     return this.liveStretchEnabled() && !this.armedLive;
   }
@@ -467,6 +467,9 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
       return node;
     }
     try {
+      // Re-seat onto the current strip input in case the strip was rebuilt.
+      node.disconnect();
+      node.connect(destination);
       node.apply(params);
     } catch {
       this.retireStretch(trackId);
@@ -486,7 +489,7 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
   private applyPerformance(project: StudioProject): void {
     this.applyGains(project);
     this.horizonSec = Math.max(this.horizonSec, projectDuration(project), this.currentPlayhead());
-    if (this.armedLive) this.applyStretchParams(project);
+    if (this.stretchByTrack.size > 0) this.applyStretchParams(project);
     this.applyFadeUpdates(project);
   }
 
@@ -534,7 +537,7 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
       const track = project.tracks.find((item) => item.id === voice.trackId);
       const clip = track?.clips.find((item) => item.id === voice.clipId);
       if (!track || !clip) continue;
-      const envelope = fadeEnvelopeForClip(track, clip, playhead, this.armedLive);
+      const envelope = fadeEnvelopeForClip(track, clip, playhead);
       this.applyFadeEnvelope(voice.fade, now, envelope.initialGain, envelope.ramps);
     }
   }
@@ -542,7 +545,7 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
   private fadeSignature(project: StudioProject): string {
     return project.tracks
       .map((track) => {
-        const rate = this.armedLive ? resolveTempoRate(track.tempo) : 1;
+        const rate = heardTempoRate(track);
         return track.clips
           .map((clip) => [clip.id, clip.fadeInSec, clip.fadeOutSec, rate].join(":"))
           .join(",");
@@ -807,8 +810,13 @@ function stretchParamKey(params: LiveStretchParams): string {
   ].join(":");
 }
 
-function fadeEnvelopeForClip(track: StudioTrack, clip: StudioClip, playhead: number, live: boolean) {
-  const rate = Math.max(live ? resolveTempoRate(track.tempo) : 1, 1e-6);
+function heardTempoRate(track: Pick<StudioTrack, "tempo" | "pitchSemitones" | "pitchCents">): number {
+  if (trackTempoPitchIsIdentity(track)) return 1;
+  return Math.max(resolveTempoRate(track.tempo), 1e-6);
+}
+
+function fadeEnvelopeForClip(track: StudioTrack, clip: StudioClip, playhead: number) {
+  const rate = heardTempoRate(track);
   const sourceDuration = Math.max(0, clip.trimEndSec - clip.trimStartSec);
   const heardDuration = sourceDuration / rate;
   const heardStart = Math.max(0, clip.offsetSec);

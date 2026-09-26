@@ -1,19 +1,26 @@
 /**
  * What the Web Audio graph should start for one playhead.
- * Identity tracks play trimmed source buffers when no live worklet is available.
+ * Identity tracks always play trimmed source buffers (no SoundTouch), whether or
+ * not a live worklet is available — so many tracks stay cheap to arm.
  * Without a live worklet, any other tempo or pitch waits for an offline-rendered
- * track buffer. With `live`, every audible clip plays through SoundTouch, including
- * unity tempo and pitch, so a later edit is an AudioParam write. The source
- * playbackRate is the tempo, and the worklet keeps pitch independent.
+ * track buffer. With `live`, only non-identity tracks play through SoundTouch
+ * (capped by maxLiveStretchTracks); extras use the offline bake. Changing
+ * stretch identity or live-slot assignment requires a re-arm.
  */
 
 import { liveStretchParams, type LiveStretchParams } from "@/lib/audio-stretch-live";
 import { resolveTempoRate } from "@/lib/audio-tempo";
-import { isTrackAudible, projectHasSolo } from "@/lib/studio/definition";
+import { isTrackAudible, projectHasSolo, qviStudioLimits } from "@/lib/studio/definition";
 import { trackTempoPitchIsIdentity } from "@/lib/studio/project";
 import type { StudioClip, StudioProject, StudioTrack } from "@/lib/studio/types";
 
 const MIN_SLICE_SEC = 1e-4;
+
+/** Re-export for callers that need the same cap the schedule uses. */
+export const STUDIO_MAX_LIVE_STRETCH_TRACKS = qviStudioLimits.maxLiveStretchTracks;
+
+/** How each track should play tempo/pitch given the live-stretch slot budget. */
+export type StudioTrackStretchMode = "id" | "live" | "bake";
 
 export function dbToGain(gainDb: number): number {
   if (!Number.isFinite(gainDb)) return 1;
@@ -46,19 +53,55 @@ export type StudioPlaybackPlan = {
   events: StudioScheduledEvent[];
 };
 
+/**
+ * Assign identity / live-worklet / offline-bake per track.
+ * When `live` is false every non-identity track is `bake`. Mute/solo do not
+ * change the mode — empty audible tracks still reserve no live slots here;
+ * call sites that schedule audio still filter with `isTrackAudible`.
+ */
+export function trackStretchModes(
+  project: StudioProject,
+  options?: { live?: boolean; maxLiveStretchTracks?: number },
+): Map<string, StudioTrackStretchMode> {
+  const live = options?.live === true;
+  let liveSlots = live ? Math.max(0, Math.floor(options?.maxLiveStretchTracks ?? STUDIO_MAX_LIVE_STRETCH_TRACKS)) : 0;
+  const modes = new Map<string, StudioTrackStretchMode>();
+  for (const track of project.tracks) {
+    if (trackTempoPitchIsIdentity(track)) {
+      modes.set(track.id, "id");
+      continue;
+    }
+    if (liveSlots > 0) {
+      modes.set(track.id, "live");
+      liveSlots -= 1;
+    } else {
+      modes.set(track.id, "bake");
+    }
+  }
+  return modes;
+}
+
 export function planPlayback(options: {
   project: StudioProject;
   playheadSec: number;
   renderedTracks?: ReadonlyMap<string, AudioBuffer>;
   /** Play tempo and pitch through the worklet instead of a baked buffer. */
   live?: boolean;
+  /** Override the default cap on simultaneous live stretch tracks. */
+  maxLiveStretchTracks?: number;
 }): StudioPlaybackPlan {
   const playhead = Number.isFinite(options.playheadSec) ? Math.max(0, options.playheadSec) : 0;
   const anySolo = projectHasSolo(options.project.tracks);
+  const modes = trackStretchModes(options.project, {
+    live: options.live === true,
+    maxLiveStretchTracks: options.maxLiveStretchTracks,
+  });
   const events: StudioScheduledEvent[] = [];
   const trackGains = options.project.tracks.map((track) => {
     const audible = isTrackAudible(track, anySolo);
-    if (audible) events.push(...eventsForTrack(track, playhead, options.renderedTracks, options.live === true));
+    if (audible) {
+      events.push(...eventsForTrack(track, playhead, options.renderedTracks, modes.get(track.id) === "live"));
+    }
     return { trackId: track.id, linear: audible ? dbToGain(track.gainDb) : 0 };
   });
   return {
@@ -68,12 +111,22 @@ export function planPlayback(options: {
   };
 }
 
-/** Clip layout and audibility. Pitch, tempo, gain, and the moving playhead are not part of it. */
-export function playbackArrangementKey(project: StudioProject): string {
+/**
+ * Clip layout, audibility, and whether each track needs a live stretch node.
+ * Exact tempo/pitch values and gain are not part of it — those update in place
+ * when the stretch graph shape stays the same. Non-identity tracks beyond the
+ * live-stretch cap are marked `bake` so the engine re-arms when slots change.
+ */
+export function playbackArrangementKey(
+  project: StudioProject,
+  maxLiveStretchTracks: number = STUDIO_MAX_LIVE_STRETCH_TRACKS,
+): string {
   const anySolo = projectHasSolo(project.tracks);
+  const modes = trackStretchModes(project, { live: true, maxLiveStretchTracks });
   return project.tracks
     .map((track) => {
       const audible = isTrackAudible(track, anySolo) ? "1" : "0";
+      const stretch = modes.get(track.id) ?? "id";
       const clips = track.clips
         .map((clip) =>
           [
@@ -86,7 +139,7 @@ export function playbackArrangementKey(project: StudioProject): string {
           ].join(":"),
         )
         .join(",");
-      return `${track.id}#${audible}#${clips}`;
+      return `${track.id}#${audible}#${stretch}#${clips}`;
     })
     .join("|");
 }
@@ -95,9 +148,15 @@ function eventsForTrack(
   track: StudioTrack,
   playhead: number,
   renderedTracks: ReadonlyMap<string, AudioBuffer> | undefined,
-  live: boolean,
+  useLiveStretch: boolean,
 ): StudioScheduledEvent[] {
-  if (live) {
+  if (trackTempoPitchIsIdentity(track)) {
+    return track.clips.flatMap((clip) => {
+      const event = eventForClip(track.id, clip, playhead);
+      return event ? [event] : [];
+    });
+  }
+  if (useLiveStretch) {
     const stretch = liveStretchParams({
       tempoRate: resolveTempoRate(track.tempo),
       semitones: track.pitchSemitones,
@@ -109,28 +168,21 @@ function eventsForTrack(
       return event ? [event] : [];
     });
   }
-  if (!trackTempoPitchIsIdentity(track)) {
-    const rendered = renderedTracks?.get(track.id);
-    if (!rendered) return [];
-    const event = eventFromBuffer({
-      trackId: track.id,
-      clipId: null,
-      buffer: rendered,
-      heardStartSec: 0,
-      sourceOffsetSec: 0,
-      sourceDurationSec: rendered.duration,
-      playhead,
-      fadeInSec: 0,
-      fadeOutSec: 0,
-      clipHeardDurationSec: rendered.duration,
-    });
-    return event ? [event] : [];
-  }
-
-  return track.clips.flatMap((clip) => {
-    const event = eventForClip(track.id, clip, playhead);
-    return event ? [event] : [];
+  const rendered = renderedTracks?.get(track.id);
+  if (!rendered) return [];
+  const event = eventFromBuffer({
+    trackId: track.id,
+    clipId: null,
+    buffer: rendered,
+    heardStartSec: 0,
+    sourceOffsetSec: 0,
+    sourceDurationSec: rendered.duration,
+    playhead,
+    fadeInSec: 0,
+    fadeOutSec: 0,
+    clipHeardDurationSec: rendered.duration,
   });
+  return event ? [event] : [];
 }
 
 function eventForLiveClip(

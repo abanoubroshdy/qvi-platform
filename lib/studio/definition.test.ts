@@ -93,6 +93,7 @@ describe("QVI Studio phase 0 contract", () => {
     expect(qviStudioEngines.tempoPitchPreview.liveStretch).toBe("wsola");
     expect(qviStudioEngines.tempoPitchPreview.engine).toBe("soundtouch");
     expect(qviStudioEngines.tempoPitchPreview.stretch).toBe("phase-vocoder");
+    expect(qviStudioEngines.tempoPitchPreview.maxLiveStretchTracks).toBe(qviStudioLimits.maxLiveStretchTracks);
     expect(qviStudioEngines.tempoPitchPreview.forbiddenStrategies).toContain("playback-rate-only");
     expect(qviStudioEngines.tempoPitchPreview.rubberband).toBe(false);
     expect(qviStudioEngines.export.rubberband).toBe(false);
@@ -116,6 +117,7 @@ describe("QVI Studio phase 0 contract", () => {
     expect(qviStudioLimits.gainDb).toEqual({ min: MIN_GAIN_DB, max: MAX_GAIN_DB, unity: 0 });
     expect(qviStudioLimits.largeFileBytes).toBe(FFMPEG_LARGE_FILE_BYTES);
     expect(qviStudioLimits.previewDebounceMs).toBe(700);
+    expect(qviStudioLimits.maxLiveStretchTracks).toBe(4);
     expect(studioExportFormats).toEqual(["mp3", "wav"]);
     expect(studioExportFormatsFitPlatform()).toBe(true);
   });
@@ -131,6 +133,19 @@ describe("QVI Studio phase 0 contract", () => {
       expect.arrayContaining(["components", "routes", "homepage-ui", "playback-engine"]),
     );
     expect(qviStudioPhase0Boundary.delivers).toContain("audibility-rule");
+  });
+
+  it("documents identity playback and the live stretch cap", () => {
+    const tempoPitch = qviStudioV1Capabilities.find((item) => item.id === "per-track-tempo-pitch");
+    expect(tempoPitch?.acceptance).toEqual([
+      "Ranges match the Tempo Pitch tool.",
+      "Identity tracks play without the live worklet; only non-identity tracks use SoundTouch or the offline bake.",
+      "While a SoundTouch worklet is registered, non-identity tracks (up to maxLiveStretchTracks) update pitch and tempo in place.",
+      "Non-identity tracks beyond that cap, or without a worklet, preview offline after the debounce then play the rendered buffer.",
+      "Unchanged tempo and pitch skip that offline render.",
+    ]);
+    expect(qviStudioLimits.maxLiveStretchTracks).toBe(4);
+    expect(qviStudioEngines.tempoPitchPreview.maxLiveStretchTracks).toBe(4);
   });
 });
 
