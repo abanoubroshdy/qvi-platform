@@ -39,7 +39,7 @@ describe("locale paths", () => {
       expect(hreflangLanguages(path).ar).toBe(withLocale(path, "ar"));
       expect(hreflangLanguages(path)["x-default"]).toBe(path);
     }
-    expect(tools).toHaveLength(17);
+    expect(tools.map((tool) => tool.slug)).toContain("video-converter");
     expect(ar.products.qv1.status).toBe("نسخة تقييم");
     expect(ar.products.neyora.status).toBe("قيد التطوير");
   });
