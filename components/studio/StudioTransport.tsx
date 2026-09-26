@@ -309,6 +309,11 @@ function SessionBpmField({ label, hint, unit }: { label: string; hint: string; u
   bpmRef.current = bpm;
   commitRef.current = studio.setSessionBpm;
   const dragRef = useRef<{ y: number; origin: number; dragging: boolean } | null>(null);
+  const showRef = useRef<(value: number) => void>(() => {});
+  showRef.current = (value: number) => {
+    setDraft(formatSessionBpm(value));
+    setEditing(false);
+  };
 
   useEffect(() => {
     if (!editing) setDraft(formatSessionBpm(bpm));
@@ -321,7 +326,9 @@ function SessionBpmField({ label, hint, unit }: { label: string; hint: string; u
       event.preventDefault();
       const steps = event.deltaY < 0 ? 1 : event.deltaY > 0 ? -1 : 0;
       if (!steps) return;
-      commitRef.current(nudgeSessionBpm(bpmRef.current, steps, event.shiftKey));
+      const next = nudgeSessionBpm(bpmRef.current, steps, event.shiftKey);
+      commitRef.current(next);
+      showRef.current(next);
     };
     node.addEventListener("wheel", onWheel, { passive: false });
     return () => node.removeEventListener("wheel", onWheel);
@@ -370,7 +377,9 @@ function SessionBpmField({ label, hint, unit }: { label: string; hint: string; u
           if (event.key === "ArrowUp" || event.key === "ArrowDown") {
             event.preventDefault();
             const steps = event.key === "ArrowUp" ? 1 : -1;
-            commitRef.current(nudgeSessionBpm(bpmRef.current, steps, event.shiftKey));
+            const next = nudgeSessionBpm(bpmRef.current, steps, event.shiftKey);
+            commitRef.current(next);
+            showRef.current(next);
           }
         }}
         onPointerDown={(event) => {
@@ -389,7 +398,9 @@ function SessionBpmField({ label, hint, unit }: { label: string; hint: string; u
           event.preventDefault();
           const steps = Math.round(dy / 8);
           if (steps === 0) return;
-          commitRef.current(nudgeSessionBpm(drag.origin, steps, event.shiftKey));
+          const next = nudgeSessionBpm(drag.origin, steps, event.shiftKey);
+          commitRef.current(next);
+          showRef.current(next);
         }}
         onPointerUp={() => {
           dragRef.current = null;
