@@ -21,7 +21,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/login", "/api/"],
+        disallow: ["/login", "/ar/login", "/api/"],
       },
       ...aiCrawlers.map((userAgent) => ({
         userAgent,

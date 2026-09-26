@@ -10,6 +10,10 @@ export const toolVisuals: Record<ToolSlug, ToolVisual> = {
     background: "linear-gradient(145deg, #0B1220 0%, #312E81 52%, #4338CA 100%)",
     caption: "MP4 → Audio",
   },
+  "video-converter": {
+    background: "linear-gradient(145deg, #0B1220 0%, #1E1B4B 48%, #6D28D9 100%)",
+    caption: "Video → Video",
+  },
   "mp3-to-wav": {
     background: "linear-gradient(145deg, #0B1220 0%, #164E63 50%, #0891B2 100%)",
     caption: "Any → Audio",

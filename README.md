@@ -29,11 +29,9 @@ Optional: copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_SITE_URL` bef
 
 ## QV1 Evaluation download
 
-`/qv1` is the public page for **QV1 Evaluation** (Windows). `/qv1/models` lists third-party model sources and licenses. `/qv1/download` is signed-in only. An anonymous visitor is redirected to `/login?next=/qv1/download`, then returned to the download after sign-in or sign-up.
+`/qv1` is the public page for **QV1 Evaluation** (Windows). `/qv1/models` lists third-party model sources and licenses. A signed-in request to `/qv1/download` records a row in `qv1_downloads` and redirects with HTTP 307 to a short-lived (1 hour) presigned GET for the Setup exe in Cloudflare R2. The account page lists that history. Set `QV1_DOWNLOAD_ENABLED` in `lib/qv1-download.ts` to false to pause the file URL without taking the page down.
 
-A signed-in request records a row in `qv1_downloads` and redirects with HTTP 307 to a short-lived (1 hour) presigned GET for the installer in Cloudflare R2. The public download domain is not used. The file is a zip: extract the whole archive into one folder, then run the exe. The `.bin` slices must stay next to the exe. The account page lists that user’s downloads (version, date and time, and a count).
-
-The download control is a normal link, so the browser does a full navigation and can follow the redirect into the file. If any R2 variable below is unset, `/qv1/download` redirects to `/qv1?download=soon` and the page shows an error. A user who hits the hourly cap (8 signed URLs) is sent to `/qv1?download=limited`. A failed history insert is logged and does not block the file.
+The Setup is a single Windows download of about 170 MB (`QV1-Setup-Evaluation.exe`, 177,766,232 bytes). During install it detects the GPU and fetches components from `https://getqvi.com/downloads/evaluation/` (about 675 MB for the core, more for NVIDIA CUDA). That path is a public temporary redirect to `https://dl.getqvi.com/qv1/evaluation/`. It is not behind sign-in. Do not add an auth middleware matcher that includes `/downloads`.
 
 Set these in **Vercel → Project Settings → Environment Variables** (Production and Preview). They are server-only. Do not prefix them with `NEXT_PUBLIC_` and do not commit real values.
 
@@ -41,7 +39,7 @@ Set these in **Vercel → Project Settings → Environment Variables** (Producti
 - `R2_ACCESS_KEY_ID`
 - `R2_SECRET_ACCESS_KEY`
 - `R2_BUCKET` — `qv1-downloads`
-- `QV1_OBJECT_KEY` — `qv1/1.2.0/QV1-Setup-Evaluation.zip`
+- `QV1_OBJECT_KEY` — optional. Defaults to `qv1/evaluation/QV1-Setup-Evaluation.exe`. If an older key is still set, replace it with this one or delete the variable.
 
 `QV1_DOWNLOAD_URL` is retired. Do not set it.
 
@@ -80,9 +78,10 @@ V1 scope is defined in `lib/studio/definition.ts`. The in-memory session lives o
 
 - `/` product home, with links to QVI Studio, QV1, Neyora, and free tools
 - `/studio` the QVI Studio session
-- `/qv1` QV1 Evaluation download (Windows)
+- `/qv1` QV1 Evaluation (Windows). Signed-in Setup download, about 170 MB
 - `/qv1/models` third-party model sources and licenses
-- `/qv1/download` signed-in presigned R2 redirect, or `/qv1?download=soon` when R2 is unset
+- `/qv1/download` records the download and redirects to a 1-hour presigned R2 URL
+- `/downloads/evaluation/:path*` public temporary redirect to `https://dl.getqvi.com/qv1/evaluation/:path*`
 - `/products/qv1` QV1 product page
 - `/products/neyora` Neyora lab (`/lab` permanently redirects here)
 - `/tools/image-compressor` Image Compressor
@@ -98,7 +97,8 @@ V1 scope is defined in `lib/studio/definition.ts`. The in-memory session lives o
 - `/tools/base64` Base64 encode / decode
 - `/tools/image-resizer` Image resizer
 - `/tools/word-counter` Word and character counter
-- `/tools/mp4-to-mp3` Extract audio from video (MP3, WAV, M4A, OGG, FLAC) with sample rate, bitrate or bit depth, and quality. Runs in the browser via ffmpeg.wasm; files over ~80 MB may fail because the whole video is loaded into memory.
+- `/tools/mp4-to-mp3` Batch video to audio (MP3, WAV, FLAC, AAC, M4A, OGG, Opus, AIFF, WMA) with sample rate, channels, and bitrate. Runs in the browser via ffmpeg.wasm. Files over ~80 MB may fail; files over ~250 MB are skipped.
+- `/tools/video-converter` Batch video to video (MP4 H.264/AAC, WebM VP9 or VP8/Opus, MKV, MOV, AVI, GIF) with resolution, frame rate, CRF or bitrate, keep/remove audio, and a remux/copy path. Same in-browser memory limits.
 - `/tools/mp3-to-wav` Convert any audio format in batch (shared quality + ZIP)
 - `/tools/audio-cutter` Trim audio
 - `/login` sign in or create an account (name, gender, country, date of birth, phone)

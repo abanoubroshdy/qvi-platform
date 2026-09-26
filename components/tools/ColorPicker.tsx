@@ -95,7 +95,7 @@ export function ColorPicker() {
       }}
       downloadDisabled={!normalized}
       error={error}
-      leading={
+      settings={
         <div className="space-y-4 rounded-xl border bg-card p-4 shadow-sm">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
             <div className="space-y-2">

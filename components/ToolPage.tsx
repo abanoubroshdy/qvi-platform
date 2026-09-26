@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
+import { LocaleLink as Link } from "@/components/LocaleLink";
 import {
   Accordion,
   AccordionContent,
@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/accordion";
 import { JsonLd } from "@/components/JsonLd";
 import { ToolArt } from "@/components/ToolArt";
-import type { ToolSlug } from "@/lib/i18n";
+import type { Locale, ToolSlug } from "@/lib/i18n";
 import { siteConfig } from "@/lib/site";
 import { categoryVisuals, toolVisuals } from "@/lib/tool-visuals";
 import { getToolBySlug } from "@/lib/tools";
@@ -34,6 +34,7 @@ type ToolPageProps = {
   applicationCategory?: string;
   faqTitle?: string;
   categoryHref?: string;
+  inLanguage?: Locale;
 };
 
 export function ToolPage({
@@ -51,6 +52,7 @@ export function ToolPage({
   applicationCategory = "UtilitiesApplication",
   faqTitle = "FAQ",
   categoryHref,
+  inLanguage = "en",
 }: ToolPageProps) {
   const url = `${siteConfig.url}${canonicalPath}`;
   const tool = slug ? getToolBySlug(slug) : undefined;
@@ -59,6 +61,7 @@ export function ToolPage({
   const faqLd = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
+    inLanguage,
     mainEntity: faqs.map((faq) => ({
       "@type": "Question",
       name: faq.question,
@@ -74,7 +77,7 @@ export function ToolPage({
     "@type": "HowTo",
     name: howToTitle,
     description,
-    inLanguage: "en",
+    inLanguage,
     step: howToSteps.map((text, index) => ({
       "@type": "HowToStep",
       position: index + 1,
@@ -93,7 +96,7 @@ export function ToolPage({
       price: "0",
       priceCurrency: "USD",
     },
-    inLanguage: "en",
+    inLanguage,
     url,
   };
 
@@ -146,14 +149,25 @@ export function ToolPage({
 
       <section className="mt-8">
         <h2 className="mb-3 text-xl font-extrabold">{faqTitle}</h2>
-        <Accordion type="single" collapsible className="rounded-xl border bg-card px-4 shadow-sm">
-          {faqs.map((faq, index) => (
-            <AccordionItem key={faq.question} value={`item-${index}`}>
-              <AccordionTrigger className="text-base">{faq.question}</AccordionTrigger>
-              <AccordionContent className="leading-8 text-muted-foreground">{faq.answer}</AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
+        {inLanguage === "ar" ? (
+          <div className="rounded-xl border bg-card px-4 shadow-sm">
+            {faqs.map((faq) => (
+              <details key={faq.question} className="border-b border-border last:border-b-0">
+                <summary className="cursor-pointer py-4 text-base font-medium">{faq.question}</summary>
+                <p className="pb-4 leading-8 text-muted-foreground">{faq.answer}</p>
+              </details>
+            ))}
+          </div>
+        ) : (
+          <Accordion type="single" collapsible className="rounded-xl border bg-card px-4 shadow-sm">
+            {faqs.map((faq, index) => (
+              <AccordionItem key={faq.question} value={`item-${index}`}>
+                <AccordionTrigger className="text-base">{faq.question}</AccordionTrigger>
+                <AccordionContent className="leading-8 text-muted-foreground">{faq.answer}</AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        )}
       </section>
     </div>
   );

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import {
+  QV1_DOWNLOAD_ENABLED,
+  QV1_DOWNLOAD_PAUSED_PATH,
   missingR2DownloadEnv,
   planQv1Download,
   presignQv1Object,
@@ -16,6 +18,10 @@ import { getRequestSupabaseSession } from "@/lib/supabase/request-session";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  if (!QV1_DOWNLOAD_ENABLED) {
+    return NextResponse.redirect(new URL(QV1_DOWNLOAD_PAUSED_PATH, request.url), 307);
+  }
+
   const session = await getRequestSupabaseSession(request);
   const config = resolveR2DownloadConfig(process.env);
   let recentCount = 0;

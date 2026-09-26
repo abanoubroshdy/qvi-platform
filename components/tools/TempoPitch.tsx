@@ -660,7 +660,7 @@ export function TempoPitch() {
       hideDropzone={Boolean(audio)}
       hideEmptyPreview={!audio}
       replaceLabel={audio ? t.replaceFile : undefined}
-      leading={waveformPanel}
+      settings={waveformPanel}
       dropTitle={t.dropTitle}
       dropHint={t.dropHint}
       emptyPreviewText={t.empty}
@@ -916,44 +916,48 @@ export function TempoPitch() {
               {comfort.pitch ? <p className="text-sm text-amber-700 dark:text-amber-300">{t.pitchComfort}</p> : null}
             </section>
 
-            <section className="space-y-3">
-              <div>
-                <h2 className="text-base font-semibold">{t.exportSection}</h2>
-                <p className="text-sm text-muted-foreground">{t.exportHint}</p>
-              </div>
-              <div className="flex flex-wrap gap-2" role="group" aria-label={t.outputFormat}>
-                {exportFormats.map((item) => (
-                  <Button
-                    key={item}
-                    type="button"
-                    size="sm"
-                    variant={format === item ? "default" : "outline"}
-                    aria-pressed={format === item}
-                    onClick={() => {
-                      setFormat(item);
-                      if (audio && !audio.decodeFailed) {
-                        setSettings(settingsFromSource(audio.source, item));
-                      } else {
-                        setSettings(clampAudioExportSettings(item, settings));
-                      }
-                      clearResult();
-                    }}
-                  >
-                    {item.toUpperCase()}
-                  </Button>
-                ))}
-              </div>
-              <AudioExportSettingsPanel
-                format={format}
-                settings={settings}
-                onChange={(next) => {
-                  setSettings(clampAudioExportSettings(format, next));
-                  clearResult();
-                }}
-              />
-            </section>
           </div>
         ) : undefined
+      }
+      trailing={
+        audio ? (
+          <section className="space-y-3 rounded-xl border bg-card p-4 shadow-sm">
+            <div>
+              <h2 className="text-base font-semibold">{t.exportSection}</h2>
+              <p className="text-sm text-muted-foreground">{t.exportHint}</p>
+            </div>
+            <div className="flex flex-wrap gap-2" role="group" aria-label={t.outputFormat}>
+              {exportFormats.map((item) => (
+                <Button
+                  key={item}
+                  type="button"
+                  size="sm"
+                  variant={format === item ? "default" : "outline"}
+                  aria-pressed={format === item}
+                  onClick={() => {
+                    setFormat(item);
+                    if (audio && !audio.decodeFailed) {
+                      setSettings(settingsFromSource(audio.source, item));
+                    } else {
+                      setSettings(clampAudioExportSettings(item, settings));
+                    }
+                    clearResult();
+                  }}
+                >
+                  {item.toUpperCase()}
+                </Button>
+              ))}
+            </div>
+            <AudioExportSettingsPanel
+              format={format}
+              settings={settings}
+              onChange={(next) => {
+                setSettings(clampAudioExportSettings(format, next));
+                clearResult();
+              }}
+            />
+          </section>
+        ) : null
       }
     />
   );

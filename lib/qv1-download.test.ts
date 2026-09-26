@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { GET } from "@/app/qv1/download/route";
 import {
+  QV1_DEFAULT_OBJECT_KEY,
+  QV1_DOWNLOAD_ENABLED,
   QV1_DOWNLOADS_PER_HOUR,
   contentDispositionAttachment,
   isQv1DownloadRateLimited,
@@ -52,7 +54,7 @@ const config: R2DownloadConfig = {
   accessKeyId: "key",
   secretAccessKey: "secret",
   bucket: "qv1-downloads",
-  objectKey: "qv1/1.2.0/QV1-Setup-Evaluation.zip",
+  objectKey: "qv1/evaluation/QV1-Setup-Evaluation.exe",
 };
 
 function fullEnv(): Record<string, string> {
@@ -74,10 +76,18 @@ describe("resolveR2DownloadConfig", () => {
     expect(resolveR2DownloadConfig({ ...fullEnv(), R2_BUCKET: "  " })).toBeNull();
   });
 
-  it("reads the five server variables and ignores a leftover public URL", () => {
+  it("reads the server variables and ignores a leftover public URL", () => {
     expect(resolveR2DownloadConfig({ ...fullEnv(), QV1_DOWNLOAD_URL: "https://dl.getqvi.com/file.zip" })).toEqual(
       config,
     );
+  });
+
+  it("defaults the object key to the online Setup", () => {
+    const env = fullEnv();
+    delete (env as { QV1_OBJECT_KEY?: string }).QV1_OBJECT_KEY;
+    expect(resolveR2DownloadConfig(env)).toEqual({ ...config, objectKey: QV1_DEFAULT_OBJECT_KEY });
+    expect(QV1_DEFAULT_OBJECT_KEY).toBe("qv1/evaluation/QV1-Setup-Evaluation.exe");
+    expect(resolveR2DownloadConfig({ ...env, QV1_OBJECT_KEY: "  custom/key.exe  " })?.objectKey).toBe("custom/key.exe");
   });
 });
 
@@ -90,8 +100,8 @@ describe("download guards", () => {
   });
 
   it("sets an attachment filename and a per-hour cap", () => {
-    expect(contentDispositionAttachment('QV1-Setup-Evaluation.zip')).toBe(
-      'attachment; filename="QV1-Setup-Evaluation.zip"',
+    expect(contentDispositionAttachment("QV1-Setup-Evaluation.exe")).toBe(
+      'attachment; filename="QV1-Setup-Evaluation.exe"',
     );
     expect(isQv1DownloadRateLimited(QV1_DOWNLOADS_PER_HOUR - 1)).toBe(false);
     expect(isQv1DownloadRateLimited(QV1_DOWNLOADS_PER_HOUR)).toBe(true);
@@ -99,6 +109,23 @@ describe("download guards", () => {
 });
 
 describe("planQv1Download", () => {
+  it("pauses the file when downloads are disabled", async () => {
+    const sign = vi.fn();
+    const record = vi.fn();
+    const decision = await planQv1Download({
+      userId: "user-1",
+      config,
+      recentCount: 0,
+      sign,
+      record,
+      enabled: false,
+    });
+    expect(decision).toEqual({ kind: "paused" });
+    expect(sign).not.toHaveBeenCalled();
+    expect(record).not.toHaveBeenCalled();
+    expect(qv1DownloadLocation(decision)).toBe("/qv1?download=paused");
+  });
+
   it("sends an anonymous visitor to sign in", async () => {
     const sign = vi.fn();
     const record = vi.fn();
@@ -140,7 +167,7 @@ describe("planQv1Download", () => {
   });
 
   it("records the download and returns the presigned URL", async () => {
-    const signed = "https://account.r2.cloudflarestorage.com/qv1-downloads/qv1/1.2.0/QV1-Setup-Evaluation.zip?X-Amz-Signature=test";
+    const signed = "https://account.r2.cloudflarestorage.com/qv1-downloads/qv1/evaluation/QV1-Setup-Evaluation.exe?X-Amz-Signature=test";
     const record = vi.fn(async () => undefined);
     const decision = await planQv1Download({
       userId: "user-1",
@@ -181,7 +208,6 @@ describe("download logs", () => {
       "R2_ACCOUNT_ID",
       "R2_ACCESS_KEY_ID",
       "R2_SECRET_ACCESS_KEY",
-      "QV1_OBJECT_KEY",
     ]);
     const secret = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY";
     const line = qv1DownloadLogLine("record", `insert failed token=${secret}`);
@@ -193,10 +219,32 @@ describe("download logs", () => {
 
 describe("GET /qv1/download", () => {
   it("redirects an anonymous request to login with a return path", async () => {
+    expect(QV1_DOWNLOAD_ENABLED).toBe(true);
     vi.mocked(getRequestSupabaseSession).mockResolvedValue(null);
     const response = await GET(new Request("https://getqvi.com/qv1/download"));
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe("https://getqvi.com/login?next=%2Fqv1%2Fdownload");
+  });
+
+  it("signs the default Setup key and records the download", async () => {
+    const env = fullEnv();
+    delete (env as { QV1_OBJECT_KEY?: string }).QV1_OBJECT_KEY;
+    for (const [key, value] of Object.entries(env)) process.env[key] = value;
+    delete process.env.QV1_OBJECT_KEY;
+    vi.mocked(getRequestSupabaseSession).mockResolvedValue({
+      client: {} as never,
+      userId: "user-1",
+    });
+
+    const response = await GET(new Request("https://getqvi.com/qv1/download"));
+
+    expect(response.status).toBe(307);
+    const location = response.headers.get("location") ?? "";
+    expect(location.startsWith("https://")).toBe(true);
+    expect(location).toContain("qv1/evaluation/QV1-Setup-Evaluation.exe");
+    expect(location).toContain("QV1-Setup-Evaluation.exe");
+    expect(insertQv1Download).toHaveBeenCalledOnce();
+    expect(countRecentQv1Downloads).toHaveBeenCalledOnce();
   });
 
   it("sends a signed-in user to the presigned file even when history writes fail", async () => {
@@ -214,7 +262,7 @@ describe("GET /qv1/download", () => {
     expect(response.status).toBe(307);
     const location = response.headers.get("location") ?? "";
     expect(location.startsWith("https://")).toBe(true);
-    expect(location).toContain("QV1-Setup-Evaluation.zip");
+    expect(location).toContain("QV1-Setup-Evaluation.exe");
     const logged = errorSpy.mock.calls.flat().join(" ");
     expect(logged).toContain("[qv1-download] history count:");
     expect(logged).toContain("[qv1-download] record:");

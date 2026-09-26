@@ -1,10 +1,24 @@
 import type { FFmpeg, LogEventCallback, ProgressEventCallback } from "@ffmpeg/ffmpeg";
 
-const CORE_BASE = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm";
+const ST_CORE_BASE = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm";
+const MT_CORE_BASE = "https://unpkg.com/@ffmpeg/core-mt@0.12.6/dist/esm";
 const LOG_LIMIT = 80;
+/** Soft warning threshold. The whole file is copied into wasm memory. */
 export const FFMPEG_LARGE_FILE_BYTES = 80 * 1024 * 1024;
+/** Hard skip. Larger inputs are rejected before they are written into the wasm FS. */
+export const FFMPEG_MAX_INPUT_BYTES = 250 * 1024 * 1024;
 
 export type FFmpegProgressHandler = (ratio: number) => void;
+export type FFmpegCoreKind = "mt" | "st";
+
+/**
+ * Multithreaded ffmpeg-core needs SharedArrayBuffer, which requires
+ * cross-origin isolation (COOP + COEP). `/tools/*` keeps COEP unsafe-none so
+ * AdSense frames can load, so those pages use the single-thread core.
+ */
+export function selectFFmpegCore(crossOriginIsolated: boolean): FFmpegCoreKind {
+  return crossOriginIsolated ? "mt" : "st";
+}
 
 export class FFmpegRunError extends Error {
   readonly exitCode: number | null;
@@ -18,12 +32,24 @@ export class FFmpegRunError extends Error {
   }
 }
 
+export class FFmpegCancelledError extends Error {
+  constructor() {
+    super("Conversion cancelled.");
+    this.name = "FFmpegCancelledError";
+  }
+}
+
+export function isFFmpegCancelled(error: unknown): boolean {
+  return error instanceof FFmpegCancelledError;
+}
+
 let ffmpeg: FFmpeg | null = null;
 let loadPromise: Promise<FFmpeg> | null = null;
 let execProgress: FFmpegProgressHandler | null = null;
 let progressListener: ProgressEventCallback | null = null;
 let logListener: LogEventCallback | null = null;
 let sessionLogs: string[] = [];
+let runGeneration = 0;
 
 function extensionOf(file: File) {
   const fromName = file.name.split(".").pop()?.toLowerCase();
@@ -39,66 +65,140 @@ export function inputNameFor(file: File, fallback = "input") {
   return `${fallback}.${extensionOf(file)}`;
 }
 
+type BlobURL = (
+  url: string,
+  mimeType: string,
+  progress?: boolean,
+  cb?: (event: { received: number; total: number }) => void,
+) => Promise<string>;
+
+function attachListeners(instance: FFmpeg) {
+  if (!progressListener) {
+    progressListener = ({ progress }) => {
+      execProgress?.(Math.min(1, Math.max(0, progress)));
+    };
+    instance.on("progress", progressListener);
+  }
+
+  if (!logListener) {
+    logListener = ({ type, message }) => {
+      const line = `${type}: ${message}`.trim();
+      if (!line) return;
+      sessionLogs.push(line);
+      if (sessionLogs.length > LOG_LIMIT) sessionLogs = sessionLogs.slice(-LOG_LIMIT);
+      console.debug("[ffmpeg]", line);
+    };
+    instance.on("log", logListener);
+  }
+}
+
+async function loadCore(
+  instance: FFmpeg,
+  kind: FFmpegCoreKind,
+  toBlobURL: BlobURL,
+  report: (ratio: number) => void,
+  generation: number,
+) {
+  const base = kind === "mt" ? MT_CORE_BASE : ST_CORE_BASE;
+  const coreURL = await toBlobURL(`${base}/ffmpeg-core.js`, "text/javascript", true, ({ received, total }) => {
+    report(0.05 + (total ? received / total : 0) * 0.28);
+  });
+  if (generation !== runGeneration) throw new FFmpegCancelledError();
+  report(0.35);
+
+  const wasmURL = await toBlobURL(`${base}/ffmpeg-core.wasm`, "application/wasm", true, ({ received, total }) => {
+    report(0.35 + (total ? received / total : 0) * 0.4);
+  });
+  if (generation !== runGeneration) throw new FFmpegCancelledError();
+
+  let workerURL: string | undefined;
+  if (kind === "mt") {
+    workerURL = await toBlobURL(`${base}/ffmpeg-core.worker.js`, "text/javascript", true, ({ received, total }) => {
+      report(0.76 + (total ? received / total : 0) * 0.12);
+    });
+    if (generation !== runGeneration) throw new FFmpegCancelledError();
+  }
+  report(0.9);
+
+  const classWorkerURL = new URL("/ffmpeg-worker/worker.js", window.location.origin).href;
+  await instance.load({ coreURL, wasmURL, workerURL, classWorkerURL });
+}
+
+/** Stop the current exec and drop the worker so the next file can load a fresh engine. */
+export async function terminateFFmpeg(): Promise<void> {
+  runGeneration += 1;
+  const instance = ffmpeg;
+  ffmpeg = null;
+  loadPromise = null;
+  execProgress = null;
+  progressListener = null;
+  logListener = null;
+  try {
+    instance?.terminate();
+  } catch {
+    /* already stopped */
+  }
+}
+
 export async function loadFFmpeg(onProgress?: FFmpegProgressHandler): Promise<FFmpeg> {
-  if (ffmpeg?.loaded) {
+  const generation = runGeneration;
+  if (ffmpeg?.loaded && generation === runGeneration) {
     onProgress?.(1);
     return ffmpeg;
   }
   if (loadPromise) return loadPromise;
 
-  loadPromise = (async () => {
+  let instance: FFmpeg | null = null;
+  const pending = (async () => {
     const [{ FFmpeg }, { toBlobURL }] = await Promise.all([import("@ffmpeg/ffmpeg"), import("@ffmpeg/util")]);
-    const instance = ffmpeg ?? new FFmpeg();
+    if (generation !== runGeneration) throw new FFmpegCancelledError();
+    instance = ffmpeg ?? new FFmpeg();
     ffmpeg = instance;
 
     const report = (ratio: number) => onProgress?.(Math.min(1, Math.max(0, ratio)));
     report(0.02);
 
-    const coreURL = await toBlobURL(`${CORE_BASE}/ffmpeg-core.js`, "text/javascript", true, ({ received, total }) => {
-      report(0.05 + (total ? received / total : 0) * 0.35);
-    });
-    report(0.42);
-
-    const wasmURL = await toBlobURL(`${CORE_BASE}/ffmpeg-core.wasm`, "application/wasm", true, ({ received, total }) => {
-      report(0.42 + (total ? received / total : 0) * 0.45);
-    });
-    report(0.9);
-
-    const classWorkerURL = new URL("/ffmpeg-worker/worker.js", window.location.origin).href;
-    await instance.load({ coreURL, wasmURL, classWorkerURL });
-
-    if (!progressListener) {
-      progressListener = ({ progress }) => {
-        execProgress?.(Math.min(1, Math.max(0, progress)));
-      };
-      instance.on("progress", progressListener);
+    const isolated = typeof crossOriginIsolated === "boolean" && crossOriginIsolated;
+    const kind = selectFFmpegCore(isolated);
+    try {
+      await loadCore(instance, kind, toBlobURL, report, generation);
+    } catch (error) {
+      if (generation !== runGeneration || isFFmpegCancelled(error)) throw new FFmpegCancelledError();
+      if (kind !== "mt") throw error;
+      try {
+        instance.terminate();
+      } catch {
+        /* ignore a half-loaded multithread core */
+      }
+      progressListener = null;
+      logListener = null;
+      instance = new FFmpeg();
+      ffmpeg = instance;
+      await loadCore(instance, "st", toBlobURL, report, generation);
     }
 
-    if (!logListener) {
-      logListener = ({ type, message }) => {
-        const line = `${type}: ${message}`.trim();
-        if (!line) return;
-        sessionLogs.push(line);
-        if (sessionLogs.length > LOG_LIMIT) sessionLogs = sessionLogs.slice(-LOG_LIMIT);
-        console.debug("[ffmpeg]", line);
-      };
-      instance.on("log", logListener);
-    }
-
+    if (generation !== runGeneration) throw new FFmpegCancelledError();
+    attachListeners(instance);
     report(1);
     return instance;
   })();
 
+  loadPromise = pending;
+
   try {
-    return await loadPromise;
+    return await pending;
   } catch (error) {
-    loadPromise = null;
-    try {
-      ffmpeg?.terminate();
-    } catch {
-      /* ignore */
+    if (loadPromise === pending) loadPromise = null;
+    const failed = instance as FFmpeg | null;
+    if (failed && ffmpeg === failed) {
+      try {
+        failed.terminate();
+      } catch {
+        /* ignore */
+      }
+      ffmpeg = null;
     }
-    ffmpeg = null;
+    if (generation !== runGeneration || isFFmpegCancelled(error)) throw new FFmpegCancelledError();
     throw new FFmpegRunError("Failed to load the FFmpeg engine.", {
       cause: error instanceof Error ? error : undefined,
       logs: [...sessionLogs, error instanceof Error ? error.message : String(error)],
@@ -129,13 +229,19 @@ async function deleteQuietly(instance: FFmpeg, name: string) {
   }
 }
 
+function throwIfCancelled(generation: number) {
+  if (generation !== runGeneration) throw new FFmpegCancelledError();
+}
+
 /** Run FFmpeg with one or more input files written into the virtual FS. */
 export async function runFFmpegFiles(options: RunFFmpegFilesOptions): Promise<Blob> {
   if (!options.files.length) {
     throw new FFmpegRunError("FFmpeg run requires at least one input file.");
   }
 
+  const generation = runGeneration;
   const instance = await loadFFmpeg(options.onLoadProgress);
+  throwIfCancelled(generation);
   const { fetchFile } = await import("@ffmpeg/util");
 
   execProgress = (ratio) => options.onProgress?.(ratio);
@@ -146,14 +252,17 @@ export async function runFFmpegFiles(options: RunFFmpegFilesOptions): Promise<Bl
 
   try {
     for (const entry of options.files) {
+      throwIfCancelled(generation);
       await instance.writeFile(entry.name, await fetchFile(entry.file));
       written.add(entry.name);
     }
 
     for (const args of attempts) {
+      throwIfCancelled(generation);
       sessionLogs = [];
       try {
         const code = await instance.exec(args);
+        throwIfCancelled(generation);
         if (code !== 0) {
           lastError = new FFmpegRunError(`ffmpeg exited with code ${code}.`, {
             exitCode: code,
@@ -166,6 +275,7 @@ export async function runFFmpegFiles(options: RunFFmpegFilesOptions): Promise<Bl
         const bytes = data instanceof Uint8Array ? new Uint8Array(data) : new TextEncoder().encode(String(data));
         return new Blob([bytes], { type: options.mimeType });
       } catch (error) {
+        if (generation !== runGeneration || isFFmpegCancelled(error)) throw new FFmpegCancelledError();
         lastError =
           error instanceof FFmpegRunError
             ? error
@@ -181,6 +291,7 @@ export async function runFFmpegFiles(options: RunFFmpegFilesOptions): Promise<Bl
       ? lastError
       : new FFmpegRunError("FFmpeg run failed.", { cause: lastError, logs: sessionLogs.slice() });
   } catch (error) {
+    if (generation !== runGeneration || isFFmpegCancelled(error)) throw new FFmpegCancelledError();
     if (error instanceof FFmpegRunError) throw error;
     throw new FFmpegRunError(error instanceof Error ? error.message : "FFmpeg run failed.", {
       cause: error,
@@ -188,10 +299,12 @@ export async function runFFmpegFiles(options: RunFFmpegFilesOptions): Promise<Bl
     });
   } finally {
     execProgress = null;
-    for (const name of Array.from(written)) {
-      await deleteQuietly(instance, name);
+    if (generation === runGeneration) {
+      for (const name of Array.from(written)) {
+        await deleteQuietly(instance, name);
+      }
+      await deleteQuietly(instance, options.outputName);
     }
-    await deleteQuietly(instance, options.outputName);
   }
 }
 
@@ -270,7 +383,13 @@ export function classifyFFmpegFailure(
   ) {
     return "no-audio";
   }
-  if (text.includes("memory") || text.includes("out of mem") || text.includes("cannot allocate") || text.includes("oom")) {
+  if (
+    text.includes("memory") ||
+    text.includes("out of mem") ||
+    text.includes("cannot allocate") ||
+    text.includes("oom") ||
+    text.includes("exceeds browser memory")
+  ) {
     return "memory";
   }
   if (options?.fileBytes != null && options.fileBytes >= FFMPEG_LARGE_FILE_BYTES) {

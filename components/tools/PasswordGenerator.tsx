@@ -89,7 +89,7 @@ export function PasswordGenerator() {
       onDownload={() => password && void copyText(password)}
       downloadDisabled={!password}
       error={error}
-      leading={
+      settings={
         <div className="space-y-4 rounded-xl border bg-card p-4 shadow-sm">
           <div>
             <div className="mb-3 flex items-center justify-between gap-3">

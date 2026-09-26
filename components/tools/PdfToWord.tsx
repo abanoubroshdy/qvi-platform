@@ -147,7 +147,7 @@ export function PdfToWord() {
       }}
       downloadDisabled={!result || isWorking}
       error={error}
-      leading={
+      settings={
         <div className="space-y-3">
           <div className="rounded-xl border bg-card p-4 shadow-sm">
             <Label htmlFor="pdf-to-word-mode">{copy.pdfToWord.mode}</Label>

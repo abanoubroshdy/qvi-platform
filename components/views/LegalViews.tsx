@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { LocaleLink as Link } from "@/components/LocaleLink";
 import { ContactForm } from "@/components/contact/ContactForm";
 import { LegalPage } from "@/components/LegalPage";
 import { useI18n } from "@/components/i18n/I18nProvider";

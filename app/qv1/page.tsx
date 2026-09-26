@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Qv1EvaluationView } from "@/components/qv1/Qv1EvaluationView";
+import { QV1_DOWNLOAD_ENABLED } from "@/lib/qv1-download";
 import type { Qv1DownloadNotice } from "@/lib/qv1-release";
 import { buildPageMetadata } from "@/lib/seo";
 
@@ -18,8 +19,9 @@ type Qv1PageProps = {
 };
 
 function noticeFrom(flag: string | string[] | undefined): Qv1DownloadNotice {
+  if (!QV1_DOWNLOAD_ENABLED) return "paused";
   const value = Array.isArray(flag) ? flag[0] : flag;
-  if (value === "soon" || value === "limited" || value === "unavailable") return value;
+  if (value === "soon" || value === "limited" || value === "unavailable" || value === "paused") return value;
   return "ready";
 }
 

@@ -321,29 +321,31 @@ export function Mp3ToWav() {
           ) : null}
         </>
       }
-      leading={
-        <div className="space-y-4 rounded-xl border bg-card p-4 shadow-sm">
-          <div className="space-y-2">
-            <Label className="text-start">{t.outputFormat}</Label>
-            <p className="text-sm text-muted-foreground">{t.unifiedHint}</p>
-            <div className="flex flex-wrap gap-2" role="group" aria-label={t.outputFormat}>
-              {audioExportFormats.map((item) => (
-                <Button
-                  key={item}
-                  type="button"
-                  size="sm"
-                  variant={format === item ? "default" : "outline"}
-                  onClick={() => onFormat(item)}
-                  disabled={busy}
-                  aria-pressed={format === item}
-                  dir="ltr"
-                >
-                  {copy.mp4ToMp3.formats[item]}
-                </Button>
-              ))}
-            </div>
-          </div>
+      settings={
+        items.length ? (
           <AudioExportSettingsPanel format={format} settings={settings} disabled={busy} onChange={onSettings} />
+        ) : null
+      }
+      trailing={
+        <div className="space-y-2 rounded-xl border bg-card p-4 shadow-sm">
+          <Label className="text-start">{t.outputFormat}</Label>
+          <p className="text-sm text-muted-foreground">{t.unifiedHint}</p>
+          <div className="flex flex-wrap gap-2" role="group" aria-label={t.outputFormat}>
+            {audioExportFormats.map((item) => (
+              <Button
+                key={item}
+                type="button"
+                size="sm"
+                variant={format === item ? "default" : "outline"}
+                onClick={() => onFormat(item)}
+                disabled={busy}
+                aria-pressed={format === item}
+                dir="ltr"
+              >
+                {copy.mp4ToMp3.formats[item]}
+              </Button>
+            ))}
+          </div>
         </div>
       }
       preview={

@@ -4,10 +4,11 @@ import type { ReactNode } from "react";
 import { ToolPage } from "@/components/ToolPage";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import type { LiveToolSlug } from "@/lib/i18n";
+import { withLocale } from "@/lib/i18n/locale-path";
 import { getToolBySlug, toolCategoryPath } from "@/lib/tools";
 
 export function LiveToolView({ slug, children }: { slug: LiveToolSlug; children: ReactNode }) {
-  const { copy } = useI18n();
+  const { copy, locale } = useI18n();
   const page = copy.toolPages[slug];
   const tool = getToolBySlug(slug);
 
@@ -24,7 +25,8 @@ export function LiveToolView({ slug, children }: { slug: LiveToolSlug; children:
       faqs={page.faqs.map((faq) => ({ question: faq.q, answer: faq.a }))}
       faqTitle={copy.common.faq}
       jsonLdName={`${copy.toolsIndex[slug].title} | QVI`}
-      canonicalPath={`/tools/${slug}`}
+      canonicalPath={withLocale(`/tools/${slug}`, locale)}
+      inLanguage={locale}
     >
       {children}
     </ToolPage>
