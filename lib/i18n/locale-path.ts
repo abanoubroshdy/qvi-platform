@@ -15,7 +15,13 @@ const STATIC_INDEXABLE = [
   "/studio",
 ] as const;
 
-const AUTH_ROUTES = new Set(["/login", "/account"]);
+const AUTH_ROUTES = new Set([
+  "/login",
+  "/account",
+  "/forgot-password",
+  "/reset-password",
+  "/auth/callback",
+]);
 
 export function indexableEnglishPaths(): string[] {
   return [

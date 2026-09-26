@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import type { User } from "@supabase/supabase-js";
+import { clearPasswordRecovery, markPasswordRecovery } from "@/lib/auth/recovery";
 import {
   configureSupabase,
   getSupabaseClient,
@@ -74,15 +75,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+        if (!active) return;
+        if (event === "PASSWORD_RECOVERY" && session?.user?.id) {
+          markPasswordRecovery(session.user.id);
+        }
+        setUser(session?.user ?? null);
+      });
+
       const { data } = await supabase.auth.getSession();
-      if (!active) return;
+      // PKCE recovery emits PASSWORD_RECOVERY on a macrotask after initialize.
+      // Wait for it before consumers read the recovery mark.
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      if (!active) {
+        sub.subscription.unsubscribe();
+        return;
+      }
       setUser(data.session?.user ?? null);
       setLoading(false);
-
-      const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-        setUser(session?.user ?? null);
-        setLoading(false);
-      });
 
       return () => {
         sub.subscription.unsubscribe();
@@ -100,6 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const supabase = getSupabaseClient();
     if (!supabase) return;
     await supabase.auth.signOut();
+    clearPasswordRecovery();
     setUser(null);
   }, []);
 

@@ -74,6 +74,18 @@ const pages: Record<string, ArabicSeo> = {
     title: "الحساب | QVI",
     description: "إدارة حساب QVI.",
   },
+  "/forgot-password": {
+    title: "نسيت كلمة المرور | QVI",
+    description: "اطلب رابطًا لإعادة تعيين كلمة مرور حساب QVI.",
+  },
+  "/reset-password": {
+    title: "تعيين كلمة مرور جديدة | QVI",
+    description: "اختر كلمة مرور جديدة لحساب QVI.",
+  },
+  "/auth/callback": {
+    title: "تأكيد الدخول | QVI",
+    description: "جارٍ تأكيد جلسة حساب QVI.",
+  },
 };
 
 const tools: Record<string, ArabicSeo> = {
