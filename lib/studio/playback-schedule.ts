@@ -1,10 +1,11 @@
 /**
  * What the Web Audio graph should start for one playhead.
- * Identity tracks play trimmed source buffers when no live worklet is available.
+ * Identity tracks always play trimmed source buffers (no SoundTouch), whether or
+ * not a live worklet is available — so many tracks stay cheap to arm.
  * Without a live worklet, any other tempo or pitch waits for an offline-rendered
- * track buffer. With `live`, every audible clip plays through SoundTouch, including
- * unity tempo and pitch, so a later edit is an AudioParam write. The source
- * playbackRate is the tempo, and the worklet keeps pitch independent.
+ * track buffer. With `live`, only non-identity tracks play through SoundTouch:
+ * the source playbackRate is the tempo, and the worklet keeps pitch independent.
+ * Changing a track into or out of identity requires a re-arm (arrangement key).
  */
 
 import { liveStretchParams, type LiveStretchParams } from "@/lib/audio-stretch-live";
@@ -68,12 +69,17 @@ export function planPlayback(options: {
   };
 }
 
-/** Clip layout and audibility. Pitch, tempo, gain, and the moving playhead are not part of it. */
+/**
+ * Clip layout, audibility, and whether each track needs a live stretch node.
+ * Exact tempo/pitch values and gain are not part of it — those update in place
+ * when the stretch graph shape stays the same.
+ */
 export function playbackArrangementKey(project: StudioProject): string {
   const anySolo = projectHasSolo(project.tracks);
   return project.tracks
     .map((track) => {
       const audible = isTrackAudible(track, anySolo) ? "1" : "0";
+      const stretch = trackTempoPitchIsIdentity(track) ? "id" : "live";
       const clips = track.clips
         .map((clip) =>
           [
@@ -86,7 +92,7 @@ export function playbackArrangementKey(project: StudioProject): string {
           ].join(":"),
         )
         .join(",");
-      return `${track.id}#${audible}#${clips}`;
+      return `${track.id}#${audible}#${stretch}#${clips}`;
     })
     .join("|");
 }
@@ -97,6 +103,12 @@ function eventsForTrack(
   renderedTracks: ReadonlyMap<string, AudioBuffer> | undefined,
   live: boolean,
 ): StudioScheduledEvent[] {
+  if (trackTempoPitchIsIdentity(track)) {
+    return track.clips.flatMap((clip) => {
+      const event = eventForClip(track.id, clip, playhead);
+      return event ? [event] : [];
+    });
+  }
   if (live) {
     const stretch = liveStretchParams({
       tempoRate: resolveTempoRate(track.tempo),
@@ -109,28 +121,21 @@ function eventsForTrack(
       return event ? [event] : [];
     });
   }
-  if (!trackTempoPitchIsIdentity(track)) {
-    const rendered = renderedTracks?.get(track.id);
-    if (!rendered) return [];
-    const event = eventFromBuffer({
-      trackId: track.id,
-      clipId: null,
-      buffer: rendered,
-      heardStartSec: 0,
-      sourceOffsetSec: 0,
-      sourceDurationSec: rendered.duration,
-      playhead,
-      fadeInSec: 0,
-      fadeOutSec: 0,
-      clipHeardDurationSec: rendered.duration,
-    });
-    return event ? [event] : [];
-  }
-
-  return track.clips.flatMap((clip) => {
-    const event = eventForClip(track.id, clip, playhead);
-    return event ? [event] : [];
+  const rendered = renderedTracks?.get(track.id);
+  if (!rendered) return [];
+  const event = eventFromBuffer({
+    trackId: track.id,
+    clipId: null,
+    buffer: rendered,
+    heardStartSec: 0,
+    sourceOffsetSec: 0,
+    sourceDurationSec: rendered.duration,
+    playhead,
+    fadeInSec: 0,
+    fadeOutSec: 0,
+    clipHeardDurationSec: rendered.duration,
   });
+  return event ? [event] : [];
 }
 
 function eventForLiveClip(

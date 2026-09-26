@@ -1,19 +1,17 @@
 /**
  * Live QVI Studio playback.
  *
- * Web Audio schedules the plan from `playback-schedule`. When the host can
- * create a SoundTouch worklet, every audible clip plays through it. Pitch,
- * tempo, gain, pan, and EQ write AudioParams on the voices already running.
- * They do not stop those voices, and they do not stretch the whole clip on
- * this thread. Without a worklet, a rendered track buffer is used once the
- * offline preview has one.
+ * Web Audio schedules the plan from `playback-schedule`. Identity tracks play
+ * source → fade → EQ → compressor → pan → gain. Non-identity tracks add a
+ * SoundTouch worklet after the fade when the host can create one. Pitch and
+ * tempo on an already-live track write AudioParams without rebuilding; leaving
+ * or entering identity re-arms. Without a worklet, a rendered track buffer is
+ * used once the offline preview has one.
  * AnalyserNodes sit after the track and master gains so the console can read
  * peaks. They do not change the mix.
- * When the host can build them, each playing track is
- * source → fade → SoundTouch worklet → EQ → compressor → pan → gain.
  * The fade connects to the worklet node (`input`), not the wrapper object.
- * If that node cannot be created or connected, the same clip plays as a plain
- * buffer and the transport still starts.
+ * If that node cannot be created or connected, live stretch is disabled and
+ * identity clips still start; the transport does not stick.
  * Export does not use this graph.
  */
 

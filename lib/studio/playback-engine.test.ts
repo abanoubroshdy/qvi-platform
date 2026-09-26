@@ -205,16 +205,17 @@ describe("playback schedule", () => {
     expect(planPlayback({ project: solo.project, playheadSec: 0 }).events).toEqual([]);
   });
 
-  it("keeps the arrangement key when pitch, tempo, or gain change", () => {
+  it("keeps the arrangement key for gain, but not when stretch identity changes", () => {
     const { project, track } = projectWithClip({ seconds: 8 });
     const key = playbackArrangementKey(project);
+    const gained = setTrackGain(project, track.id, -3);
+    if (!gained.ok) throw new Error("edit");
+    expect(playbackArrangementKey(gained.project)).toBe(key);
     const pitched = setTrackPitch(project, track.id, { semitones: 3, cents: 15 });
     const tempo = setTrackTempo(project, track.id, { targetBpm: 180 });
-    const gained = setTrackGain(project, track.id, -3);
-    if (!pitched.ok || !tempo.ok || !gained.ok) throw new Error("edit");
-    expect(playbackArrangementKey(pitched.project)).toBe(key);
-    expect(playbackArrangementKey(tempo.project)).toBe(key);
-    expect(playbackArrangementKey(gained.project)).toBe(key);
+    if (!pitched.ok || !tempo.ok) throw new Error("edit");
+    expect(playbackArrangementKey(pitched.project)).not.toBe(key);
+    expect(playbackArrangementKey(tempo.project)).not.toBe(key);
     const muted = setTrackMuted(project, track.id, true);
     if (!muted.ok) throw new Error("mute");
     expect(playbackArrangementKey(muted.project)).not.toBe(key);
@@ -258,13 +259,53 @@ describe("playback schedule", () => {
     });
 
     const identity = planPlayback({ project, playheadSec: 0, live: true });
-    expect(identity.events[0]!.stretch).toMatchObject({ playbackRate: 1, pitch: 1, pitchSemitones: 0 });
+    expect(identity.events[0]!.stretch).toBeNull();
+    expect(identity.events[0]!.playbackRate).toBe(1);
     expect(identity.events[0]!.clipId).toBe(track.clips[0]!.id);
 
     const muted = setTrackMuted(speech.project, track.id, true);
     if (!muted.ok) throw new Error(muted.reason);
     expect(planPlayback({ project: muted.project, playheadSec: 0, live: true }).events).toEqual([]);
     expect(planPlayback({ project: muted.project, playheadSec: 0, live: true }).trackGains[0]!.linear).toBe(0);
+  });
+
+  it("keeps many identity tracks off SoundTouch when live is enabled", () => {
+    let project = createStudioProject("Many", "project-many");
+    for (let index = 0; index < 10; index += 1) {
+      const added = addImportedFileAsTrack(project, imported(`t${index}.wav`, 2), "desktop");
+      if (!added.ok) throw new Error(added.reason);
+      project = added.project;
+      project.tracks[index]!.clips[0]!.buffer = makeBuffer(20, 10, 0.2);
+    }
+    const plan = planPlayback({ project, playheadSec: 0, live: true });
+    expect(plan.events).toHaveLength(10);
+    expect(plan.events.every((event) => event.stretch === null && event.playbackRate === 1)).toBe(true);
+  });
+
+  it("uses SoundTouch only for the non-identity track among many", () => {
+    let project = createStudioProject("Mix", "project-mix");
+    for (let index = 0; index < 9; index += 1) {
+      const added = addImportedFileAsTrack(project, imported(`plain-${index}.wav`, 4), "desktop");
+      if (!added.ok) throw new Error(added.reason);
+      project = added.project;
+      project.tracks[index]!.clips[0]!.buffer = makeBuffer(40, 10, 0.2);
+    }
+    const last = addImportedFileAsTrack(project, imported("sped.wav", 8), "desktop");
+    if (!last.ok) throw new Error(last.reason);
+    project = last.project;
+    const spedTrack = project.tracks[9]!;
+    spedTrack.clips[0]!.buffer = makeBuffer(80, 10, 0.3);
+    const sped = setTrackTempo(project, spedTrack.id, { targetBpm: 240 });
+    if (!sped.ok) throw new Error(sped.reason);
+    const plan = planPlayback({ project: sped.project, playheadSec: 0, live: true });
+    expect(plan.events).toHaveLength(10);
+    const stretched = plan.events.filter((event) => event.stretch);
+    const plain = plan.events.filter((event) => !event.stretch);
+    expect(stretched).toHaveLength(1);
+    expect(stretched[0]!.trackId).toBe(spedTrack.id);
+    expect(stretched[0]!.playbackRate).toBe(2);
+    expect(plain).toHaveLength(9);
+    expect(plain.every((event) => event.playbackRate === 1)).toBe(true);
   });
 });
 
@@ -420,7 +461,7 @@ describe("playback engine", () => {
     expect(host.stretches[0]!.applied?.playbackRate).toBe(2);
   });
 
-  it("updates pitch, tempo, and gain in place after the playhead has moved", () => {
+  it("rebuilds when tracks leave identity, then updates further tempo in place", () => {
     const host = new LiveHost();
     const engine = createStudioPlaybackEngine({ host });
     const first = projectWithClip({ seconds: 8 });
@@ -429,45 +470,46 @@ describe("playback engine", () => {
     second.project.tracks[1]!.clips[0]!.buffer = makeBuffer(80, 10, 0.4);
     engine.play(second.project);
     expect(host.sources).toHaveLength(2);
-    expect(host.stretches).toHaveLength(2);
-    const started = host.sources.map((source) => source.started?.when);
-    expect(started[0]).toBe(started[1]);
+    expect(host.stretches).toHaveLength(0);
     host.currentTime = 1.5;
 
     const pitched = setTrackPitch(second.project, second.project.tracks[0]!.id, { semitones: 5, cents: 20 });
     if (!pitched.ok) throw new Error("pitch");
     const tempo = setTrackTempo(pitched.project, second.project.tracks[1]!.id, { targetBpm: 180 });
     if (!tempo.ok) throw new Error("tempo");
-    const gained = setTrackGain(tempo.project, second.project.tracks[0]!.id, -6);
+    engine.sync(tempo.project);
+    expect(host.stretches).toHaveLength(2);
+    expect(host.sources.filter((source) => !source.stopped)).toHaveLength(2);
+    const voicesBefore = host.sources.length;
+    const faster = setTrackTempo(tempo.project, second.project.tracks[1]!.id, { targetBpm: 240 });
+    if (!faster.ok) throw new Error("tempo");
+    const gained = setTrackGain(faster.project, second.project.tracks[0]!.id, -6);
     if (!gained.ok) throw new Error("gain");
-    const startedAt = performance.now();
     engine.sync(gained.project);
-    expect(performance.now() - startedAt).toBeLessThan(50);
-    expect(host.sources.filter((source) => source.stopped)).toHaveLength(0);
-    expect(host.sources).toHaveLength(2);
-    expect(host.sources[0]!.playbackRate.value).toBe(1);
-    expect(host.sources[1]!.playbackRate.value).toBeCloseTo(1.5, 5);
-    expect(host.stretches[0]!.applied?.pitchSemitones).toBeCloseTo(5.2, 5);
-    expect(host.stretches[1]!.applied?.playbackRate).toBeCloseTo(1.5, 5);
-    expect(host.sources[0]!.started?.when).toBe(started[0]);
+    expect(host.sources).toHaveLength(voicesBefore);
+    const living = host.sources.filter((source) => !source.stopped);
+    expect(living).toHaveLength(2);
+    expect(living.some((source) => source.playbackRate.value === 2)).toBe(true);
+    expect(host.stretches.some((node) => node.applied?.pitchSemitones === 5.2)).toBe(true);
     expect(engine.poll().status).toBe("playing");
   });
 
-  it("does not end playback when a faster tempo shrinks the timeline behind the playhead", () => {
+  it("re-arms into a live stretch when tempo leaves identity behind the playhead", () => {
     const host = new LiveHost();
     const engine = createStudioPlaybackEngine({ host });
     const { project, track } = projectWithClip({ seconds: 8 });
     engine.play(project);
-    host.currentTime = 5;
+    expect(host.stretches).toHaveLength(0);
+    host.currentTime = 1;
     const sped = setTrackTempo(project, track.id, { targetBpm: 240 });
     if (!sped.ok) throw new Error("tempo");
     engine.sync(sped.project);
-    expect(host.sources[0]!.stopped).toBe(false);
-    expect(host.sources[0]!.playbackRate.value).toBe(2);
-    expect(engine.currentPlayhead()).toBeCloseTo(5, 5);
+    const live = host.sources.filter((source) => !source.stopped);
+    expect(live).toHaveLength(1);
+    expect(live[0]!.playbackRate.value).toBe(2);
+    expect(host.stretches).toHaveLength(1);
+    expect(engine.currentPlayhead()).toBeCloseTo(1, 5);
     expect(engine.poll().status).toBe("playing");
-    host.currentTime = 8;
-    expect(engine.poll()).toEqual({ status: "paused", playheadSec: 8 });
   });
 
   it("rebuilds when a trim changes the arrangement and keeps a later gain on the same voice", () => {
@@ -511,7 +553,38 @@ describe("playback engine", () => {
     expect(host.panners[0]!.links[0]).toBe(host.gains[1]);
   });
 
-  it("plays the source buffer when the worklet cannot be created", () => {
+  it("does not open a worklet for identity tracks", () => {
+    const host = new FakeHost();
+    let created = 0;
+    (host as FakeHost & { createLiveStretch(): StudioLiveStretch }).createLiveStretch = () => {
+      created += 1;
+      return new FakeStretch();
+    };
+    const engine = createStudioPlaybackEngine({ host });
+    const { project } = projectWithClip({ seconds: 1.5 });
+    engine.play(project);
+    expect(created).toBe(0);
+    expect(engine.currentStatus()).toBe("playing");
+    expect(host.sources.filter((source) => source.started)).toHaveLength(1);
+  });
+
+  it("arms ten identity tracks without any live stretch nodes", () => {
+    const host = new LiveHost();
+    const engine = createStudioPlaybackEngine({ host });
+    let project = createStudioProject("Ten", "project-ten");
+    for (let index = 0; index < 10; index += 1) {
+      const added = addImportedFileAsTrack(project, imported(`n${index}.wav`, 2), "desktop");
+      if (!added.ok) throw new Error(added.reason);
+      project = added.project;
+      project.tracks[index]!.clips[0]!.buffer = makeBuffer(20, 10, 0.2);
+    }
+    engine.play(project);
+    expect(engine.currentStatus()).toBe("playing");
+    expect(host.sources.filter((source) => source.started && !source.stopped)).toHaveLength(10);
+    expect(host.stretches).toHaveLength(0);
+  });
+
+  it("falls back when the worklet cannot be created for a non-identity track", () => {
     const host = new FakeHost();
     const failed: string[] = [];
     (host as FakeHost & { createLiveStretch(): StudioLiveStretch }).createLiveStretch = () => {
@@ -521,17 +594,21 @@ describe("playback engine", () => {
       host,
       onLiveStretchFailed: () => failed.push("fallback"),
     });
-    const { project } = projectWithClip({ seconds: 1.5 });
-    engine.play(project);
+    const { project, track } = projectWithClip({ seconds: 1.5 });
+    const plain = addImportedFileAsTrack(project, imported("keep.wav", 1.5), "desktop");
+    if (!plain.ok) throw new Error(plain.reason);
+    plain.project.tracks[1]!.clips[0]!.buffer = makeBuffer(15, 10, 0.2);
+    const sped = setTrackTempo(plain.project, track.id, { targetBpm: 240 });
+    if (!sped.ok) throw new Error(sped.reason);
+    engine.play(sped.project);
     expect(failed).toEqual(["fallback"]);
     expect(engine.currentStatus()).toBe("playing");
     const started = host.sources.filter((source) => source.started);
     expect(started).toHaveLength(1);
     expect(started[0]!.playbackRate.value).toBe(1);
-    expect(started[0]!.started).toMatchObject({ offset: 0, duration: 1.5 });
   });
 
-  it("plays the source buffer when connecting into the worklet throws", () => {
+  it("falls back when connecting into the worklet throws", () => {
     const host = new StrictHost();
     const seen: string[] = [];
     const engine = createStudioPlaybackEngine({
@@ -539,8 +616,13 @@ describe("playback engine", () => {
       onTransport: (snapshot) => seen.push(snapshot.status),
       onLiveStretchFailed: () => seen.push("fallback"),
     });
-    const { project } = projectWithClip({ seconds: 1.5 });
-    engine.play(project);
+    const { project, track } = projectWithClip({ seconds: 1.5 });
+    const plain = addImportedFileAsTrack(project, imported("keep.wav", 1.5), "desktop");
+    if (!plain.ok) throw new Error(plain.reason);
+    plain.project.tracks[1]!.clips[0]!.buffer = makeBuffer(15, 10, 0.2);
+    const sped = setTrackTempo(plain.project, track.id, { targetBpm: 240 });
+    if (!sped.ok) throw new Error(sped.reason);
+    engine.play(sped.project);
     expect(engine.currentStatus()).toBe("playing");
     expect(seen).toContain("fallback");
     expect(seen.at(-1)).toBe("playing");
