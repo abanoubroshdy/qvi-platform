@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { AuthForm } from "@/components/auth/AuthForm";
-import { safeNextPath } from "@/lib/safe-next-path";
+import { createQv1AutostartToken, postAuthPath } from "@/lib/qv1-download";
 
 export function LoginView({
   initialMode = "signin",
@@ -15,7 +15,11 @@ export function LoginView({
 }) {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const destination = safeNextPath(nextPath);
+  const autostartToken = useRef(createQv1AutostartToken());
+  const destination = useMemo(
+    () => postAuthPath(nextPath, autostartToken.current),
+    [nextPath],
+  );
 
   useEffect(() => {
     if (!loading && user) {

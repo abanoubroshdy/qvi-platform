@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { qv1Changelog } from "@/lib/qv1-changelog";
 import { formatBytes } from "@/lib/format";
 import { QV1_DOWNLOAD_ENABLED } from "@/lib/qv1-download";
+import { Qv1AutostartNotice } from "@/components/qv1/Qv1AutostartNotice";
 import { qv1DownloadSummary, qv1HasSha256, qv1Release, type Qv1DownloadNotice } from "@/lib/qv1-release";
 import { withLocale } from "@/lib/i18n/locale-path";
 import { siteConfig } from "@/lib/site";
@@ -23,7 +24,13 @@ function formatReleaseDate(iso: string, locale: "en" | "ar") {
   }).format(new Date(Date.UTC(year, month - 1, day)));
 }
 
-export function Qv1EvaluationView({ notice }: { notice: Qv1DownloadNotice }) {
+export function Qv1EvaluationView({
+  notice,
+  autostartToken = null,
+}: {
+  notice: Qv1DownloadNotice;
+  autostartToken?: string | null;
+}) {
   const { copy, locale } = useI18n();
   const page = copy.qv1Page;
   const summary = qv1DownloadSummary(qv1Release, formatBytes);
@@ -40,6 +47,10 @@ export function Qv1EvaluationView({ notice }: { notice: Qv1DownloadNotice }) {
           : effectiveNotice === "unavailable"
             ? page.unavailable
             : null;
+  const describedBy =
+    [status ? "qv1-download-status" : null, autostartToken ? "qv1-download-started" : null]
+      .filter(Boolean)
+      .join(" ") || undefined;
 
   return (
     <div>
@@ -84,10 +95,12 @@ export function Qv1EvaluationView({ notice }: { notice: Qv1DownloadNotice }) {
               </p>
             ) : null}
 
+            <Qv1AutostartNotice token={autostartToken} />
+
             <div className="mt-5">
               {QV1_DOWNLOAD_ENABLED ? (
                 <Button asChild size="lg" className="h-12 w-full bg-primary text-base text-primary-foreground">
-                  <a href="/qv1/download" aria-describedby={status ? "qv1-download-status" : undefined}>
+                  <a href="/qv1/download" aria-describedby={describedBy}>
                     {page.download}
                   </a>
                 </Button>

@@ -6,13 +6,22 @@ import {
   QV1_DOWNLOADS_PER_HOUR,
   contentDispositionAttachment,
   isQv1DownloadRateLimited,
+  claimQv1Autostart,
+  createQv1AutostartToken,
+  isQv1AutostartConsumed,
+  isQv1AutostartToken,
+  isQv1DownloadNextPath,
   loginPathForDownload,
   missingR2DownloadEnv,
   planQv1Download,
+  postAuthPath,
+  qv1AutostartPath,
+  qv1AutostartTokenFromQuery,
   qv1DownloadLocation,
   qv1DownloadLogLine,
   resolveR2DownloadConfig,
   safeNextPath,
+  withoutQv1Autostart,
   type R2DownloadConfig,
 } from "@/lib/qv1-download";
 import { getRequestSupabaseSession } from "@/lib/supabase/request-session";
@@ -91,12 +100,29 @@ describe("resolveR2DownloadConfig", () => {
   });
 });
 
+const AUTOSTART = "aaaaaaaaaaaaaaaaaaaaaa";
+
+function memoryStorage() {
+  const values = new Map<string, string>();
+  return {
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      values.set(key, value);
+    },
+  };
+}
+
 describe("download guards", () => {
   it("keeps the return path on this site", () => {
     expect(safeNextPath("/qv1/download")).toBe("/qv1/download");
+    expect(safeNextPath("/qv1?autostart=aaaaaaaaaaaaaaaaaaaaaa")).toBe("/qv1?autostart=aaaaaaaaaaaaaaaaaaaaaa");
     expect(safeNextPath("https://evil.example/steal")).toBe("/account");
     expect(safeNextPath("//evil.example")).toBe("/account");
-    expect(loginPathForDownload()).toBe("/login?next=%2Fqv1%2Fdownload");
+    expect(safeNextPath("/\\evil.example")).toBe("/account");
+    expect(loginPathForDownload(AUTOSTART)).toBe(
+      `/login?next=${encodeURIComponent(qv1AutostartPath(AUTOSTART))}`,
+    );
+    expect(loginPathForDownload(AUTOSTART)).not.toContain("qv1%2Fdownload");
   });
 
   it("sets an attachment filename and a per-hour cap", () => {
@@ -139,7 +165,11 @@ describe("planQv1Download", () => {
     expect(decision).toEqual({ kind: "login" });
     expect(sign).not.toHaveBeenCalled();
     expect(record).not.toHaveBeenCalled();
-    expect(qv1DownloadLocation(decision)).toBe("/login?next=%2Fqv1%2Fdownload");
+    const location = qv1DownloadLocation(decision);
+    const next = new URL(location, "https://getqvi.com").searchParams.get("next");
+    expect(next?.startsWith("/qv1?autostart=")).toBe(true);
+    expect(isQv1DownloadNextPath(next ?? "")).toBe(false);
+    expect(isQv1AutostartToken(new URL(next ?? "", "https://getqvi.com").searchParams.get("autostart"))).toBe(true);
   });
 
   it("shows coming soon when R2 is not configured", async () => {
@@ -202,6 +232,47 @@ describe("planQv1Download", () => {
   });
 });
 
+describe("post-login download landing", () => {
+  it("sends auth back to /qv1 instead of the file route", () => {
+    expect(postAuthPath("/qv1/download", AUTOSTART)).toBe(qv1AutostartPath(AUTOSTART));
+    expect(postAuthPath("/qv1/download?unused=1", AUTOSTART)).toBe(qv1AutostartPath(AUTOSTART));
+    expect(postAuthPath("/qv1/download#file", AUTOSTART)).toBe(qv1AutostartPath(AUTOSTART));
+    expect(postAuthPath(qv1AutostartPath(AUTOSTART))).toBe(qv1AutostartPath(AUTOSTART));
+    expect(postAuthPath("/account")).toBe("/account");
+    expect(postAuthPath("/qv1?download=soon")).toBe("/qv1?download=soon");
+    expect(postAuthPath("https://evil.example/qv1/download")).toBe("/account");
+    expect(postAuthPath("//evil.example/qv1/download")).toBe("/account");
+    expect(isQv1DownloadNextPath("/qv1/download")).toBe(true);
+    expect(isQv1DownloadNextPath("/qv1/downloads")).toBe(false);
+  });
+
+  it("accepts only same-origin one-shot tokens", () => {
+    expect(isQv1AutostartToken(AUTOSTART)).toBe(true);
+    expect(createQv1AutostartToken()).toMatch(/^[A-Za-z0-9_-]{22}$/);
+    expect(qv1AutostartTokenFromQuery(AUTOSTART)).toBe(AUTOSTART);
+    expect(qv1AutostartTokenFromQuery([AUTOSTART, "other"])).toBe(AUTOSTART);
+    expect(qv1AutostartTokenFromQuery("soon")).toBeNull();
+    expect(qv1AutostartTokenFromQuery("https://evil.example")).toBeNull();
+    expect(qv1AutostartTokenFromQuery("../account")).toBeNull();
+    expect(withoutQv1Autostart(`https://getqvi.com/qv1?autostart=${AUTOSTART}`)).toBe("/qv1");
+    expect(withoutQv1Autostart(`https://getqvi.com/ar/qv1?autostart=${AUTOSTART}&download=soon`)).toBe(
+      "/ar/qv1?download=soon",
+    );
+  });
+
+  it("starts a token once and ignores refresh or a second claim", () => {
+    const storage = memoryStorage();
+    const seen = new Set<string>();
+    expect(claimQv1Autostart(AUTOSTART, storage, seen)).toBe("start");
+    expect(isQv1AutostartConsumed(AUTOSTART, storage)).toBe(true);
+    expect(claimQv1Autostart(AUTOSTART, storage, seen)).toBe("repeat");
+    expect(claimQv1Autostart(AUTOSTART, storage, new Set())).toBe("done");
+    const other = createQv1AutostartToken();
+    expect(claimQv1Autostart(other, storage, seen)).toBe("start");
+    expect(claimQv1Autostart("not-a-token", storage, seen)).toBe("done");
+  });
+});
+
 describe("download logs", () => {
   it("names missing env vars and redacts long secrets", () => {
     expect(missingR2DownloadEnv({ R2_BUCKET: "qv1-downloads" })).toEqual([
@@ -223,7 +294,12 @@ describe("GET /qv1/download", () => {
     vi.mocked(getRequestSupabaseSession).mockResolvedValue(null);
     const response = await GET(new Request("https://getqvi.com/qv1/download"));
     expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe("https://getqvi.com/login?next=%2Fqv1%2Fdownload");
+    const location = response.headers.get("location") ?? "";
+    const next = new URL(location).searchParams.get("next");
+    expect(location.startsWith("https://getqvi.com/login?next=")).toBe(true);
+    expect(next?.startsWith("/qv1?autostart=")).toBe(true);
+    expect(postAuthPath(next)).toBe(next);
+    expect(isQv1DownloadNextPath(next ?? "")).toBe(false);
   });
 
   it("signs the default Setup key and records the download", async () => {

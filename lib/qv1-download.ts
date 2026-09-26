@@ -13,8 +13,12 @@ export const QV1_DOWNLOAD_ENABLED = true;
 /** R2 key for the online Setup. QV1_OBJECT_KEY overrides this. */
 export const QV1_DEFAULT_OBJECT_KEY = "qv1/evaluation/QV1-Setup-Evaluation.exe";
 
-/** Signed-in download route. Anonymous visitors are sent to sign in and returned here. */
+/** Signed-in download route. Anonymous visitors sign in, land on /qv1, and this route runs once from there. */
 export const QV1_DOWNLOAD_PATH = "/qv1/download";
+/** One-shot query on /qv1. A fresh value is issued for each sign-in return. */
+export const QV1_AUTOSTART_PARAM = "autostart";
+const QV1_AUTOSTART_TOKEN = /^[A-Za-z0-9_-]{16,80}$/;
+const QV1_AUTOSTART_STORAGE_PREFIX = "qv1-autostart:";
 export const QV1_DOWNLOAD_SOON_PATH = "/qv1?download=soon";
 export const QV1_DOWNLOAD_LIMITED_PATH = "/qv1?download=limited";
 export const QV1_DOWNLOAD_UNAVAILABLE_PATH = "/qv1?download=unavailable";
@@ -63,8 +67,95 @@ export function r2Endpoint(accountId: string): string {
   return `https://${accountId}.r2.cloudflarestorage.com`;
 }
 
-export function loginPathForDownload(): string {
-  return `/login?next=${encodeURIComponent(QV1_DOWNLOAD_PATH)}`;
+export function isQv1AutostartToken(value: string | null | undefined): value is string {
+  return typeof value === "string" && QV1_AUTOSTART_TOKEN.test(value);
+}
+
+export function createQv1AutostartToken(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  let binary = "";
+  for (let index = 0; index < bytes.length; index += 1) binary += String.fromCharCode(bytes[index]);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+export function qv1AutostartPath(token: string): string {
+  return `/qv1?${QV1_AUTOSTART_PARAM}=${encodeURIComponent(token)}`;
+}
+
+export function qv1AutostartTokenFromQuery(value: string | string[] | undefined): string | null {
+  const raw = Array.isArray(value) ? value[0] : value;
+  return isQv1AutostartToken(raw) ? raw : null;
+}
+
+export function qv1AutostartStorageKey(token: string): string {
+  return `${QV1_AUTOSTART_STORAGE_PREFIX}${token}`;
+}
+
+/** Drop the one-shot param and keep the rest of the URL on this origin. */
+export function withoutQv1Autostart(href: string): string {
+  const url = new URL(href, "https://getqvi.com");
+  url.searchParams.delete(QV1_AUTOSTART_PARAM);
+  const query = url.searchParams.toString();
+  return `${url.pathname}${query ? `?${query}` : ""}${url.hash}`;
+}
+
+export function isQv1AutostartConsumed(
+  token: string,
+  storage: Pick<Storage, "getItem"> | null,
+): boolean {
+  if (!isQv1AutostartToken(token) || !storage) return false;
+  try {
+    return storage.getItem(qv1AutostartStorageKey(token)) === "1";
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Claim a one-shot token. "start" means this caller should download.
+ * "done" means an earlier visit already did. "repeat" means this document already claimed it.
+ */
+export function claimQv1Autostart(
+  token: string,
+  storage: Pick<Storage, "getItem" | "setItem"> | null,
+  inFlight: Set<string>,
+): "start" | "done" | "repeat" {
+  if (!isQv1AutostartToken(token)) return "done";
+  if (inFlight.has(token)) return "repeat";
+  if (isQv1AutostartConsumed(token, storage)) return "done";
+  try {
+    storage?.setItem(qv1AutostartStorageKey(token), "1");
+  } catch {
+    // Private-mode storage can throw. The in-memory set still blocks a second start here.
+  }
+  inFlight.add(token);
+  return "start";
+}
+
+function pathnameOf(path: string): string {
+  const end = path.search(/[?#]/);
+  return end === -1 ? path : path.slice(0, end);
+}
+
+export function isQv1DownloadNextPath(path: string): boolean {
+  return pathnameOf(path) === QV1_DOWNLOAD_PATH;
+}
+
+/**
+ * After auth, land on the program page. /qv1/download is a file response, so a
+ * top-level navigation to it never replaces the sign-in document.
+ */
+export function postAuthPath(value: string | null | undefined, token?: string): string {
+  const safe = safeNextPath(value);
+  if (!isQv1DownloadNextPath(safe)) return safe;
+  const autostart = isQv1AutostartToken(token) ? token : createQv1AutostartToken();
+  return qv1AutostartPath(autostart);
+}
+
+export function loginPathForDownload(token = createQv1AutostartToken()): string {
+  const autostart = isQv1AutostartToken(token) ? token : createQv1AutostartToken();
+  return `/login?next=${encodeURIComponent(qv1AutostartPath(autostart))}`;
 }
 
 export function contentDispositionAttachment(fileName: string): string {

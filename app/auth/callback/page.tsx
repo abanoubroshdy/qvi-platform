@@ -1,17 +1,18 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { getSupabaseClient } from "@/lib/supabase/client";
-import { safeNextPath } from "@/lib/safe-next-path";
+import { createQv1AutostartToken, postAuthPath } from "@/lib/qv1-download";
 
 export default function AuthCallbackPage() {
   const router = useRouter();
   const { user, loading, configured } = useAuth();
   const { copy } = useI18n();
+  const autostartToken = useRef(createQv1AutostartToken());
 
   useEffect(() => {
     if (loading) return;
@@ -22,7 +23,7 @@ export default function AuthCallbackPage() {
       return;
     }
 
-    const next = safeNextPath(new URLSearchParams(window.location.search).get("next"));
+    const next = postAuthPath(new URLSearchParams(window.location.search).get("next"), autostartToken.current);
     const loginPath = next === "/account" ? "/login" : `/login?next=${encodeURIComponent(next)}`;
 
     let cancelled = false;

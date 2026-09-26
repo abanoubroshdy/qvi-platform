@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Qv1EvaluationView } from "@/components/qv1/Qv1EvaluationView";
-import { QV1_DOWNLOAD_ENABLED } from "@/lib/qv1-download";
+import { QV1_DOWNLOAD_ENABLED, qv1AutostartTokenFromQuery } from "@/lib/qv1-download";
 import type { Qv1DownloadNotice } from "@/lib/qv1-release";
 import { buildPageMetadata } from "@/lib/seo";
 
@@ -15,7 +15,7 @@ export const metadata: Metadata = buildPageMetadata({
 });
 
 type Qv1PageProps = {
-  searchParams?: { download?: string | string[] };
+  searchParams?: { download?: string | string[]; autostart?: string | string[] };
 };
 
 function noticeFrom(flag: string | string[] | undefined): Qv1DownloadNotice {
@@ -26,5 +26,10 @@ function noticeFrom(flag: string | string[] | undefined): Qv1DownloadNotice {
 }
 
 export default function Qv1EvaluationPage({ searchParams }: Qv1PageProps) {
-  return <Qv1EvaluationView notice={noticeFrom(searchParams?.download)} />;
+  return (
+    <Qv1EvaluationView
+      notice={noticeFrom(searchParams?.download)}
+      autostartToken={qv1AutostartTokenFromQuery(searchParams?.autostart)}
+    />
+  );
 }
