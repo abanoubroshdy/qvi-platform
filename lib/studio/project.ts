@@ -32,6 +32,7 @@ import {
 } from "@/lib/studio/definition";
 import { normalizeClipFades } from "@/lib/studio/fades";
 import { clampEqDb, clampPan, clampUnit, defaultTrackEq, normalizeTrackMix, type StudioTrackEq } from "@/lib/studio/mix";
+import { clampSessionBpm, SESSION_BPM_DEFAULT } from "@/lib/studio/chrome";
 import {
   createStudioId,
   trackColorForIndex,
@@ -117,8 +118,16 @@ export function createStudioProject(name = "Untitled", id = createStudioId("proj
     name: name.trim() || "Untitled",
     masterGainDb: qviStudioLimits.gainDb.unity,
     playheadSec: 0,
+    sessionBpm: SESSION_BPM_DEFAULT,
     tracks: [],
   };
+}
+
+/** Session grid tempo. Does not change any track's SoundTouch rate. */
+export function setSessionBpm(project: StudioProject, bpm: number): StudioProject {
+  const sessionBpm = clampSessionBpm(bpm);
+  if (sessionBpm === project.sessionBpm) return project;
+  return { ...project, sessionBpm };
 }
 
 export function createStudioClip(input: StudioImportedFile & { offsetSec?: number }): StudioClip {
@@ -592,6 +601,7 @@ export function snapshotStudioProject(project: StudioProject): StudioProjectSnap
     name: project.name,
     masterGainDb: project.masterGainDb,
     playheadSec: project.playheadSec,
+    sessionBpm: clampSessionBpm(project.sessionBpm ?? SESSION_BPM_DEFAULT),
     tracks: project.tracks.map((track) => ({
       id: track.id,
       name: track.name,
@@ -620,6 +630,7 @@ export function projectFromSnapshot(
     name: snapshot.name,
     masterGainDb: snapshot.masterGainDb,
     playheadSec: snapshot.playheadSec,
+    sessionBpm: clampSessionBpm(snapshot.sessionBpm ?? SESSION_BPM_DEFAULT),
     tracks: snapshot.tracks.map((track) => ({
       id: track.id,
       name: track.name,

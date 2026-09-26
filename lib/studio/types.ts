@@ -68,6 +68,11 @@ export type StudioProject = {
   masterGainDb: number;
   /** Heard time. Playing and paused live on the engine, not here. */
   playheadSec: number;
+  /**
+   * Grid, snap, ruler, and metronome tempo. Does not time-stretch clips.
+   * Omitted on sessions saved before the field existed; readers default to 120.
+   */
+  sessionBpm?: number;
   tracks: StudioTrack[];
 };
 
@@ -83,6 +88,8 @@ export type StudioProjectSnapshot = {
   name: string;
   masterGainDb: number;
   playheadSec: number;
+  /** Absent on older IndexedDB sessions. Restored as 120. */
+  sessionBpm?: number;
   tracks: StudioTrackState[];
 };
 

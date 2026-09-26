@@ -11,6 +11,9 @@
  * peaks. They do not change the mix.
  * When the host can build them, each playing track is
  * source → fade → SoundTouch worklet → EQ → compressor → pan → gain.
+ * The fade connects to the worklet node (`input`), not the wrapper object.
+ * If that node cannot be created or connected, the same clip plays as a plain
+ * buffer and the transport still starts.
  * Export does not use this graph.
  */
 
@@ -74,8 +77,12 @@ export interface StudioBufferSource extends StudioAudioNode {
   stop(when?: number): void;
 }
 
-/** Main-thread view of one SoundTouch worklet. `apply` must not run on the audio thread. */
+/**
+ * Main-thread view of one SoundTouch worklet. `apply` must not run on the audio thread.
+ * `input` is the node a clip connects into. The wrapper itself is not an AudioNode.
+ */
 export interface StudioLiveStretch extends StudioAudioNode {
+  input: StudioAudioNode;
   apply(params: LiveStretchParams): void;
 }
 
@@ -123,6 +130,7 @@ type PlayingVoice = {
 export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
   private readonly host: StudioAudioHost;
   private readonly onTransport?: (snapshot: StudioTransportSnapshot) => void;
+  private readonly onLiveStretchFailed?: () => void;
   private readonly master: StudioGainNode;
   private readonly trackGains = new Map<string, StudioGainNode>();
   private readonly strips = new Map<string, TrackStrip>();
@@ -135,6 +143,7 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
   private readonly stretchParamKey = new Map<string, string>();
   private armedKey = "";
   private armedLive = false;
+  private liveBroken = false;
   private armedFadeKey = "";
   /** Heard end used while playing, so a faster tempo does not cut the take off. */
   private horizonSec = 0;
@@ -145,9 +154,14 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
   private anchorPlayhead = 0;
   private disposed = false;
 
-  constructor(host: StudioAudioHost, onTransport?: (snapshot: StudioTransportSnapshot) => void) {
+  constructor(
+    host: StudioAudioHost,
+    onTransport?: (snapshot: StudioTransportSnapshot) => void,
+    onLiveStretchFailed?: () => void,
+  ) {
     this.host = host;
     this.onTransport = onTransport;
+    this.onLiveStretchFailed = onLiveStretchFailed;
     this.master = host.createGain();
     this.master.gain.value = 1;
     this.connectTap(this.master, host.destination, null);
@@ -189,11 +203,11 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
   }
 
   setRenderedTrack(trackId: string, buffer: AudioBuffer | null): void {
-    if (this.disposed || typeof this.host.createLiveStretch === "function") return;
+    if (this.disposed || this.liveStretchEnabled()) return;
     if (buffer) this.rendered.set(trackId, buffer);
     else this.rendered.delete(trackId);
     if (this.status === "playing" && this.activeProject) {
-      this.arm(this.activeProject, this.currentPlayhead());
+      this.armGuarded(this.activeProject, this.currentPlayhead());
       this.emit();
     }
   }
@@ -222,7 +236,7 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
       return;
     }
     this.status = "playing";
-    this.arm(project, playhead);
+    this.armGuarded(project, playhead);
     this.emit();
   }
 
@@ -246,7 +260,7 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
     if (this.disposed) return;
     const duration = this.activeProject ? projectDuration(this.activeProject) : Number.POSITIVE_INFINITY;
     this.playheadSec = clampTime(playheadSec, duration);
-    if (this.status === "playing" && this.activeProject) this.arm(this.activeProject, this.playheadSec);
+    if (this.status === "playing" && this.activeProject) this.armGuarded(this.activeProject, this.playheadSec);
     this.emit();
   }
 
@@ -261,7 +275,7 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
     }
     const playhead = this.currentPlayhead();
     if (playbackArrangementKey(project) !== this.armedKey || this.needsLiveGraph()) {
-      this.arm(project, playhead);
+      this.armGuarded(project, playhead);
       this.emit();
       return;
     }
@@ -296,17 +310,56 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
     return Math.max(duration, this.horizonSec);
   }
 
+  private liveStretchEnabled(): boolean {
+    return !this.liveBroken && typeof this.host.createLiveStretch === "function";
+  }
+
   private planFor(project: StudioProject, playhead: number) {
     return planPlayback({
       project,
       playheadSec: playhead,
       renderedTracks: this.rendered,
-      live: typeof this.host.createLiveStretch === "function",
+      live: this.liveStretchEnabled(),
     });
   }
 
   private needsLiveGraph(): boolean {
-    return typeof this.host.createLiveStretch === "function" && !this.armedLive;
+    return this.liveStretchEnabled() && !this.armedLive;
+  }
+
+  /**
+   * A failed worklet must not leave the transport stuck. Drop live stretch and
+   * arm the same clips as plain buffers. The second attempt is the fallback.
+   */
+  private armGuarded(project: StudioProject, playhead: number): void {
+    try {
+      this.arm(project, playhead);
+    } catch {
+      if (this.liveStretchEnabled()) {
+        this.failLive();
+        this.stopSources();
+        this.dropStretchNodes();
+        try {
+          this.arm(project, playhead);
+          return;
+        } catch {
+          /* plain graph failed too */
+        }
+      }
+      this.stopSources();
+      if (this.status === "playing") this.status = "paused";
+    }
+  }
+
+  private failLive(): void {
+    if (this.liveBroken) return;
+    this.liveBroken = true;
+    this.armedLive = false;
+    try {
+      this.onLiveStretchFailed?.();
+    } catch {
+      /* the session still plays without the worklet */
+    }
   }
 
   private arm(project: StudioProject, playhead: number): void {
@@ -316,7 +369,7 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
     this.playheadSec = playhead;
     const plan = this.planFor(project, playhead);
     this.armedKey = playbackArrangementKey(project);
-    this.armedLive = typeof this.host.createLiveStretch === "function";
+    this.armedLive = this.liveStretchEnabled();
     this.armedFadeKey = this.fadeSignature(project);
     this.horizonSec = projectDuration(project);
     this.stretchParamKey.clear();
@@ -342,12 +395,16 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
       const startAt = whenBase + event.delaySec;
       this.applyFadeEnvelope(fadeGain, startAt, envelope.initialGain, envelope.ramps);
       const stretch = event.stretch ? this.ensureStretch(event.trackId, event.stretch, input) : null;
+      source.connect(fadeGain);
       if (stretch) {
-        if (source.playbackRate) source.playbackRate.value = event.playbackRate;
-        source.connect(fadeGain);
-        fadeGain.connect(stretch);
+        try {
+          fadeGain.connect(stretch.input);
+          if (source.playbackRate) source.playbackRate.value = event.playbackRate;
+        } catch {
+          this.retireStretch(event.trackId);
+          throw new Error("studio-live-stretch");
+        }
       } else {
-        source.connect(fadeGain);
         fadeGain.connect(input);
       }
       source.start(whenBase + event.delaySec, event.offsetSec, event.durationSec);
@@ -393,16 +450,33 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
       let created: StudioLiveStretch | null = null;
       try {
         created = this.host.createLiveStretch?.() ?? null;
-      } catch {
-        created = null;
+        if (!created?.input) throw new Error("studio-live-stretch");
+        created.connect(destination);
+        created.apply(params);
+      } catch (error) {
+        if (created) disconnectQuiet(created);
+        if (error instanceof Error && error.message === "studio-live-stretch") throw error;
+        throw new Error("studio-live-stretch");
       }
-      if (!created) return null;
       node = created;
-      node.connect(destination);
       this.stretchByTrack.set(trackId, node);
+      return node;
     }
-    node.apply(params);
+    try {
+      node.apply(params);
+    } catch {
+      this.retireStretch(trackId);
+      throw new Error("studio-live-stretch");
+    }
     return node;
+  }
+
+  private retireStretch(trackId: string): void {
+    const node = this.stretchByTrack.get(trackId);
+    if (!node) return;
+    disconnectQuiet(node);
+    this.stretchByTrack.delete(trackId);
+    this.stretchParamKey.delete(trackId);
   }
 
   private applyPerformance(project: StudioProject): void {
@@ -433,7 +507,15 @@ export class QviStudioPlaybackEngine implements StudioPlaybackEngine {
       const key = stretchParamKey(params);
       if (this.stretchParamKey.get(voice.trackId) === key) continue;
       this.stretchParamKey.set(voice.trackId, key);
-      stretch.apply(params);
+      try {
+        stretch.apply(params);
+      } catch {
+        this.failLive();
+        if (this.activeProject && this.status === "playing") {
+          this.armGuarded(this.activeProject, this.currentPlayhead());
+        }
+        return;
+      }
     }
   }
 
@@ -632,9 +714,11 @@ function disconnectQuiet(node: StudioAudioNode): void {
 export function createStudioPlaybackEngine(options?: {
   host?: StudioAudioHost;
   onTransport?: (snapshot: StudioTransportSnapshot) => void;
+  /** Fired once when the worklet graph cannot be armed. Playback continues without it. */
+  onLiveStretchFailed?: () => void;
 }): QviStudioPlaybackEngine {
   const host = options?.host ?? createStudioAudioHost();
-  return new QviStudioPlaybackEngine(host, options?.onTransport);
+  return new QviStudioPlaybackEngine(host, options?.onTransport, options?.onLiveStretchFailed);
 }
 
 /** Wrap one AudioContext so playback and the tempo preview share a clock. */

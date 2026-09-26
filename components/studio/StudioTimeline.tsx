@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AudioLines } from "lucide-react";
-import { sessionDisplayBpm } from "@/lib/studio/chrome";
+import { readSessionBpm } from "@/lib/studio/chrome";
 import {
   musicalBarMarks,
   normalizeTimeRange,
@@ -25,7 +25,7 @@ export function StudioTimeline({ copy }: { copy: Messages["studio"] }) {
   const studio = useStudio();
   const width = timelineWidthPx(studio.duration, studio.pixelsPerSecond);
   const timelineSec = width / studio.pixelsPerSecond;
-  const bpm = sessionDisplayBpm(studio.project.tracks, studio.selectedTrack?.id ?? null) ?? 120;
+  const bpm = readSessionBpm(studio.project);
   const beatPx = secondsPerBeat(bpm) * studio.pixelsPerSecond;
   const barPx = secondsPerBar(bpm) * studio.pixelsPerSecond;
   const marks = musicalBarMarks(studio.duration, studio.pixelsPerSecond, bpm);

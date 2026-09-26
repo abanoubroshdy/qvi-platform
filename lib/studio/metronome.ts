@@ -3,7 +3,7 @@
  * Tap BPM reuses `lib/audio-tempo`. Clicks align to heard-time zero (bar 1 beat 1).
  */
 
-import { clampBpm, DEFAULT_BPM } from "@/lib/audio-tempo";
+import { clampSessionBpm } from "@/lib/studio/chrome";
 import { STUDIO_BEATS_PER_BAR, secondsPerBeat } from "@/lib/studio/timeline-geometry";
 
 export const STUDIO_METRONOME_LOOKAHEAD_SEC = 0.12;
@@ -26,9 +26,9 @@ export type StudioMetronomeAudio = {
   createGain(): GainNode;
 };
 
-/** Beat length for the click track. Invalid tempos fall back to 120 BPM. */
+/** Beat length for the click track. Uses the session grid range (20–300), not per-track stretch. */
 export function metronomeBeatSec(bpm: number): number {
-  return secondsPerBeat(Number.isFinite(bpm) && bpm > 0 ? clampBpm(bpm) : DEFAULT_BPM);
+  return secondsPerBeat(clampSessionBpm(bpm));
 }
 
 /**

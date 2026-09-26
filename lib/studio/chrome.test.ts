@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  commitSessionBpmText,
+  formatSessionBpm,
   formatStudioTimecode,
   isStudioTextTarget,
+  nudgeSessionBpm,
+  readSessionBpm,
+  sanitizeSessionBpmDraft,
   sessionDisplayBpm,
   studioNewProjectButtonPhase,
   studioProjectIsOpen,
@@ -38,6 +43,24 @@ describe("studio timecode and bpm", () => {
     expect(formatStudioTimecode(61.24)).toBe("01:01.2");
     expect(formatStudioTimecode(Number.NaN)).toBe("00:00.0");
     expect(formatStudioTimecode(-2)).toBe("00:00.0");
+  });
+
+  it("edits session bpm without reading a track tempo", () => {
+    expect(readSessionBpm(undefined)).toBe(120);
+    expect(readSessionBpm({})).toBe(120);
+    expect(commitSessionBpmText("92.5", 120)).toBe(92.5);
+    expect(commitSessionBpmText("92,5", 120)).toBe(92.5);
+    expect(commitSessionBpmText("", 128)).toBe(128);
+    expect(commitSessionBpmText("nope", 100)).toBe(100);
+    expect(commitSessionBpmText("10", 120)).toBe(20);
+    expect(commitSessionBpmText("900", 120)).toBe(300);
+    expect(nudgeSessionBpm(120, 1, false)).toBe(121);
+    expect(nudgeSessionBpm(120, -1, true)).toBe(119.9);
+    expect(nudgeSessionBpm(20, -4, false)).toBe(20);
+    expect(nudgeSessionBpm(300, 2, false)).toBe(300);
+    expect(sanitizeSessionBpmDraft("92.5bpm")).toBe("92.5");
+    expect(formatSessionBpm(92.5)).toBe("92.5");
+    expect(readSessionBpm({ sessionBpm: 140 })).toBe(140);
   });
 
   it("hides bpm until a track exists, then uses the selected track", () => {
