@@ -5,7 +5,7 @@
 Note: QVI (getqvi.com, audio software) is unrelated to Quality Vision International (qvii.com, industrial metrology).
 
 ## Core products
-- [QV1 Evaluation](https://getqvi.com/qv1): Free Windows app for 4 AI stems (third-party, non-commercial) plus Drum Split (DSP), stem editing, and mix tools. Source audio stays on the user's machine. The installer download is temporarily disabled. Model sources and licenses: https://getqvi.com/qv1/models. Product page: https://getqvi.com/products/qv1.
+- [QV1 Evaluation](https://getqvi.com/qv1): Free Windows app for 4 AI stems (third-party, non-commercial) plus Drum Split (DSP), stem editing, and mix tools. Source audio stays on the user's machine. The Windows Setup is a signed-in download of about 170 MB. During install it detects the GPU and downloads components (about 675 MB core, more for NVIDIA CUDA). Model sources and licenses: https://getqvi.com/qv1/models. Product page: https://getqvi.com/products/qv1.
 - [Neyora — DDSP Instrument Synthesis](https://getqvi.com/products/neyora): Desktop instrument that renders expressive solo instrument performance from text prompts, sung input, or MIDI using Differentiable DSP. Status: in development. The on-site demo is a placeholder; real synthesis is not available yet.
 - [QVI Studio](https://getqvi.com/studio): Free miniature multitrack mixer in the browser (tempo, pitch, metronome, export). Files stay local.
 

@@ -77,6 +77,13 @@ const nextConfig = {
         destination: "/products/neyora",
         statusCode: 301,
       },
+      {
+        // Public. The QV1 Setup fetches these URLs with no session.
+        // Keep this off any auth middleware matcher (there is none today).
+        source: "/downloads/evaluation/:path*",
+        destination: "https://dl.getqvi.com/qv1/evaluation/:path*",
+        permanent: false,
+      },
     ];
   },
   async headers() {

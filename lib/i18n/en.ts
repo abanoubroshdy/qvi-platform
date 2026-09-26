@@ -216,14 +216,14 @@ export const en = {
     lead:
       "The whole app is free. QV1 Evaluation separates a mix into 4 AI stems with third-party, non-commercial weights, and includes QVI’s own tools: Drum Split, stem editing, DSP processing, a mixer, mix export, and projects.",
     chip: "Evaluation — non-commercial models",
-    download: "Download QV1 Evaluation for Windows",
+    download: "Download Setup",
     paused: "QV1 download is temporarily disabled while we fix a problem. Check back soon.",
     comingSoon: "The download didn’t start. The installer isn’t available yet.",
     limited: "The download didn’t start. You’ve reached the limit for this hour. Try again later.",
     unavailable: "The download didn’t start. Try again in a moment.",
     signInHint: "A getqvi.com account is required. If you are not signed in, Download takes you to sign in or create an account, then brings you back.",
-    extractNote:
-      "The file is a zip with QV1-Setup-Evaluation.exe and three .bin slices. Extract the whole zip into one folder, then run the exe. The .bin files must stay next to the exe.",
+    setupNote:
+      "Windows Setup. The installer detects your GPU and downloads the components it needs during install: about 675 MB for the core, and more for NVIDIA CUDA.",
     shaLabel: "SHA256",
     unsigned:
       "Windows may show an 'Unknown publisher' warning until the installer is code-signed. Click More info, then Run anyway.",

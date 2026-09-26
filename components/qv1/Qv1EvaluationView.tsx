@@ -108,7 +108,7 @@ export function Qv1EvaluationView({ notice }: { notice: Qv1DownloadNotice }) {
             {QV1_DOWNLOAD_ENABLED ? (
               <p className="mt-3 text-center text-sm leading-6 text-muted-foreground">{page.signInHint}</p>
             ) : null}
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">{page.extractNote}</p>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">{page.setupNote}</p>
 
             {showHash ? (
               <div className="mt-6 rounded-xl border border-border bg-muted/40 p-4">
