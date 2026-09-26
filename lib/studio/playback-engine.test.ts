@@ -307,6 +307,32 @@ describe("playback schedule", () => {
     expect(plain).toHaveLength(9);
     expect(plain.every((event) => event.playbackRate === 1)).toBe(true);
   });
+
+  it("caps simultaneous live stretch tracks and bakes the rest", () => {
+    let project = createStudioProject("Cap", "project-cap");
+    for (let index = 0; index < 6; index += 1) {
+      const added = addImportedFileAsTrack(project, imported(`s${index}.wav`, 4), "desktop");
+      if (!added.ok) throw new Error(added.reason);
+      project = added.project;
+      project.tracks[index]!.clips[0]!.buffer = makeBuffer(40, 10, 0.2);
+      const sped = setTrackTempo(project, project.tracks[index]!.id, { targetBpm: 180 });
+      if (!sped.ok) throw new Error(sped.reason);
+      project = sped.project;
+    }
+    const rendered = new Map(project.tracks.map((track) => [track.id, makeBuffer(30, 10, 0.3)] as const));
+    const plan = planPlayback({
+      project,
+      playheadSec: 0,
+      live: true,
+      maxLiveStretchTracks: 4,
+      renderedTracks: rendered,
+    });
+    expect(plan.events.filter((event) => event.stretch)).toHaveLength(4);
+    expect(plan.events.filter((event) => event.clipId === null)).toHaveLength(2);
+    const key = playbackArrangementKey(project, 4);
+    expect(key.split("|").filter((part) => part.includes("#live#"))).toHaveLength(4);
+    expect(key.split("|").filter((part) => part.includes("#bake#"))).toHaveLength(2);
+  });
 });
 
 describe("playback engine", () => {

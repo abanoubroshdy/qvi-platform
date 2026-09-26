@@ -116,6 +116,7 @@ describe("QVI Studio phase 0 contract", () => {
     expect(qviStudioLimits.gainDb).toEqual({ min: MIN_GAIN_DB, max: MAX_GAIN_DB, unity: 0 });
     expect(qviStudioLimits.largeFileBytes).toBe(FFMPEG_LARGE_FILE_BYTES);
     expect(qviStudioLimits.previewDebounceMs).toBe(700);
+    expect(qviStudioLimits.maxLiveStretchTracks).toBe(4);
     expect(studioExportFormats).toEqual(["mp3", "wav"]);
     expect(studioExportFormatsFitPlatform()).toBe(true);
   });

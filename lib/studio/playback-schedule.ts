@@ -3,18 +3,21 @@
  * Identity tracks always play trimmed source buffers (no SoundTouch), whether or
  * not a live worklet is available — so many tracks stay cheap to arm.
  * Without a live worklet, any other tempo or pitch waits for an offline-rendered
- * track buffer. With `live`, only non-identity tracks play through SoundTouch:
- * the source playbackRate is the tempo, and the worklet keeps pitch independent.
- * Changing a track into or out of identity requires a re-arm (arrangement key).
+ * track buffer. With `live`, only non-identity tracks play through SoundTouch
+ * (capped by maxLiveStretchTracks); extras use the offline bake. Changing
+ * stretch identity or live-slot assignment requires a re-arm.
  */
 
 import { liveStretchParams, type LiveStretchParams } from "@/lib/audio-stretch-live";
 import { resolveTempoRate } from "@/lib/audio-tempo";
-import { isTrackAudible, projectHasSolo } from "@/lib/studio/definition";
+import { isTrackAudible, projectHasSolo, qviStudioLimits } from "@/lib/studio/definition";
 import { trackTempoPitchIsIdentity } from "@/lib/studio/project";
 import type { StudioClip, StudioProject, StudioTrack } from "@/lib/studio/types";
 
 const MIN_SLICE_SEC = 1e-4;
+
+/** Re-export for callers that need the same cap the schedule uses. */
+export const STUDIO_MAX_LIVE_STRETCH_TRACKS = qviStudioLimits.maxLiveStretchTracks;
 
 export function dbToGain(gainDb: number): number {
   if (!Number.isFinite(gainDb)) return 1;
@@ -53,13 +56,24 @@ export function planPlayback(options: {
   renderedTracks?: ReadonlyMap<string, AudioBuffer>;
   /** Play tempo and pitch through the worklet instead of a baked buffer. */
   live?: boolean;
+  /** Override the default cap on simultaneous live stretch tracks. */
+  maxLiveStretchTracks?: number;
 }): StudioPlaybackPlan {
   const playhead = Number.isFinite(options.playheadSec) ? Math.max(0, options.playheadSec) : 0;
   const anySolo = projectHasSolo(options.project.tracks);
+  const maxLive = Math.max(
+    0,
+    Math.floor(options.maxLiveStretchTracks ?? STUDIO_MAX_LIVE_STRETCH_TRACKS),
+  );
+  let liveSlots = options.live === true ? maxLive : 0;
   const events: StudioScheduledEvent[] = [];
   const trackGains = options.project.tracks.map((track) => {
     const audible = isTrackAudible(track, anySolo);
-    if (audible) events.push(...eventsForTrack(track, playhead, options.renderedTracks, options.live === true));
+    if (audible) {
+      const useLive = !trackTempoPitchIsIdentity(track) && liveSlots > 0;
+      if (useLive) liveSlots -= 1;
+      events.push(...eventsForTrack(track, playhead, options.renderedTracks, useLive));
+    }
     return { trackId: track.id, linear: audible ? dbToGain(track.gainDb) : 0 };
   });
   return {
@@ -72,14 +86,27 @@ export function planPlayback(options: {
 /**
  * Clip layout, audibility, and whether each track needs a live stretch node.
  * Exact tempo/pitch values and gain are not part of it — those update in place
- * when the stretch graph shape stays the same.
+ * when the stretch graph shape stays the same. Non-identity tracks beyond the
+ * live-stretch cap are marked `bake` so the engine re-arms when slots change.
  */
-export function playbackArrangementKey(project: StudioProject): string {
+export function playbackArrangementKey(
+  project: StudioProject,
+  maxLiveStretchTracks: number = STUDIO_MAX_LIVE_STRETCH_TRACKS,
+): string {
   const anySolo = projectHasSolo(project.tracks);
+  let liveSlots = Math.max(0, Math.floor(maxLiveStretchTracks));
   return project.tracks
     .map((track) => {
       const audible = isTrackAudible(track, anySolo) ? "1" : "0";
-      const stretch = trackTempoPitchIsIdentity(track) ? "id" : "live";
+      let stretch = "id";
+      if (!trackTempoPitchIsIdentity(track)) {
+        if (liveSlots > 0) {
+          stretch = "live";
+          liveSlots -= 1;
+        } else {
+          stretch = "bake";
+        }
+      }
       const clips = track.clips
         .map((clip) =>
           [
@@ -101,7 +128,7 @@ function eventsForTrack(
   track: StudioTrack,
   playhead: number,
   renderedTracks: ReadonlyMap<string, AudioBuffer> | undefined,
-  live: boolean,
+  useLiveStretch: boolean,
 ): StudioScheduledEvent[] {
   if (trackTempoPitchIsIdentity(track)) {
     return track.clips.flatMap((clip) => {
@@ -109,7 +136,7 @@ function eventsForTrack(
       return event ? [event] : [];
     });
   }
-  if (live) {
+  if (useLiveStretch) {
     const stretch = liveStretchParams({
       tempoRate: resolveTempoRate(track.tempo),
       semitones: track.pitchSemitones,

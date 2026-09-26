@@ -117,6 +117,11 @@ export const qviStudioLimits = {
   },
   /** Matches the Tempo Pitch tool debounce before an offline preview render. */
   previewDebounceMs: 700,
+  /**
+   * Max simultaneous SoundTouch worklets. Extra non-identity tracks wait on the
+   * offline preview bake so a dense mix does not open one worklet per track.
+   */
+  maxLiveStretchTracks: 4,
 } as const;
 
 export const qviStudioEngines = {
