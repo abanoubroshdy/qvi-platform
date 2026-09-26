@@ -1,5 +1,5 @@
 import { LoginView } from "@/components/auth/LoginView";
-import { safeNextPath } from "@/lib/safe-next-path";
+import { postAuthPath } from "@/lib/qv1-download";
 import { buildPageMetadata } from "@/lib/seo";
 
 const pageTitle = "Sign in";
@@ -20,5 +20,5 @@ type LoginPageProps = {
 
 export default function LoginPage({ searchParams }: LoginPageProps) {
   const initialMode = searchParams?.mode === "signup" ? "signup" : "signin";
-  return <LoginView initialMode={initialMode} nextPath={safeNextPath(searchParams?.next)} />;
+  return <LoginView initialMode={initialMode} nextPath={postAuthPath(searchParams?.next)} />;
 }

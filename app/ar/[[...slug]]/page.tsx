@@ -21,7 +21,7 @@ import type { LiveToolSlug } from "@/lib/i18n";
 import { isIndexableLocalizedPath, isLocalizedRoute } from "@/lib/i18n/locale-path";
 import { arabicSeoForPath } from "@/lib/page-meta-ar";
 import type { Qv1DownloadNotice } from "@/lib/qv1-release";
-import { safeNextPath } from "@/lib/safe-next-path";
+import { postAuthPath, qv1AutostartTokenFromQuery } from "@/lib/qv1-download";
 import {
   aboutPageJsonLd,
   buildArabicPageMetadata,
@@ -34,7 +34,7 @@ import { getToolBySlug, isToolCategory } from "@/lib/tools";
 
 type PageProps = {
   params: { slug?: string[] };
-  searchParams?: { download?: string | string[]; mode?: string; next?: string };
+  searchParams?: { download?: string | string[]; autostart?: string | string[]; mode?: string; next?: string };
 };
 
 function loadTool(loader: () => Promise<{ default?: ComponentType; [key: string]: ComponentType | undefined }>, name: string) {
@@ -129,7 +129,12 @@ function ArabicBody({ englishPath, searchParams }: { englishPath: string; search
     case "/tools":
       return <ToolsHubView />;
     case "/qv1":
-      return <Qv1EvaluationView notice={noticeFrom(searchParams?.download)} />;
+      return (
+        <Qv1EvaluationView
+          notice={noticeFrom(searchParams?.download)}
+          autostartToken={qv1AutostartTokenFromQuery(searchParams?.autostart)}
+        />
+      );
     case "/qv1/models":
       return <Qv1ModelsView />;
     case "/about":
@@ -154,7 +159,7 @@ function ArabicBody({ englishPath, searchParams }: { englishPath: string; search
       return (
         <LoginView
           initialMode={searchParams?.mode === "signup" ? "signup" : "signin"}
-          nextPath={safeNextPath(searchParams?.next)}
+          nextPath={postAuthPath(searchParams?.next)}
         />
       );
     case "/account":

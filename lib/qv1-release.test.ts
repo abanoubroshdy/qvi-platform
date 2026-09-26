@@ -90,6 +90,10 @@ describe("QV1 public copy", () => {
     expect(QV1_DOWNLOAD_ENABLED).toBe(true);
     expect(en.qv1Page.download).toBe("Download Setup");
     expect(ar.qv1Page.download).toBe("حمّل Setup");
+    expect(en.qv1Page.downloadStarted).toMatch(/download has started/i);
+    expect(en.qv1Page.downloadFallback).toMatch(/click here/i);
+    expect(ar.qv1Page.downloadStarted).toMatch(/التحميل/);
+    expect(ar.qv1Page.downloadFallback).toMatch(/هنا/);
     expect(en.qv1Page.setupNote).toMatch(/GPU/i);
     expect(en.qv1Page.setupNote).toMatch(/675/);
     expect(en.qv1Page.setupNote).toMatch(/CUDA/);
@@ -98,7 +102,14 @@ describe("QV1 public copy", () => {
     expect(ar.qv1Page.setupNote).toMatch(/CUDA/);
     expect(ar.qv1Page.setupNote).toMatch(/ويندوز/);
     const view = fs.readFileSync("components/qv1/Qv1EvaluationView.tsx", "utf8");
+    const notice = fs.readFileSync("components/qv1/Qv1AutostartNotice.tsx", "utf8");
     expect(view).toMatch(/href="\/qv1\/download"/);
+    expect(view).toContain("Qv1AutostartNotice");
+    expect(notice).toContain('lang="en"');
+    expect(notice).toContain('lang="ar"');
+    expect(notice).toContain('dir="rtl"');
+    expect(notice).toContain("QV1_DOWNLOAD_PATH");
+    expect(notice).not.toMatch(/ToolAd|AdSenseScript|adsbygoogle/);
     expect(view).toMatch(/page\.setupNote/);
     expect(view).not.toMatch(/extractNote|ToolAd|AdSenseScript/);
     expect(surfaces).not.toMatch(/QV1-Setup-Evaluation\.zip|4\.3 GB|\.bin slices|three \.bin/);

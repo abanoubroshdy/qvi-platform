@@ -221,7 +221,10 @@ export const en = {
     comingSoon: "The download didn’t start. The installer isn’t available yet.",
     limited: "The download didn’t start. You’ve reached the limit for this hour. Try again later.",
     unavailable: "The download didn’t start. Try again in a moment.",
-    signInHint: "A getqvi.com account is required. If you are not signed in, Download takes you to sign in or create an account, then brings you back.",
+    signInHint:
+      "A getqvi.com account is required. If you are not signed in, Download takes you to sign in or create an account, then brings you back to this page and starts the download.",
+    downloadStarted: "Your download has started.",
+    downloadFallback: "If it didn’t start, click here.",
     setupNote:
       "Windows Setup. The installer detects your GPU and downloads the components it needs during install: about 675 MB for the core, and more for NVIDIA CUDA.",
     shaLabel: "SHA256",
