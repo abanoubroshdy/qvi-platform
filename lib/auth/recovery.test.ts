@@ -63,6 +63,9 @@ describe("password reset responses", () => {
   it("hides whether an email is registered and surfaces rate limits", () => {
     expect(passwordResetOutcome(null)).toBe("sent");
     expect(passwordResetOutcome({ message: "User not found", status: 400, code: "user_not_found" })).toBe("sent");
+    expect(passwordResetOutcome({ message: "Email not confirmed", status: 400, code: "email_not_confirmed" })).toBe(
+      "sent",
+    );
     expect(isHiddenAccountError({ message: "Email address not found" })).toBe(true);
     expect(passwordResetOutcome({ message: "Email rate limit exceeded", status: 429, code: "over_email_send_rate_limit" })).toBe(
       "rate_limited",

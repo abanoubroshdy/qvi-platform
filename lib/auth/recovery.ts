@@ -138,9 +138,11 @@ export function isHiddenAccountError(error: AuthErrorLike | null | undefined): b
   return (
     code === "user_not_found" ||
     code === "email_not_found" ||
+    code === "email_not_confirmed" ||
     message.includes("user not found") ||
     message.includes("email not found") ||
-    message.includes("email address not found")
+    message.includes("email address not found") ||
+    message.includes("email not confirmed")
   );
 }
 
