@@ -805,7 +805,7 @@ describe("many-track playback phase 5", () => {
   it("honors mute and solo across ten identity tracks", () => {
     const host = new LiveHost();
     const engine = createStudioPlaybackEngine({ host });
-    let project = tenTrackProject();
+    const project = tenTrackProject();
     const muted = setTrackMuted(project, project.tracks[0]!.id, true);
     if (!muted.ok) throw new Error(muted.reason);
     engine.play(muted.project);
