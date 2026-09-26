@@ -19,6 +19,9 @@ const MIN_SLICE_SEC = 1e-4;
 /** Re-export for callers that need the same cap the schedule uses. */
 export const STUDIO_MAX_LIVE_STRETCH_TRACKS = qviStudioLimits.maxLiveStretchTracks;
 
+/** How each track should play tempo/pitch given the live-stretch slot budget. */
+export type StudioTrackStretchMode = "id" | "live" | "bake";
+
 export function dbToGain(gainDb: number): number {
   if (!Number.isFinite(gainDb)) return 1;
   return 10 ** (gainDb / 20);
@@ -50,6 +53,34 @@ export type StudioPlaybackPlan = {
   events: StudioScheduledEvent[];
 };
 
+/**
+ * Assign identity / live-worklet / offline-bake per track.
+ * When `live` is false every non-identity track is `bake`. Mute/solo do not
+ * change the mode — empty audible tracks still reserve no live slots here;
+ * call sites that schedule audio still filter with `isTrackAudible`.
+ */
+export function trackStretchModes(
+  project: StudioProject,
+  options?: { live?: boolean; maxLiveStretchTracks?: number },
+): Map<string, StudioTrackStretchMode> {
+  const live = options?.live === true;
+  let liveSlots = live ? Math.max(0, Math.floor(options?.maxLiveStretchTracks ?? STUDIO_MAX_LIVE_STRETCH_TRACKS)) : 0;
+  const modes = new Map<string, StudioTrackStretchMode>();
+  for (const track of project.tracks) {
+    if (trackTempoPitchIsIdentity(track)) {
+      modes.set(track.id, "id");
+      continue;
+    }
+    if (liveSlots > 0) {
+      modes.set(track.id, "live");
+      liveSlots -= 1;
+    } else {
+      modes.set(track.id, "bake");
+    }
+  }
+  return modes;
+}
+
 export function planPlayback(options: {
   project: StudioProject;
   playheadSec: number;
@@ -61,18 +92,15 @@ export function planPlayback(options: {
 }): StudioPlaybackPlan {
   const playhead = Number.isFinite(options.playheadSec) ? Math.max(0, options.playheadSec) : 0;
   const anySolo = projectHasSolo(options.project.tracks);
-  const maxLive = Math.max(
-    0,
-    Math.floor(options.maxLiveStretchTracks ?? STUDIO_MAX_LIVE_STRETCH_TRACKS),
-  );
-  let liveSlots = options.live === true ? maxLive : 0;
+  const modes = trackStretchModes(options.project, {
+    live: options.live === true,
+    maxLiveStretchTracks: options.maxLiveStretchTracks,
+  });
   const events: StudioScheduledEvent[] = [];
   const trackGains = options.project.tracks.map((track) => {
     const audible = isTrackAudible(track, anySolo);
     if (audible) {
-      const useLive = !trackTempoPitchIsIdentity(track) && liveSlots > 0;
-      if (useLive) liveSlots -= 1;
-      events.push(...eventsForTrack(track, playhead, options.renderedTracks, useLive));
+      events.push(...eventsForTrack(track, playhead, options.renderedTracks, modes.get(track.id) === "live"));
     }
     return { trackId: track.id, linear: audible ? dbToGain(track.gainDb) : 0 };
   });
@@ -94,19 +122,11 @@ export function playbackArrangementKey(
   maxLiveStretchTracks: number = STUDIO_MAX_LIVE_STRETCH_TRACKS,
 ): string {
   const anySolo = projectHasSolo(project.tracks);
-  let liveSlots = Math.max(0, Math.floor(maxLiveStretchTracks));
+  const modes = trackStretchModes(project, { live: true, maxLiveStretchTracks });
   return project.tracks
     .map((track) => {
       const audible = isTrackAudible(track, anySolo) ? "1" : "0";
-      let stretch = "id";
-      if (!trackTempoPitchIsIdentity(track)) {
-        if (liveSlots > 0) {
-          stretch = "live";
-          liveSlots -= 1;
-        } else {
-          stretch = "bake";
-        }
-      }
+      const stretch = modes.get(track.id) ?? "id";
       const clips = track.clips
         .map((clip) =>
           [

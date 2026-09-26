@@ -22,6 +22,7 @@ import {
   type QviStudioPlaybackEngine,
   type StudioTransportSnapshot,
 } from "@/lib/studio/playback-engine";
+import { trackStretchModes } from "@/lib/studio/playback-schedule";
 import {
   addEmptyTrack,
   addImportedFileAsTrack,
@@ -54,7 +55,6 @@ import {
   setTrackTempo,
   splitClip,
   stopPlayhead,
-  trackTempoPitchIsIdentity,
 } from "@/lib/studio/project";
 import type { StretchPresetId } from "@/lib/audio-stretch-preset";
 import { canAddTrack, exceedsTrackWarning, type StudioTempoSetting } from "@/lib/studio/definition";
@@ -272,21 +272,21 @@ export function useStudioSession() {
     const scheduler = schedulerRef.current;
     const engine = engineRef.current;
     if (!scheduler || !engine) return;
-    if (liveReady) {
-      scheduler.cancel();
-      setRenderingIds([]);
-      engine.sync(projectRef.current);
-      return;
-    }
+    const projectNow = projectRef.current;
+    const modes = trackStretchModes(projectNow, { live: liveReady });
+    scheduler.cancel();
     const pending: string[] = [];
-    for (const track of projectRef.current.tracks) {
-      if (!trackTempoPitchIsIdentity(track)) {
-        engine.setRenderedTrack(track.id, null);
-        pending.push(track.id);
-      }
+    for (const track of projectNow.tracks) {
+      const mode = modes.get(track.id) ?? "id";
+      // Clear any prior bake; identity and live-stretch voices play from source.
+      engine.setRenderedTrack(track.id, null);
+      if (mode !== "bake") continue;
+      // Offline bake: worklet unavailable, or over the live-stretch track cap.
+      pending.push(track.id);
       scheduler.schedule(track);
     }
     setRenderingIds(pending);
+    engine.sync(projectNow);
   }, [contentKey, liveReady]);
 
   useEffect(() => {

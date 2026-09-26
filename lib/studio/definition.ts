@@ -241,8 +241,9 @@ export const qviStudioV1Capabilities = [
     summary: "Each track has tempo by BPM or percent, and pitch by semitones and cents.",
     acceptance: [
       "Ranges match the Tempo Pitch tool.",
-      "While a SoundTouch worklet is registered, pitch and tempo update the playing voices in place.",
-      "Without a worklet, preview renders offline after the debounce, then plays the rendered buffer.",
+      "Identity tracks play without SoundTouch so dense mixes stay audible.",
+      "While a SoundTouch worklet is registered, non-identity tracks (up to maxLiveStretchTracks) update pitch and tempo in place.",
+      "Non-identity tracks beyond that cap, or without a worklet, preview offline after the debounce then play the rendered buffer.",
       "Unchanged tempo and pitch skip that offline render.",
     ],
   },

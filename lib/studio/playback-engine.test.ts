@@ -11,7 +11,7 @@ import {
   type StudioLiveStretch,
 } from "@/lib/studio/playback-engine";
 import type { LiveStretchParams } from "@/lib/audio-stretch-live";
-import { dbToGain, planPlayback, playbackArrangementKey } from "@/lib/studio/playback-schedule";
+import { dbToGain, planPlayback, playbackArrangementKey, trackStretchModes } from "@/lib/studio/playback-schedule";
 import {
   addImportedFileAsTrack,
   createStudioProject,
@@ -306,6 +306,27 @@ describe("playback schedule", () => {
     expect(stretched[0]!.playbackRate).toBe(2);
     expect(plain).toHaveLength(9);
     expect(plain.every((event) => event.playbackRate === 1)).toBe(true);
+  });
+
+  it("assigns stretch modes for live slots and offline bake", () => {
+    let project = createStudioProject("Modes", "project-modes");
+    for (let index = 0; index < 3; index += 1) {
+      const added = addImportedFileAsTrack(project, imported(`m${index}.wav`, 2), "desktop");
+      if (!added.ok) throw new Error(added.reason);
+      project = added.project;
+    }
+    const identityModes = trackStretchModes(project, { live: true, maxLiveStretchTracks: 4 });
+    expect(Array.from(identityModes.values())).toEqual(["id", "id", "id"]);
+    let mutated = project;
+    for (const track of project.tracks) {
+      const sped = setTrackTempo(mutated, track.id, { targetBpm: 150 });
+      if (!sped.ok) throw new Error(sped.reason);
+      mutated = sped.project;
+    }
+    const liveModes = trackStretchModes(mutated, { live: true, maxLiveStretchTracks: 2 });
+    expect(Array.from(liveModes.values())).toEqual(["live", "live", "bake"]);
+    const offlineModes = trackStretchModes(mutated, { live: false });
+    expect(Array.from(offlineModes.values())).toEqual(["bake", "bake", "bake"]);
   });
 
   it("caps simultaneous live stretch tracks and bakes the rest", () => {
