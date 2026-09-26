@@ -54,7 +54,7 @@ export function createTempoPitchPreview(deps: {
         );
         placed.push({ buffer: faded, heardOffsetSec: Math.max(0, clip.offsetSec) });
       }
-      return mixHeardBuffers(placed, deps.createBuffer);
+      return mixHeardBuffersCooperative(placed, deps.createBuffer, abort);
     },
   };
 }
@@ -114,10 +114,55 @@ export function sliceAudioBuffer(
   return next;
 }
 
+/** Frames mixed before the main thread yields. Keeps one turn under the long-task budget. */
+export const MIX_FRAMES_PER_SLICE = 65_536;
+
 export function mixHeardBuffers(
   clips: readonly { buffer: AudioBuffer; heardOffsetSec: number }[],
   createBuffer: StudioBufferFactory,
 ): AudioBuffer | null {
+  const prepared = prepareHeardMix(clips, createBuffer);
+  if (!prepared) return null;
+  for (const clip of prepared.usable) mixClipRange(prepared, clip, 0, clip.buffer.length);
+  return prepared.mixed;
+}
+
+export async function mixHeardBuffersCooperative(
+  clips: readonly { buffer: AudioBuffer; heardOffsetSec: number }[],
+  createBuffer: StudioBufferFactory,
+  signal?: AbortSignal,
+  framesPerSlice = MIX_FRAMES_PER_SLICE,
+): Promise<AudioBuffer | null> {
+  const prepared = prepareHeardMix(clips, createBuffer);
+  if (!prepared) return null;
+  const slice = Math.max(1, framesPerSlice);
+  let sliceStart = performance.now();
+  for (const clip of prepared.usable) {
+    for (let frame = 0; frame < clip.buffer.length; frame += slice) {
+      if (signal?.aborted) throw abortError();
+      mixClipRange(prepared, clip, frame, Math.min(clip.buffer.length, frame + slice));
+      if (performance.now() - sliceStart >= 12) {
+        await yieldToMainThread();
+        sliceStart = performance.now();
+      }
+    }
+  }
+  return prepared.mixed;
+}
+
+type PreparedMix = {
+  mixed: AudioBuffer;
+  usable: readonly { buffer: AudioBuffer; heardOffsetSec: number }[];
+  sampleRate: number;
+  channels: number;
+  length: number;
+  destination: Float32Array[];
+};
+
+function prepareHeardMix(
+  clips: readonly { buffer: AudioBuffer; heardOffsetSec: number }[],
+  createBuffer: StudioBufferFactory,
+): PreparedMix | null {
   const usable = clips.filter((clip) => clip.buffer.length > 0 && clip.buffer.sampleRate > 0);
   if (!usable.length) return null;
   const sampleRate = Math.max(...usable.map((clip) => clip.buffer.sampleRate));
@@ -129,21 +174,33 @@ export function mixHeardBuffers(
   const length = Math.max(1, Math.ceil(durationSec * sampleRate));
   const mixed = createBuffer(channels, length, sampleRate);
   const destination = Array.from({ length: channels }, (_, channel) => mixed.getChannelData(channel));
-  for (const clip of usable) {
-    const offset = Math.round(Math.max(0, clip.heardOffsetSec) * sampleRate);
-    const sourceRate = clip.buffer.sampleRate;
-    for (let frame = 0; frame < clip.buffer.length; frame += 1) {
-      const index = offset + Math.round((frame * sampleRate) / sourceRate);
-      if (index < 0 || index >= length) continue;
-      for (let channel = 0; channel < channels; channel += 1) {
-        const source = clip.buffer.getChannelData(Math.min(channel, clip.buffer.numberOfChannels - 1));
-        const lane = destination[channel];
-        if (!lane) continue;
-        lane[index] = (lane[index] ?? 0) + (source[frame] ?? 0);
-      }
+  return { mixed, usable, sampleRate, channels, length, destination };
+}
+
+function mixClipRange(
+  prepared: PreparedMix,
+  clip: { buffer: AudioBuffer; heardOffsetSec: number },
+  fromFrame: number,
+  toFrame: number,
+): void {
+  const offset = Math.round(Math.max(0, clip.heardOffsetSec) * prepared.sampleRate);
+  const sourceRate = clip.buffer.sampleRate;
+  for (let frame = fromFrame; frame < toFrame; frame += 1) {
+    const index = offset + Math.round((frame * prepared.sampleRate) / sourceRate);
+    if (index < 0 || index >= prepared.length) continue;
+    for (let channel = 0; channel < prepared.channels; channel += 1) {
+      const source = clip.buffer.getChannelData(Math.min(channel, clip.buffer.numberOfChannels - 1));
+      const lane = prepared.destination[channel];
+      if (!lane) continue;
+      lane[index] = (lane[index] ?? 0) + (source[frame] ?? 0);
     }
   }
-  return mixed;
+}
+
+function yieldToMainThread(): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, 0);
+  });
 }
 
 export function createTempoPreviewScheduler(options: {

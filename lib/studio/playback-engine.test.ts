@@ -11,13 +11,15 @@ import {
   type StudioLiveStretch,
 } from "@/lib/studio/playback-engine";
 import type { LiveStretchParams } from "@/lib/audio-stretch-live";
-import { dbToGain, planPlayback } from "@/lib/studio/playback-schedule";
+import { dbToGain, planPlayback, playbackArrangementKey } from "@/lib/studio/playback-schedule";
 import {
   addImportedFileAsTrack,
   createStudioProject,
   setMasterGain,
+  setClipTrim,
   setTrackGain,
   setTrackMuted,
+  setTrackPan,
   setTrackPitch,
   setTrackSolo,
   setTrackStretchPreset,
@@ -31,6 +33,7 @@ import {
   createTempoPitchPreview,
   createTempoPreviewScheduler,
   mixHeardBuffers,
+  mixHeardBuffersCooperative,
   type StudioBufferFactory,
 } from "@/lib/studio/tempo-preview";
 import { encodeWavPcm16 } from "@/lib/studio/wav";
@@ -201,6 +204,21 @@ describe("playback schedule", () => {
     expect(planPlayback({ project: solo.project, playheadSec: 0 }).events).toEqual([]);
   });
 
+  it("keeps the arrangement key when pitch, tempo, or gain change", () => {
+    const { project, track } = projectWithClip({ seconds: 8 });
+    const key = playbackArrangementKey(project);
+    const pitched = setTrackPitch(project, track.id, { semitones: 3, cents: 15 });
+    const tempo = setTrackTempo(project, track.id, { targetBpm: 180 });
+    const gained = setTrackGain(project, track.id, -3);
+    if (!pitched.ok || !tempo.ok || !gained.ok) throw new Error("edit");
+    expect(playbackArrangementKey(pitched.project)).toBe(key);
+    expect(playbackArrangementKey(tempo.project)).toBe(key);
+    expect(playbackArrangementKey(gained.project)).toBe(key);
+    const muted = setTrackMuted(project, track.id, true);
+    if (!muted.ok) throw new Error("mute");
+    expect(playbackArrangementKey(muted.project)).not.toBe(key);
+  });
+
   it("plays a rendered buffer for a tempo change and ignores it when tempo is unchanged", () => {
     const { project, track } = projectWithClip({ seconds: 8 });
     const sped = setTrackTempo(project, track.id, { targetBpm: 240 });
@@ -237,6 +255,10 @@ describe("playback schedule", () => {
       pitch: 1,
       stretch: { sequenceMs: 40, seekWindowMs: 15, overlapMs: 8, quickSeek: true },
     });
+
+    const identity = planPlayback({ project, playheadSec: 0, live: true });
+    expect(identity.events[0]!.stretch).toMatchObject({ playbackRate: 1, pitch: 1, pitchSemitones: 0 });
+    expect(identity.events[0]!.clipId).toBe(track.clips[0]!.id);
 
     const muted = setTrackMuted(speech.project, track.id, true);
     if (!muted.ok) throw new Error(muted.reason);
@@ -395,6 +417,79 @@ describe("playback engine", () => {
     expect(host.sources).toHaveLength(1);
     expect(host.stretches[0]!.applied?.pitchSemitones).toBe(3);
     expect(host.stretches[0]!.applied?.playbackRate).toBe(2);
+  });
+
+  it("updates pitch, tempo, and gain in place after the playhead has moved", () => {
+    const host = new LiveHost();
+    const engine = createStudioPlaybackEngine({ host });
+    const first = projectWithClip({ seconds: 8 });
+    const second = addImportedFileAsTrack(first.project, imported("bass.wav", 8), "desktop");
+    if (!second.ok) throw new Error(second.reason);
+    second.project.tracks[1]!.clips[0]!.buffer = makeBuffer(80, 10, 0.4);
+    engine.play(second.project);
+    expect(host.sources).toHaveLength(2);
+    expect(host.stretches).toHaveLength(2);
+    const started = host.sources.map((source) => source.started?.when);
+    expect(started[0]).toBe(started[1]);
+    host.currentTime = 1.5;
+
+    const pitched = setTrackPitch(second.project, second.project.tracks[0]!.id, { semitones: 5, cents: 20 });
+    if (!pitched.ok) throw new Error("pitch");
+    const tempo = setTrackTempo(pitched.project, second.project.tracks[1]!.id, { targetBpm: 180 });
+    if (!tempo.ok) throw new Error("tempo");
+    const gained = setTrackGain(tempo.project, second.project.tracks[0]!.id, -6);
+    if (!gained.ok) throw new Error("gain");
+    const startedAt = performance.now();
+    engine.sync(gained.project);
+    expect(performance.now() - startedAt).toBeLessThan(50);
+    expect(host.sources.filter((source) => source.stopped)).toHaveLength(0);
+    expect(host.sources).toHaveLength(2);
+    expect(host.sources[0]!.playbackRate.value).toBe(1);
+    expect(host.sources[1]!.playbackRate.value).toBeCloseTo(1.5, 5);
+    expect(host.stretches[0]!.applied?.pitchSemitones).toBeCloseTo(5.2, 5);
+    expect(host.stretches[1]!.applied?.playbackRate).toBeCloseTo(1.5, 5);
+    expect(host.sources[0]!.started?.when).toBe(started[0]);
+    expect(engine.poll().status).toBe("playing");
+  });
+
+  it("does not end playback when a faster tempo shrinks the timeline behind the playhead", () => {
+    const host = new LiveHost();
+    const engine = createStudioPlaybackEngine({ host });
+    const { project, track } = projectWithClip({ seconds: 8 });
+    engine.play(project);
+    host.currentTime = 5;
+    const sped = setTrackTempo(project, track.id, { targetBpm: 240 });
+    if (!sped.ok) throw new Error("tempo");
+    engine.sync(sped.project);
+    expect(host.sources[0]!.stopped).toBe(false);
+    expect(host.sources[0]!.playbackRate.value).toBe(2);
+    expect(engine.currentPlayhead()).toBeCloseTo(5, 5);
+    expect(engine.poll().status).toBe("playing");
+    host.currentTime = 8;
+    expect(engine.poll()).toEqual({ status: "paused", playheadSec: 8 });
+  });
+
+  it("rebuilds when a trim changes the arrangement and keeps a later gain on the same voice", () => {
+    const host = new StripHost();
+    host.currentTime = 0;
+    const engine = createStudioPlaybackEngine({ host });
+    const { project, track } = projectWithClip({ seconds: 8 });
+    const clip = track.clips[0]!;
+    engine.play(project);
+    host.currentTime = 1;
+    const trimmed = setClipTrim(project, track.id, clip.id, { trimEndSec: 6 });
+    if (!trimmed.ok) throw new Error("trim");
+    engine.sync(trimmed.project);
+    expect(host.sources.length).toBeGreaterThan(1);
+    const gained = setTrackGain(trimmed.project, track.id, 3);
+    const panned = gained.ok ? setTrackPan(gained.project, track.id, -0.4) : gained;
+    if (!panned.ok) throw new Error("mix");
+    const voices = host.sources.length;
+    host.currentTime = 2;
+    engine.sync(panned.project);
+    expect(host.sources).toHaveLength(voices);
+    expect(host.panners[0]!.pan.value).toBe(-0.4);
+    expect(host.gains[1]!.gain.value).toBeCloseTo(10 ** (3 / 20), 5);
   });
 
   it("places the fade gain before the live stretcher, then eq, compressor, and pan", () => {
@@ -564,6 +659,17 @@ describe("tempo preview", () => {
     const rendered = await preview.renderTrack(changed);
     expect(seen).toEqual([3]);
     expect(rendered?.duration).toBeCloseTo(0.3, 5);
+  });
+
+  it("mixes cooperatively to the same samples as the synchronous mix", async () => {
+    const clips = [
+      { buffer: makeBuffer(10, 10, 0.25), heardOffsetSec: 0 },
+      { buffer: makeBuffer(5, 10, 1), heardOffsetSec: 0.5 },
+    ];
+    const sync = mixHeardBuffers(clips, createBuffer);
+    const asyncMix = await mixHeardBuffersCooperative(clips, createBuffer, undefined, 4);
+    expect(asyncMix?.length).toBe(sync?.length);
+    expect(Array.from(asyncMix?.getChannelData(0) ?? [])).toEqual(Array.from(sync?.getChannelData(0) ?? []));
   });
 
   it("sums overlapping clips at their heard offsets", () => {

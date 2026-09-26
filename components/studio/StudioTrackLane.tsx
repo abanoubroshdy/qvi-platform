@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { StudioClip, StudioTrack } from "@/lib/studio/types";
 import { paintStudioWaveform } from "@/lib/studio/paint";
-import { resolveClipWaveformPeaks } from "@/lib/studio/peaks";
+import { resolveClipWaveformPeaks, studioPeaksFromBufferRegionCooperative } from "@/lib/studio/peaks";
 import {
   clipHeardSeconds,
   clipRect,
@@ -125,24 +125,41 @@ function ClipBlock({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    let cancelled = false;
     const width = Math.max(1, rect.widthPx);
     const height = 64;
     const allowDetail = Boolean(clip.buffer);
     const budget = waveformDrawBudget(width, clip.peaks.length || 1, window.devicePixelRatio || 1, allowDetail);
-    const peaks = resolveClipWaveformPeaks({
+    const paint = (peaks: number[]) => {
+      if (cancelled) return;
+      canvas.width = Math.floor(width * budget.pixelRatio);
+      canvas.height = Math.floor(height * budget.pixelRatio);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.setTransform(budget.pixelRatio, 0, 0, budget.pixelRatio, 0, 0);
+      paintStudioWaveform(ctx, peaks, width, height, track.color);
+    };
+    const overview = resolveClipWaveformPeaks({
       overview: clip.peaks,
-      buffer: clip.buffer,
+      buffer: null,
       trimStartSec: clip.trimStartSec,
       trimEndSec: clip.trimEndSec,
       sourceDurationSec: clip.sourceDurationSec,
       drawBars: budget.bars,
     });
-    canvas.width = Math.floor(width * budget.pixelRatio);
-    canvas.height = Math.floor(height * budget.pixelRatio);
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.setTransform(budget.pixelRatio, 0, 0, budget.pixelRatio, 0, 0);
-    paintStudioWaveform(ctx, peaks, width, height, track.color);
+    paint(overview);
+    if (!allowDetail || budget.bars <= overview.length) return;
+    const timer = window.setTimeout(() => {
+      const source = clip.buffer;
+      if (!source) return;
+      void studioPeaksFromBufferRegionCooperative(source, clip.trimStartSec, clip.trimEndSec, budget.bars).then((peaks) => {
+        paint(peaks);
+      });
+    }, 48);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
   }, [
     clip.buffer,
     clip.peaks,

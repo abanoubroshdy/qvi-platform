@@ -23,9 +23,10 @@ export type StudioEngineStatus = "idle" | "playing" | "paused";
 
 /**
  * Live playback is Web Audio. When a SoundTouch worklet is registered, tempo
- * and pitch run there. Otherwise {@link StudioTempoPitchPreview} bakes them
- * into a buffer first. Export always uses the offline bake.
- * Audibility follows `isTrackAudible`. Start only after a user gesture.
+ * and pitch are AudioParams on the voices already playing. Otherwise
+ * {@link StudioTempoPitchPreview} bakes them into a buffer first. Export always
+ * uses the offline bake. Audibility follows `isTrackAudible`. Start only after
+ * a user gesture.
  */
 export interface StudioPlaybackEngine {
   resumeFromUserGesture(): Promise<void>;
@@ -33,7 +34,7 @@ export interface StudioPlaybackEngine {
   pause(): void;
   stop(): void;
   seek(playheadSec: number): void;
-  /** Rebuild the graph after an edit. Must not start playback by itself. */
+  /** Apply an edit. Mix, pitch, and tempo stay on the current voices. Must not start playback by itself. */
   sync(project: StudioProject): void;
   dispose(): void;
 }
