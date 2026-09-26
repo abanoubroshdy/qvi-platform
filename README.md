@@ -29,9 +29,9 @@ Optional: copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_SITE_URL` bef
 
 ## QV1 Evaluation download
 
-`/qv1` is the public page for **QV1 Evaluation** (Windows). `/qv1/models` lists third-party model sources and licenses. The installer download is **temporarily disabled** (`QV1_DOWNLOAD_ENABLED` in `lib/qv1-download.ts`) while a problem is fixed. `/qv1/download` redirects to `/qv1?download=paused` and does not issue a file URL.
+`/qv1` is the public page for **QV1 Evaluation** (Windows). `/qv1/models` lists third-party model sources and licenses. A signed-in request to `/qv1/download` records a row in `qv1_downloads` and redirects with HTTP 307 to a short-lived (1 hour) presigned GET for the Setup exe in Cloudflare R2. The account page lists that history. Set `QV1_DOWNLOAD_ENABLED` in `lib/qv1-download.ts` to false to pause the file URL without taking the page down.
 
-When `QV1_DOWNLOAD_ENABLED` is true again, a signed-in request records a row in `qv1_downloads` and redirects with HTTP 307 to a short-lived (1 hour) presigned GET for the installer in Cloudflare R2. The account page still lists any earlier downloads.
+The Setup is a single Windows download of about 170 MB (`QV1-Setup-Evaluation.exe`, 177,766,232 bytes). During install it detects the GPU and fetches components from `https://getqvi.com/downloads/evaluation/` (about 675 MB for the core, more for NVIDIA CUDA). That path is a public temporary redirect to `https://dl.getqvi.com/qv1/evaluation/`. It is not behind sign-in. Do not add an auth middleware matcher that includes `/downloads`.
 
 Set these in **Vercel → Project Settings → Environment Variables** (Production and Preview). They are server-only. Do not prefix them with `NEXT_PUBLIC_` and do not commit real values.
 
@@ -39,7 +39,7 @@ Set these in **Vercel → Project Settings → Environment Variables** (Producti
 - `R2_ACCESS_KEY_ID`
 - `R2_SECRET_ACCESS_KEY`
 - `R2_BUCKET` — `qv1-downloads`
-- `QV1_OBJECT_KEY` — `qv1/1.2.0/QV1-Setup-Evaluation.zip`
+- `QV1_OBJECT_KEY` — optional. Defaults to `qv1/evaluation/QV1-Setup-Evaluation.exe`. If an older key is still set, replace it with this one or delete the variable.
 
 `QV1_DOWNLOAD_URL` is retired. Do not set it.
 
@@ -78,9 +78,10 @@ V1 scope is defined in `lib/studio/definition.ts`. The in-memory session lives o
 
 - `/` product home, with links to QVI Studio, QV1, Neyora, and free tools
 - `/studio` the QVI Studio session
-- `/qv1` QV1 Evaluation (Windows). Installer download is paused
+- `/qv1` QV1 Evaluation (Windows). Signed-in Setup download, about 170 MB
 - `/qv1/models` third-party model sources and licenses
-- `/qv1/download` redirects to `/qv1?download=paused` until downloads are re-enabled
+- `/qv1/download` records the download and redirects to a 1-hour presigned R2 URL
+- `/downloads/evaluation/:path*` public temporary redirect to `https://dl.getqvi.com/qv1/evaluation/:path*`
 - `/products/qv1` QV1 product page
 - `/products/neyora` Neyora lab (`/lab` permanently redirects here)
 - `/tools/image-compressor` Image Compressor

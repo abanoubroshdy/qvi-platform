@@ -2,8 +2,10 @@
  * Public facts for the QV1 Evaluation installer.
  * Pages read this object. Do not hard-code version, hash, or OS lines in the UI.
  *
- * The zip lives in a private R2 bucket. /qv1/download issues a short-lived
- * presigned URL for a signed-in user. It does not use a public download domain.
+ * The Setup exe lives in a private R2 bucket. /qv1/download issues a short-lived
+ * presigned URL for a signed-in user. The installer then fetches its components
+ * from the public /downloads/evaluation redirect. Leave sha256 empty until the
+ * Setup exe hash is published; the page hides an empty hash.
  */
 export type Qv1DownloadNotice = "ready" | "soon" | "limited" | "unavailable" | "paused";
 
@@ -21,9 +23,9 @@ export type Qv1Release = {
 
 export const qv1Release: Qv1Release = {
   version: "1.2.0",
-  fileName: "QV1-Setup-Evaluation.zip",
-  fileSizeBytes: 4_313_243_347,
-  sha256: "25E20EEA0E5303DAC9F9749086B45ECFC6CA7310E1E9360E7B273AB07B649E51",
+  fileName: "QV1-Setup-Evaluation.exe",
+  fileSizeBytes: 177_766_232,
+  sha256: "",
   releaseNotesUrl: "/qv1#release-notes",
   minOs: "Windows 10/11 x64",
   codeSigned: false,
@@ -38,7 +40,7 @@ export function qv1HasSha256(release: Pick<Qv1Release, "sha256">): boolean {
   return release.sha256.trim().length > 0;
 }
 
-/** "v1.2.0 · 4.02 GB · Windows 10/11 x64", skipping a missing size. */
+/** "v1.2.0 · 169.5 MB · Windows 10/11 x64", skipping a missing size. */
 export function qv1DownloadSummary(
   release: Pick<Qv1Release, "version" | "fileSizeBytes" | "minOs">,
   formatSize: (bytes: number) => string,

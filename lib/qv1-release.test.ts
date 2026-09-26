@@ -4,8 +4,10 @@ import { describe, expect, it } from "vitest";
 import sitemap from "@/app/sitemap";
 import { ar } from "@/lib/i18n/ar";
 import { en } from "@/lib/i18n/en";
+import nextConfig from "../next.config.mjs";
 import { qv1AppCopyright, qv1Dependencies, qv1ModelSources } from "@/lib/qv1-models";
 import { QV1_DOWNLOAD_ENABLED } from "@/lib/qv1-download";
+import { formatBytes } from "@/lib/format";
 import { qv1DownloadSummary, qv1HasFileSize, qv1HasSha256, qv1Release } from "@/lib/qv1-release";
 import { siteConfig } from "@/lib/site";
 
@@ -25,13 +27,14 @@ function readTree(dir: string): string {
 }
 
 describe("QV1 release record", () => {
-  it("publishes the Evaluation zip name, size, and hash", () => {
+  it("publishes the Evaluation Setup name and size", () => {
     expect(qv1Release.version).toBe("1.2.0");
-    expect(qv1Release.fileName).toBe("QV1-Setup-Evaluation.zip");
-    expect(qv1Release.fileSizeBytes).toBe(4_313_243_347);
-    expect(qv1Release.sha256).toBe("25E20EEA0E5303DAC9F9749086B45ECFC6CA7310E1E9360E7B273AB07B649E51");
+    expect(qv1Release.fileName).toBe("QV1-Setup-Evaluation.exe");
+    expect(qv1Release.fileSizeBytes).toBe(177_766_232);
+    expect(qv1Release.sha256).toBe("");
     expect(qv1HasFileSize(qv1Release)).toBe(true);
-    expect(qv1HasSha256(qv1Release)).toBe(true);
+    expect(qv1HasSha256(qv1Release)).toBe(false);
+    expect(qv1DownloadSummary(qv1Release, formatBytes)).toBe("v1.2.0 · 169.5 MB · Windows 10/11 x64");
   });
 
   it("hides an empty size and an empty hash", () => {
@@ -83,13 +86,45 @@ describe("QV1 public copy", () => {
     expect(qv1.length).toBeGreaterThan(0);
   });
 
-  it("keeps the QV1 installer download paused", () => {
-    expect(QV1_DOWNLOAD_ENABLED).toBe(false);
-    expect(en.qv1Page.paused).toMatch(/temporarily disabled/i);
-    expect(ar.qv1Page.paused).toMatch(/متوقف/);
+  it("offers one signed-in Setup download and no ad units", () => {
+    expect(QV1_DOWNLOAD_ENABLED).toBe(true);
+    expect(en.qv1Page.download).toBe("Download Setup");
+    expect(ar.qv1Page.download).toBe("حمّل Setup");
+    expect(en.qv1Page.setupNote).toMatch(/GPU/i);
+    expect(en.qv1Page.setupNote).toMatch(/675/);
+    expect(en.qv1Page.setupNote).toMatch(/CUDA/);
+    expect(en.qv1Page.setupNote).toMatch(/Windows/);
+    expect(ar.qv1Page.setupNote).toMatch(/675/);
+    expect(ar.qv1Page.setupNote).toMatch(/CUDA/);
+    expect(ar.qv1Page.setupNote).toMatch(/ويندوز/);
     const view = fs.readFileSync("components/qv1/Qv1EvaluationView.tsx", "utf8");
-    expect(view).toMatch(/QV1_DOWNLOAD_ENABLED/);
-    expect(view).toMatch(/disabled/);
+    expect(view).toMatch(/href="\/qv1\/download"/);
+    expect(view).toMatch(/page\.setupNote/);
+    expect(view).not.toMatch(/extractNote|ToolAd|AdSenseScript/);
+    expect(surfaces).not.toMatch(/QV1-Setup-Evaluation\.zip|4\.3 GB|\.bin slices|three \.bin/);
+  });
+
+  it("redirects installer payloads in public without an auth matcher", async () => {
+    const redirects = await nextConfig.redirects();
+    expect(redirects).toEqual(
+      expect.arrayContaining([
+        {
+          source: "/downloads/evaluation/:path*",
+          destination: "https://dl.getqvi.com/qv1/evaluation/:path*",
+          permanent: false,
+        },
+      ]),
+    );
+    for (const file of [
+      "middleware.ts",
+      "middleware.js",
+      "src/middleware.ts",
+      "src/middleware.js",
+      "proxy.ts",
+      "src/proxy.ts",
+    ]) {
+      expect(fs.existsSync(file), file).toBe(false);
+    }
   });
 
   it("lists /qv1 and /qv1/models on the sitemap", () => {
