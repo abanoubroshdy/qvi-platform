@@ -2,7 +2,7 @@
 
 import { useRef, useState, type DragEvent, type ReactNode } from "react";
 import { Download, Loader2, UploadCloud } from "lucide-react";
-import { AdSenseScript, ToolAd } from "@/components/ToolAd";
+import { ToolAd } from "@/components/ToolAd";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { cn } from "@/lib/utils";
@@ -98,7 +98,6 @@ export function ToolLayout({
 
   return (
     <div className="space-y-4">
-      <AdSenseScript />
       <ToolAd position="top" />
 
       {hideDropzone ? null : (

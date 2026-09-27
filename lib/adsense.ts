@@ -79,13 +79,13 @@ export function adsenseVerificationClient(
 }
 
 /**
- * Manual units only. The publisher id stays on each `<ins>` (`data-ad-client`).
- * Putting `?client=` on this URL is the Auto ads head tag, which also requests
- * a page-level slot. Do not add `enable_page_level_ads`.
+ * Site-connection loader. `?client=` is the snippet AdSense asks for in `<head>`.
+ * Do not append `enable_page_level_ads`; where ads show is set in AdSense.
+ * Manual 300×250 units reuse this same script and only call `adsbygoogle.push`.
  */
 export function adsenseScriptSrc(client: string): string | null {
   if (!CLIENT_RE.test(client)) return null;
-  return "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js";
+  return `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${client}`;
 }
 
 function normalizeStatus(value: string | null | undefined): string {

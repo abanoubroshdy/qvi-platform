@@ -1,14 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Script from "next/script";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import {
   ADSENSE_FILL_TIMEOUT_MS,
   ADSENSE_UNAVAILABLE_EVENT,
   ADSENSE_UNIT_HEIGHT,
   ADSENSE_UNIT_WIDTH,
-  adsenseScriptSrc,
   hasOnlyCollapsedFrames,
   isBrokenAdImage,
   judgeAdFill,
@@ -21,27 +19,6 @@ declare global {
   interface Window {
     adsbygoogle?: Record<string, unknown>[];
   }
-}
-
-/** One loader for manual units. Next.js dedupes this id if a page renders it once. */
-export function AdSenseScript() {
-  const { client, topSlot, bottomSlot } = resolveAdSensePlacement();
-  if (!client || (!topSlot && !bottomSlot)) return null;
-  const src = adsenseScriptSrc(client);
-  if (!src) return null;
-
-  return (
-    <Script
-      id="adsbygoogle-init"
-      async
-      src={src}
-      crossOrigin="anonymous"
-      strategy="afterInteractive"
-      onError={() => {
-        window.dispatchEvent(new Event(ADSENSE_UNAVAILABLE_EVENT));
-      }}
-    />
-  );
 }
 
 type ToolAdProps = {
@@ -111,6 +88,17 @@ export function ToolAd({ position, className }: ToolAdProps) {
     };
     window.addEventListener(ADSENSE_UNAVAILABLE_EVENT, onUnavailable);
 
+    const loader = document.querySelector('script[src*="pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"]');
+    const onScriptError = () => {
+      pushFailed = true;
+      evaluate();
+    };
+    if (!loader) {
+      pushFailed = true;
+    } else {
+      loader.addEventListener("error", onScriptError);
+    }
+
     if (ins.dataset.qviAdPushed !== "1" && !ins.getAttribute("data-adsbygoogle-status")) {
       ins.dataset.qviAdPushed = "1";
       try {
@@ -146,6 +134,7 @@ export function ToolAd({ position, className }: ToolAdProps) {
       window.clearTimeout(timer);
       ins.removeEventListener("error", evaluate, true);
       window.removeEventListener(ADSENSE_UNAVAILABLE_EVENT, onUnavailable);
+      loader?.removeEventListener("error", onScriptError);
     };
   }, [client, slot]);
 

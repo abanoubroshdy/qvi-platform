@@ -1,7 +1,7 @@
 "use client";
 
 import { LocaleLink as Link } from "@/components/LocaleLink";
-import { AdSenseScript, ToolAd } from "@/components/ToolAd";
+import { ToolAd } from "@/components/ToolAd";
 import { ToolArt } from "@/components/ToolArt";
 import { ToolCard } from "@/components/ToolCard";
 import { useI18n } from "@/components/i18n/I18nProvider";
@@ -21,7 +21,6 @@ export function UpcomingToolView({ slug }: { slug: string }) {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:py-12">
-      <AdSenseScript />
       <ToolAd position="top" className="mb-6" />
       <div className="rounded-xl border border-border bg-card p-6 text-center shadow-sm sm:p-10">
         <div

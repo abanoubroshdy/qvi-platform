@@ -1732,15 +1732,15 @@ export const en = {
   },
   privacy: {
     title: "Privacy Policy - QVI",
-    updated: "25 September 2026",
+    updated: "27 September 2026",
     effectiveDateLabel: "Effective date",
-    effectiveDate: "25 September 2026",
+    effectiveDate: "27 September 2026",
     privacyEmail: "privacy@getqvi.com",
     comingSoon: "Content will be updated soon.",
     introTitle: "1. About QVI",
     intro: [
       "QVI (Quality Virtual Instruments) builds intelligent audio software — including QV1 and Neyora — and free browser tools that process files on your device. When you create an account you can save your waitlist place and manage it from any device.",
-      "This notice describes the data the current website collects and the parties that process it: accounts, profiles, and waitlists in the application; the contact form; hosting; and Google AdSense, which is enrolled on getqvi.com and may show display ads on free tools pages.",
+      "This notice describes the data the current website collects and the parties that process it: accounts, profiles, and waitlists in the application; the contact form; hosting; and Google AdSense. The AdSense script loads on every page. Where display ads appear is controlled in AdSense.",
     ],
     collectTitle: "2. Data we collect",
     collectLead:
@@ -1774,7 +1774,7 @@ export const en = {
       "Reply if you contact us.",
       "If you ticked the marketing box: send updates and offers about QVI services by email.",
       "Operate and protect the service (session handling and basic abuse prevention needed for the site to work).",
-      "Show non-intrusive display ads on free tools pages through Google AdSense, to help cover hosting. Those ads are not placed on product-page hero sections or purchase calls to action.",
+      "Load the Google AdSense script on every page, to help cover hosting. Where display ads appear is controlled in AdSense. This site also requests a display unit on free tools pages. Those units are not placed on product-page hero sections or purchase calls to action.",
     ],
     legalTitle: "4. Legal bases (Egyptian Law No. 151 of 2020)",
     legalLead:
@@ -1791,10 +1791,10 @@ export const en = {
       "Supabase: email/password authentication and the PostgreSQL tables public.profiles and public.waitlist_signups, plus auth user metadata. Row Level Security lets an authenticated user read and update only their own profile. Waitlist emails cannot be read with the public anon key.",
       "Hosting platform: serves the site and supplies the country-code header used by /api/geo. Like any web host, it may retain technical request logs (such as IP and user agent) under its own operations. Those logs are not written into our application tables.",
       "unpkg.com: when you use in-browser audio conversion or trimming, the page downloads the FFmpeg engine (JavaScript/WASM) from unpkg. Your media files are not uploaded to unpkg or to our servers.",
-      "Google AdSense (publisher ID ca-pub-9019451998006609): the site is enrolled with Google for display advertising. Ads may appear on free tools pages (paths under /tools) and are not placed on product hero sections or purchase calls to action. We do not send your account profile — name, email, country, or similar account fields — to Google. When an ad loads, your browser contacts Google, which may receive technical data such as IP address, browser type, the page URL, and cookie or advertising identifiers. Google uses that data to deliver ads, measure them, and personalize them where permitted.",
+      "Google AdSense (publisher ID ca-pub-9019451998006609): the site loads Google’s ads script on every page. Where display ads appear is controlled in Google AdSense. This site also requests a fixed display unit on free tools pages. Those units are not placed on product hero sections or purchase calls to action. We do not send your account profile — name, email, country, or similar account fields — to Google. When the script or an ad loads, your browser contacts Google, which may receive technical data such as IP address, browser type, the page URL, and cookie or advertising identifiers. Google uses that data to deliver ads, measure them, and personalize them where permitted.",
     ],
     shareNot:
-      "We do not sell personal data. We do not integrate product-analytics or crash-reporting services such as Google Analytics, Mixpanel, Sentry, or OneSignal. Advertising on this site is Google AdSense display ads on free tools pages, as described above. We do not use the contents of files you process in the browser to build advertising profiles.",
+      "We do not sell personal data. We do not integrate product-analytics or crash-reporting services such as Google Analytics, Mixpanel, Sentry, or OneSignal. Advertising on this site is Google AdSense. The ads script loads on every page, and where ads are shown is controlled in AdSense, as described above. We do not use the contents of files you process in the browser to build advertising profiles.",
     retentionTitle: "6. How long we keep data",
     retention: [
       "Account, profile, and authentication records: for as long as the account exists. The site does not currently include an in-app delete-account button; you may request deletion by emailing the privacy address below.",
@@ -1821,11 +1821,11 @@ export const en = {
     ],
     cookiesTitle: "9. Cookies",
     cookiesLead:
-      "We use cookies and similar storage as described below. Supabase Auth sets essential session cookies after you sign in. When a Google AdSense ad is shown on a free tools page, Google may set or read third-party advertising cookies and similar identifiers.",
+      "We use cookies and similar storage as described below. Supabase Auth sets essential session cookies after you sign in. When the Google AdSense script loads, or an ad is shown, Google may set or read third-party advertising cookies and similar identifiers.",
     cookies: [
       "Essential session cookies from Supabase Auth after sign-in, so the site can recognize you on later visits.",
       "localStorage keys on this device: qvi-locale, qvi-theme, qvi-recent-colors, qvi-neyora-last-prompt, qvi-tempo-pitch-preset, and qvi-waitlist-* as described above. These stay in your browser and are not sent to our database except when you submit a waitlist email to the server.",
-      "Google AdSense cookies and similar identifiers on free tools pages, used for ad delivery, measurement, and personalization where permitted. Google sets these in your browser. They are not written into our profiles or waitlist tables.",
+      "Google AdSense cookies and similar identifiers, used for ad delivery, measurement, and personalization where permitted. The ads script loads on every page. Google sets these in your browser. They are not written into our profiles or waitlist tables.",
     ],
     googleLinksLead:
       "These Google pages explain advertising cookies and how to limit personalized ads:",
