@@ -74,10 +74,15 @@ describe("resolveAdSensePlacement", () => {
 });
 
 describe("adsense script", () => {
-  it("loads the manual display loader and does not enable page-level ads", () => {
+  it("loads the site-connection script with the publisher id and no page-level flag", () => {
     const src = adsenseScriptSrc(DEFAULT_ADSENSE_CLIENT);
-    expect(src).toBe("https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js");
-    expect(src).not.toContain("client=");
+    expect(src).toBe(
+      "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9019451998006609",
+    );
+    expect(adsenseScriptSrc("ca-pub-123")).toBe(
+      "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-123",
+    );
+    expect(adsenseScriptSrc("not-a-client")).toBeNull();
     expect(src).not.toContain("enable_page_level_ads");
   });
 
@@ -158,9 +163,19 @@ describe("unfilled creative signals", () => {
 describe("tool ad markup", () => {
   it("covers the slot until fill and collapses unfilled units without enabling auto ads", () => {
     const component = readFileSync(new URL("../components/ToolAd.tsx", import.meta.url), "utf8");
+    const layout = readFileSync(new URL("../app/layout.tsx", import.meta.url), "utf8");
+    const head = readFileSync(new URL("../components/AdSenseHeadScript.tsx", import.meta.url), "utf8");
     const css = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
+    const toolLayout = readFileSync(new URL("../components/ToolLayout.tsx", import.meta.url), "utf8");
+
+    expect(layout.match(/<AdSenseHeadScript \/>/g)).toHaveLength(1);
+    expect(head).toContain("adsenseScriptSrc(adsenseVerificationClient())");
+    expect(head).not.toContain("enable_page_level_ads");
+    expect(component).not.toContain("next/script");
+    expect(toolLayout).not.toContain("AdSenseScript");
 
     expect(component).toContain("judgeAdFill");
+    expect(component).toContain("adsbygoogle.js");
     expect(component).toContain("qvi-ad-mask");
     expect(component).toContain("bg-background");
     expect(component).toContain("height: 0, minHeight: 0");

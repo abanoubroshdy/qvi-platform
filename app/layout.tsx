@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { AppProviders } from "@/components/AppProviders";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
+import { AdSenseHeadScript } from "@/components/AdSenseHeadScript";
 import { adsenseVerificationClient } from "@/lib/adsense";
 import { localeFromPath } from "@/lib/i18n/locale-path";
 import { pageMeta } from "@/lib/page-meta";
@@ -109,6 +110,9 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${inter.variable} ${ibmPlexSansArabic.variable}`}
     >
+      <head>
+        <AdSenseHeadScript />
+      </head>
       <body className="min-h-screen font-sans">
         {/* eslint-disable-next-line @next/next/no-css-tags */}
         <link rel="stylesheet" href="/brand.css?v=13" />
