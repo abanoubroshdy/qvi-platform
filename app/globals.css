@@ -459,6 +459,15 @@ body:has(.studio-console) {
   font-size: 0.58rem !important;
 }
 
+.studio-track-head-slider .relative.h-1\.5 {
+  height: 0.2rem;
+}
+
+.studio-track-head-slider .h-4.w-4 {
+  height: 0.65rem;
+  width: 0.65rem;
+}
+
 .studio-track-heads {
   width: 9.5rem;
 }
