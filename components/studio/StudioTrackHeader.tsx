@@ -55,8 +55,9 @@ export function StudioTrackHeader({
 
   return (
     <div
-      className={cn("studio-track-head border-b border-border", selected && "is-selected")}
+      className={cn("studio-track-head", selected && "is-selected")}
       data-armed={armed ? "true" : "false"}
+      data-muted={track.muted ? "true" : "false"}
       data-compact={compact ? "true" : "false"}
     >
       <StudioLevelMeter id={track.id} />

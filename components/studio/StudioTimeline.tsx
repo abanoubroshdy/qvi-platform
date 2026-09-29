@@ -105,6 +105,7 @@ export function StudioTimeline({ copy }: { copy: Messages["studio"] }) {
                 bpm={bpm}
                 beatPx={beatPx}
                 barPx={barPx}
+                selected={studio.selectedTrack?.id === track.id}
                 onSelectClip={(clipId, mode) => studio.selectClip(track.id, clipId, mode)}
                 onTapClip={() => {
                   if (studio.viewport === "mobile") studio.setInspectorOpen(true);
@@ -163,7 +164,7 @@ function EmptyLane({
   return (
     <button
       type="button"
-      className="studio-lane studio-lane-placeholder relative w-full border-b border-border text-start"
+      className="studio-lane studio-lane-placeholder relative w-full text-start"
       data-grid={beatPx >= 8 ? "beats" : "bars"}
       style={{ ["--beat-px" as string]: `${beatPx}px`, ["--bar-px" as string]: `${barPx}px` }}
       aria-label={label}
@@ -210,7 +211,7 @@ function Ruler({
 
   return (
     <div
-      className="studio-ruler relative cursor-ew-resize border-b border-border text-[10px] text-[hsl(var(--studio-sand))]"
+      className="studio-ruler relative cursor-ew-resize text-[10px] text-[hsl(var(--studio-sand))]"
       data-grid={beatPx >= 8 ? "beats" : "bars"}
       style={{ ["--beat-px" as string]: `${beatPx}px`, ["--bar-px" as string]: `${barPx}px` }}
       role="slider"
