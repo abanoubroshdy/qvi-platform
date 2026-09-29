@@ -39,7 +39,7 @@ describe("studio timeline geometry", () => {
 
   it("locks arrange ruler and lane heights for the DAW skeleton", () => {
     expect(STUDIO_RULER_HEIGHT_PX).toBe(28);
-    expect(STUDIO_LANE_HEIGHT_PX).toBe(64);
+    expect(STUDIO_LANE_HEIGHT_PX).toBe(96);
     expect(STUDIO_EMPTY_PLACEHOLDER_LANES).toBe(2);
   });
 

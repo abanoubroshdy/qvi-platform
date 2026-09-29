@@ -46,7 +46,7 @@ export function StudioTimeline({ copy }: { copy: Messages["studio"] }) {
   return (
     <section aria-label={copy.timeline} className="studio-arrange flex min-h-0 flex-1 flex-col" dir="ltr">
       <div className="flex min-h-0 flex-1 overflow-y-auto">
-        <div className="studio-track-heads sticky left-0 z-20 w-[7.75rem] shrink-0 border-e border-border sm:w-44">
+        <div className="studio-track-heads sticky left-0 z-20 shrink-0 border-e border-border">
           <div className="studio-track-heads-corner">{copy.tracks}</div>
           {tracks.map((track) => (
             <StudioTrackHeader
