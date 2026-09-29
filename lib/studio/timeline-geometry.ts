@@ -11,6 +11,23 @@ import {
 export const STUDIO_MIN_PIXELS_PER_SECOND = 12;
 export const STUDIO_MAX_PIXELS_PER_SECOND = 320;
 export const STUDIO_BEATS_PER_BAR = 4;
+/** Ruler row height in the arrange (matches the track-head corner spacer). */
+export const STUDIO_RULER_HEIGHT_PX = 28;
+/** Shared height for track headers and clip lanes (fits name, M/S/R, vol, pan). */
+export const STUDIO_LANE_HEIGHT_PX = 96;
+/** Empty-project placeholder rows so the arrange still reads as a DAW. */
+export const STUDIO_EMPTY_PLACEHOLDER_LANES = 2;
+/** Always keep one Add-track row under real tracks. */
+export const STUDIO_ADD_TRACK_ROWS = 1;
+/**
+ * Track-head column widths (px) matching `.studio-track-heads` breakpoints:
+ * default / sm (640) / lg (1024).
+ */
+export const STUDIO_TRACK_HEAD_WIDTH_PX = {
+  mobile: 152,
+  tablet: 216,
+  desktop: 240,
+} as const;
 const MIN_TRIM_SEC = 0.05;
 /** Shortest selectable time range (same floor as trim). */
 export const STUDIO_MIN_TIME_RANGE_SEC = MIN_TRIM_SEC;

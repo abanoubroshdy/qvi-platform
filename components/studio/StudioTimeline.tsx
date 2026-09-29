@@ -12,6 +12,8 @@ import {
   timeAtPixel,
   timelineWidthPx,
   timeRangeRect,
+  STUDIO_ADD_TRACK_ROWS,
+  STUDIO_EMPTY_PLACEHOLDER_LANES,
   type StudioTimeRange,
 } from "@/lib/studio/timeline-geometry";
 import type { Messages } from "@/lib/i18n";
@@ -30,6 +32,10 @@ export function StudioTimeline({ copy }: { copy: Messages["studio"] }) {
   const barPx = secondsPerBar(bpm) * studio.pixelsPerSecond;
   const marks = musicalBarMarks(studio.duration, studio.pixelsPerSecond, bpm);
   const [draftRange, setDraftRange] = useState<StudioTimeRange | null>(null);
+  const tracks = studio.project.tracks;
+  const empty = tracks.length === 0;
+  // Empty project: two skeleton rows. With tracks: keep one Add-track row under them.
+  const placeholders = empty ? STUDIO_EMPTY_PLACEHOLDER_LANES : STUDIO_ADD_TRACK_ROWS;
   const selectedOnTrack = (trackId: string) => {
     const ids = new Set<string>();
     for (const item of studio.selection) {
@@ -40,93 +46,132 @@ export function StudioTimeline({ copy }: { copy: Messages["studio"] }) {
   const visibleRange = draftRange ?? studio.timeRange;
 
   return (
-    <section aria-label={copy.timeline} className="flex min-h-0 flex-1 flex-col" dir="ltr">
-      {studio.project.tracks.length === 0 ? (
-        <button
-          type="button"
-          className="studio-drop m-3 flex min-h-48 flex-1 flex-col items-center justify-center rounded-xl border border-dashed px-6 py-12 text-center"
-          onClick={() => studio.browse()}
-        >
-          <AudioLines className="mb-3 h-8 w-8 text-[hsl(var(--studio-teal))]" aria-hidden />
-          <span className="text-base font-semibold tracking-tight">{copy.emptyTitle}</span>
-          <span className="mt-2 max-w-md text-sm text-muted-foreground">{copy.emptyBody}</span>
-          <span className="mt-4 text-[10px] font-semibold uppercase tracking-[0.16em] text-[hsl(var(--studio-sand))]">{copy.dropHint}</span>
-          <span className="mt-2 max-w-md text-xs text-muted-foreground">{copy.gridHint}</span>
-        </button>
-      ) : (
-        <div className="flex min-h-0 flex-1 overflow-y-auto">
-          <div className="studio-track-heads sticky left-0 z-20 w-[7.75rem] shrink-0 border-e border-border sm:w-44">
-            <div className="h-7 border-b border-border" />
-            {studio.project.tracks.map((track) => (
-              <StudioTrackHeader
+    <section aria-label={copy.timeline} className="studio-arrange flex min-h-0 flex-1 flex-col" dir="ltr">
+      <div className="flex min-h-0 flex-1 overflow-y-auto">
+        <div className="studio-track-heads sticky left-0 z-20 shrink-0 border-e border-border">
+          <div className="studio-track-heads-corner">{copy.tracks}</div>
+          {tracks.map((track) => (
+            <StudioTrackHeader
+              key={track.id}
+              track={track}
+              selected={studio.selectedTrack?.id === track.id}
+              armed={studio.armedTrackId === track.id}
+              copy={copy}
+              onSelect={() => studio.selectTrack(track.id, undefined, true)}
+              onMute={() => studio.setMuted(track.id, !track.muted)}
+              onSolo={() => studio.setSolo(track.id, !track.solo)}
+            />
+          ))}
+          {Array.from({ length: placeholders }, (_, index) => (
+            <button
+              key={`empty-head-${index}`}
+              type="button"
+              className="studio-track-head-placeholder w-full text-start"
+              onClick={() => (index === 0 ? studio.addEmptyTrack() : studio.browse())}
+            >
+              {index === 0 ? copy.addTrack : copy.emptyLaneHint}
+            </button>
+          ))}
+        </div>
+        <div className="studio-lanes min-w-0 flex-1 overflow-x-auto">
+          <div className="relative min-h-full" style={{ width: Math.max(width, 1) }}>
+            <Ruler
+              marks={marks}
+              beatPx={beatPx}
+              barPx={barPx}
+              pixelsPerSecond={studio.pixelsPerSecond}
+              duration={timelineSec}
+              bpm={bpm}
+              snapMode={studio.snapMode}
+              label={copy.timeRange}
+              onSeek={(seconds) => {
+                studio.clearTimeRange();
+                studio.seek(seconds);
+              }}
+              onRangeDraft={setDraftRange}
+              onRangeCommit={(range) => {
+                setDraftRange(null);
+                studio.setTimeRange(range);
+              }}
+              onRangeCancel={() => setDraftRange(null)}
+            />
+            {tracks.map((track) => (
+              <StudioTrackLane
                 key={track.id}
                 track={track}
-                selected={studio.selectedTrack?.id === track.id}
-                armed={studio.armedTrackId === track.id}
-                copy={copy}
-                onSelect={() => studio.selectTrack(track.id, undefined, true)}
-                onMute={() => studio.setMuted(track.id, !track.muted)}
-                onSolo={() => studio.setSolo(track.id, !track.solo)}
-              />
-            ))}
-          </div>
-          <div className="studio-lanes min-w-0 flex-1 overflow-x-auto">
-            <div className="relative" style={{ width }}>
-              <Ruler
-                marks={marks}
+                pixelsPerSecond={studio.pixelsPerSecond}
+                selectedClipIds={selectedOnTrack(track.id)}
+                primaryClipId={studio.selectedTrack?.id === track.id ? (studio.selectedClip?.id ?? null) : null}
+                selection={studio.selection}
+                snapMode={studio.snapMode}
+                bpm={bpm}
                 beatPx={beatPx}
                 barPx={barPx}
-                pixelsPerSecond={studio.pixelsPerSecond}
-                duration={timelineSec}
-                bpm={bpm}
-                snapMode={studio.snapMode}
-                label={copy.timeRange}
-                onSeek={(seconds) => {
-                  studio.clearTimeRange();
-                  studio.seek(seconds);
+                selected={studio.selectedTrack?.id === track.id}
+                onSelectClip={(clipId, mode) => studio.selectClip(track.id, clipId, mode)}
+                onTapClip={() => {
+                  if (studio.viewport === "mobile") studio.setInspectorOpen(true);
                 }}
-                onRangeDraft={setDraftRange}
-                onRangeCommit={(range) => {
-                  setDraftRange(null);
-                  studio.setTimeRange(range);
-                }}
-                onRangeCancel={() => setDraftRange(null)}
+                onSeek={studio.seek}
+                onMoveGroup={studio.moveClipGroup}
+                onTrim={(clipId, patch) => studio.setTrim(track.id, clipId, patch)}
               />
-              {studio.project.tracks.map((track) => (
-                <StudioTrackLane
-                  key={track.id}
-                  track={track}
-                  pixelsPerSecond={studio.pixelsPerSecond}
-                  selectedClipIds={selectedOnTrack(track.id)}
-                  primaryClipId={studio.selectedTrack?.id === track.id ? (studio.selectedClip?.id ?? null) : null}
-                  selection={studio.selection}
-                  snapMode={studio.snapMode}
-                  bpm={bpm}
-                  beatPx={beatPx}
-                  barPx={barPx}
-                  onSelectClip={(clipId, mode) => studio.selectClip(track.id, clipId, mode)}
-                  onTapClip={() => {
-                    if (studio.viewport === "mobile") studio.setInspectorOpen(true);
-                  }}
-                  onSeek={studio.seek}
-                  onMoveGroup={studio.moveClipGroup}
-                  onTrim={(clipId, patch) => studio.setTrim(track.id, clipId, patch)}
-                />
-              ))}
-              {visibleRange ? (
-                <TimeRangeOverlay
-                  range={visibleRange}
-                  pixelsPerSecond={studio.pixelsPerSecond}
-                  looping={studio.loopEnabled}
-                  label={copy.timeRange}
-                />
-              ) : null}
-              <Playhead pixelsPerSecond={studio.pixelsPerSecond} />
-            </div>
+            ))}
+            {Array.from({ length: placeholders }, (_, index) => (
+              <EmptyLane
+                key={`empty-lane-${index}`}
+                beatPx={beatPx}
+                barPx={barPx}
+                label={copy.emptyLaneHint}
+                onActivate={() => (index === 0 ? studio.addEmptyTrack() : studio.browse())}
+              />
+            ))}
+            {visibleRange ? (
+              <TimeRangeOverlay
+                range={visibleRange}
+                pixelsPerSecond={studio.pixelsPerSecond}
+                looping={studio.loopEnabled}
+                label={copy.timeRange}
+              />
+            ) : null}
+            <Playhead pixelsPerSecond={studio.pixelsPerSecond} />
+            {empty ? (
+              <div className="studio-arrange-drop" data-studio-arrange-empty>
+                <AudioLines className="mb-1 h-7 w-7 text-[hsl(var(--studio-teal))]" aria-hidden />
+                <p className="text-sm font-semibold tracking-tight text-foreground">{copy.emptyTitle}</p>
+                <p className="max-w-md text-xs text-muted-foreground">{copy.emptyBody}</p>
+                <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[hsl(var(--studio-sand))]">
+                  {copy.dropHint}
+                </p>
+              </div>
+            ) : null}
           </div>
         </div>
-      )}
+      </div>
     </section>
+  );
+}
+
+function EmptyLane({
+  beatPx,
+  barPx,
+  label,
+  onActivate,
+}: {
+  beatPx: number;
+  barPx: number;
+  label: string;
+  onActivate: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="studio-lane studio-lane-placeholder relative w-full text-start"
+      data-grid={beatPx >= 8 ? "beats" : "bars"}
+      style={{ ["--beat-px" as string]: `${beatPx}px`, ["--bar-px" as string]: `${barPx}px` }}
+      aria-label={label}
+      onClick={onActivate}
+    />
   );
 }
 
@@ -168,7 +213,7 @@ function Ruler({
 
   return (
     <div
-      className="studio-ruler relative h-7 cursor-ew-resize border-b border-border text-[10px] text-[hsl(var(--studio-sand))]"
+      className="studio-ruler relative cursor-ew-resize text-[10px] text-[hsl(var(--studio-sand))]"
       data-grid={beatPx >= 8 ? "beats" : "bars"}
       style={{ ["--beat-px" as string]: `${beatPx}px`, ["--bar-px" as string]: `${barPx}px` }}
       role="slider"

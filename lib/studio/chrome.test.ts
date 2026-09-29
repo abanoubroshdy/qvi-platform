@@ -4,10 +4,12 @@ import {
   formatSessionBpm,
   formatStudioTimecode,
   isStudioTextTarget,
+  nextSelectedTrackId,
   nudgeSessionBpm,
   readSessionBpm,
   sanitizeSessionBpmDraft,
   sessionDisplayBpm,
+  studioArrangeCommand,
   studioNewProjectButtonPhase,
   studioProjectIsOpen,
   studioTransportCommand,
@@ -34,6 +36,29 @@ describe("studio transport keys", () => {
     expect(isStudioTextTarget({ tagName: "DIV", isContentEditable: true } as unknown as EventTarget)).toBe(true);
     expect(isStudioTextTarget({ tagName: "BUTTON" } as unknown as EventTarget)).toBe(false);
     expect(isStudioTextTarget(null)).toBe(false);
+  });
+});
+
+describe("studio arrange keys", () => {
+  it("maps mute, solo, metronome, and track focus keys", () => {
+    expect(studioArrangeCommand({ key: "m" })).toEqual({ action: "mute-selected" });
+    expect(studioArrangeCommand({ key: "S" })).toEqual({ action: "solo-selected" });
+    expect(studioArrangeCommand({ key: ".", code: "Period" })).toEqual({ action: "toggle-metronome" });
+    expect(studioArrangeCommand({ key: "ArrowUp" })).toEqual({ action: "select-track", delta: -1 });
+    expect(studioArrangeCommand({ key: "ArrowDown" })).toEqual({ action: "select-track", delta: 1 });
+    expect(studioArrangeCommand({ key: "m", metaKey: true })).toBeNull();
+    expect(studioArrangeCommand({ key: "s", repeat: true })).toBeNull();
+  });
+
+  it("steps the selected track without wrapping past the ends", () => {
+    const ids = ["a", "b", "c"];
+    expect(nextSelectedTrackId([], null, 1)).toBeNull();
+    expect(nextSelectedTrackId(ids, null, 1)).toBe("a");
+    expect(nextSelectedTrackId(ids, null, -1)).toBe("c");
+    expect(nextSelectedTrackId(ids, "a", 1)).toBe("b");
+    expect(nextSelectedTrackId(ids, "c", 1)).toBe("c");
+    expect(nextSelectedTrackId(ids, "a", -1)).toBe("a");
+    expect(nextSelectedTrackId(ids, "missing", 1)).toBe("a");
   });
 });
 

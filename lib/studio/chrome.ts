@@ -16,6 +16,12 @@ export type StudioTransportCommand =
   | { action: "stop" }
   | { action: "seek"; deltaSec: number };
 
+export type StudioArrangeCommand =
+  | { action: "mute-selected" }
+  | { action: "solo-selected" }
+  | { action: "select-track"; delta: number }
+  | { action: "toggle-metronome" };
+
 type TransportKeyEvent = {
   key: string;
   code?: string;
@@ -44,6 +50,35 @@ export function studioTransportCommand(event: TransportKeyEvent): StudioTranspor
   if (event.key === "ArrowLeft") return { action: "seek", deltaSec: -step };
   if (event.key === "ArrowRight") return { action: "seek", deltaSec: step };
   return null;
+}
+
+/**
+ * Arrange focus keys. M/S mute or solo the selected track.
+ * Period toggles the metronome. Up/Down move track focus.
+ */
+export function studioArrangeCommand(event: TransportKeyEvent): StudioArrangeCommand | null {
+  if (event.metaKey || event.ctrlKey || event.altKey) return null;
+  if (event.repeat) return null;
+  if (event.key === "." || event.code === "Period") return { action: "toggle-metronome" };
+  if (event.key === "m" || event.key === "M") return { action: "mute-selected" };
+  if (event.key === "s" || event.key === "S") return { action: "solo-selected" };
+  if (event.key === "ArrowUp") return { action: "select-track", delta: -1 };
+  if (event.key === "ArrowDown") return { action: "select-track", delta: 1 };
+  return null;
+}
+
+/** Next focused track id when stepping with ArrowUp/ArrowDown. */
+export function nextSelectedTrackId(
+  trackIds: readonly string[],
+  selectedId: string | null | undefined,
+  delta: number,
+): string | null {
+  if (trackIds.length === 0) return null;
+  const step = delta < 0 ? -1 : 1;
+  const current = selectedId ? trackIds.indexOf(selectedId) : -1;
+  if (current < 0) return trackIds[step < 0 ? trackIds.length - 1 : 0] ?? null;
+  const next = Math.min(trackIds.length - 1, Math.max(0, current + step));
+  return trackIds[next] ?? null;
 }
 
 /** Tenths, so the transport clock moves between whole seconds. */

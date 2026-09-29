@@ -16,6 +16,7 @@ import {
 import { finishedProjectName } from "@/lib/studio/project";
 import { nextPixelsPerSecond, type StudioSnapMode } from "@/lib/studio/timeline-geometry";
 import type { Messages } from "@/lib/i18n";
+import { StudioMasterStrip } from "@/components/studio/StudioMixer";
 import { useStudio } from "@/components/studio/studio-context";
 
 /** Top chrome: project identity, snap, and session actions. */
@@ -50,8 +51,10 @@ export function StudioTransportDock({ copy }: { copy: Messages["studio"] }) {
   const playing = studio.transport.status === "playing";
 
   return (
-    <div className="studio-transport studio-transport-dock grid grid-cols-[1fr_auto_1fr] items-center gap-x-2 gap-y-2 px-2 py-2 sm:px-3">
-      <div aria-hidden="true" />
+    <div className="studio-transport studio-transport-dock grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-2 gap-y-2 px-2 py-2 sm:px-3">
+      <div className="min-w-0 justify-self-start">
+        <StudioMasterStrip copy={copy} />
+      </div>
       <div className="flex min-w-0 flex-wrap items-center justify-center gap-x-2 gap-y-1" role="group" aria-label={copy.play}>
         <SeekControl label={copy.seek} />
         <div className="flex items-center gap-1">
@@ -169,13 +172,20 @@ function ChromeActions({ copy }: { copy: Messages["studio"] }) {
       <Button type="button" variant="outline" size="sm" onClick={() => studio.addEmptyTrack()}>
         {copy.addTrack}
       </Button>
-      <Button type="button" variant="secondary" size="sm" className="lg:hidden" onClick={() => studio.setMixerOpen(true)}>
+      <Button
+        type="button"
+        variant={studio.mixerOpen ? "default" : "secondary"}
+        size="sm"
+        aria-pressed={studio.mixerOpen}
+        onClick={() => studio.setMixerOpen((open) => !open)}
+      >
         {copy.mixer}
       </Button>
       <Button
         type="button"
-        variant="secondary"
+        variant={studio.inspectorOpen ? "default" : "secondary"}
         size="sm"
+        aria-pressed={studio.inspectorOpen}
         onClick={() => studio.setInspectorOpen((open) => !open)}
         disabled={!studio.selectedTrack}
       >

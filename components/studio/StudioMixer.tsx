@@ -8,12 +8,47 @@ import { formatPan } from "@/lib/studio/mix";
 import type { Messages } from "@/lib/i18n";
 import { useStudio } from "@/components/studio/studio-context";
 
+/** Compact master fader for the transport dock — always available without a side panel. */
+export function StudioMasterStrip({ copy }: { copy: Messages["studio"] }) {
+  const studio = useStudio();
+  const { min, max, unity } = qviStudioLimits.gainDb;
+
+  return (
+    <div className="studio-master-strip" aria-label={copy.master}>
+      <span className="studio-master-strip-label">{copy.master}</span>
+      <StudioLevelMeter id="master" axis="x" />
+      <StudioSliderField
+        className="studio-master-strip-slider min-w-0 flex-1"
+        compact
+        showLabel={false}
+        label={copy.master}
+        value={studio.project.masterGainDb}
+        defaultValue={unity}
+        min={min}
+        max={max}
+        step={0.1}
+        digits={1}
+        unit="dB"
+        resetHint={copy.resetDefaultHint}
+        onChange={(value) => studio.setMasterGain(value)}
+      />
+    </div>
+  );
+}
+
+/** Optional full mixer overview (master + every track). Opened from the Mixer toolbar button. */
 export function StudioMixer({ copy }: { copy: Messages["studio"] }) {
   const studio = useStudio();
   const { min, max, unity } = qviStudioLimits.gainDb;
 
   return (
     <div className="flex flex-col gap-3 p-3" aria-label={copy.mixer}>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-sm font-semibold tracking-wide">{copy.mixer}</h2>
+        <Button type="button" size="sm" variant="ghost" onClick={() => studio.setMixerOpen(false)}>
+          {copy.close}
+        </Button>
+      </div>
       <div className="studio-mix-strip">
         <div className="mb-1.5 flex items-center justify-between gap-2 text-xs">
           <span className="font-semibold uppercase tracking-[0.14em] text-[hsl(var(--studio-sand))]">{copy.master}</span>

@@ -14,6 +14,7 @@ import {
   waveformDrawBudget,
   type StudioSnapMode,
 } from "@/lib/studio/timeline-geometry";
+import { cn } from "@/lib/utils";
 import type { StudioClipRef } from "@/components/studio/useStudioSession";
 
 export function StudioTrackLane({
@@ -26,6 +27,7 @@ export function StudioTrackLane({
   bpm,
   beatPx,
   barPx,
+  selected = false,
   onSelectClip,
   onTapClip,
   onSeek,
@@ -41,6 +43,7 @@ export function StudioTrackLane({
   bpm: number;
   beatPx: number;
   barPx: number;
+  selected?: boolean;
   onSelectClip: (clipId: string, mode: "replace" | "add") => void;
   onTapClip: (clipId: string) => void;
   onSeek: (seconds: number) => void;
@@ -54,8 +57,9 @@ export function StudioTrackLane({
 }) {
   return (
     <div
-      className="studio-lane relative h-16 border-b border-border"
+      className={cn("studio-lane relative", selected && "is-selected")}
       data-studio-lane={track.id}
+      data-muted={track.muted ? "true" : "false"}
       style={{ ["--beat-px" as string]: `${beatPx}px`, ["--bar-px" as string]: `${barPx}px` }}
       data-grid={beatPx >= 8 ? "beats" : "bars"}
       onPointerDown={(event) => {
