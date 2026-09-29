@@ -3,7 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { stretchAudioBufferOffThread } from "@/lib/audio-stretch-task";
 import { createLiveStretchNode, enableLiveStretch } from "@/lib/audio-stretch-worklet";
-import { isStudioTextTarget, readSessionBpm, studioTransportCommand } from "@/lib/studio/chrome";
+import {
+  isStudioTextTarget,
+  nextSelectedTrackId,
+  readSessionBpm,
+  studioArrangeCommand,
+  studioTransportCommand,
+} from "@/lib/studio/chrome";
 import { appendTap, tapBpmFromTimestamps } from "@/lib/audio-tempo";
 import {
   STUDIO_METRONOME_LOOKAHEAD_SEC,
@@ -173,6 +179,8 @@ export function useStudioSession() {
   metronomeEnabledRef.current = metronomeEnabled;
   const selectedTrackIdRef = useRef<string | null>(null);
   selectedTrackIdRef.current = selectedTrackId;
+  const selectTrackRef = useRef<(trackId: string, clipId?: string | null, sheet?: boolean) => void>(() => {});
+  const commitRef = useRef<(next: StudioProject, sync?: boolean) => void>(() => {});
   const recordingRef = useRef(false);
   recordingRef.current = recording;
   const [pixelsPerSecond, setPixelsPerSecond] = useState(48);
@@ -198,6 +206,7 @@ export function useStudioSession() {
     setProject(next);
     if (sync) engineRef.current?.sync(next);
   }, []);
+  commitRef.current = commit;
 
   useEffect(() => {
     const context = new AudioContext();
@@ -529,9 +538,35 @@ export function useStudioSession() {
         tapTempoRef.current();
         return;
       }
-      if ((event.key === "m" || event.key === "M") && !event.repeat) {
+      const arrange = studioArrangeCommand(event);
+      if (arrange) {
         event.preventDefault();
-        setMetronomeEnabled((value) => !value);
+        if (arrange.action === "toggle-metronome") {
+          setMetronomeEnabled((value) => !value);
+          return;
+        }
+        const tracks = projectRef.current.tracks;
+        if (arrange.action === "select-track") {
+          const nextId = nextSelectedTrackId(
+            tracks.map((track) => track.id),
+            selectedTrackIdRef.current,
+            arrange.delta,
+          );
+          if (nextId) selectTrackRef.current(nextId, null, false);
+          return;
+        }
+        const selectedId = selectedTrackIdRef.current;
+        const selected = selectedId ? tracks.find((track) => track.id === selectedId) : null;
+        if (!selected) return;
+        if (arrange.action === "mute-selected") {
+          const result = setTrackMuted(projectRef.current, selected.id, !selected.muted);
+          if (result.ok) commitRef.current(result.project);
+          return;
+        }
+        if (arrange.action === "solo-selected") {
+          const result = setTrackSolo(projectRef.current, selected.id, !selected.solo);
+          if (result.ok) commitRef.current(result.project);
+        }
         return;
       }
       const command = studioTransportCommand(event);
@@ -566,6 +601,7 @@ export function useStudioSession() {
     setSelection(nextClipId ? [{ trackId, clipId: nextClipId }] : []);
     if (sheet && viewportRef.current === "mobile") setInspectorOpen(true);
   }, []);
+  selectTrackRef.current = selectTrack;
 
   const selectClip = useCallback((trackId: string, clipId: string, mode: "replace" | "add") => {
     setSelectedTrackId(trackId);

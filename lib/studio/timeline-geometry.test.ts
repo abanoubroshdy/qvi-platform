@@ -21,9 +21,11 @@ import {
   viewportFromWidth,
   downsamplePeaks,
   waveformDrawBudget,
+  STUDIO_ADD_TRACK_ROWS,
   STUDIO_EMPTY_PLACEHOLDER_LANES,
   STUDIO_LANE_HEIGHT_PX,
   STUDIO_RULER_HEIGHT_PX,
+  STUDIO_TRACK_HEAD_WIDTH_PX,
 } from "@/lib/studio/timeline-geometry";
 
 const unity = { mode: "bpm" as const, originalBpm: 120, targetBpm: 120, percent: 0 };
@@ -41,6 +43,9 @@ describe("studio timeline geometry", () => {
     expect(STUDIO_RULER_HEIGHT_PX).toBe(28);
     expect(STUDIO_LANE_HEIGHT_PX).toBe(96);
     expect(STUDIO_EMPTY_PLACEHOLDER_LANES).toBe(2);
+    expect(STUDIO_ADD_TRACK_ROWS).toBe(1);
+    expect(STUDIO_TRACK_HEAD_WIDTH_PX).toEqual({ mobile: 152, tablet: 216, desktop: 240 });
+    expect(STUDIO_LANE_HEIGHT_PX).toBeGreaterThan(STUDIO_RULER_HEIGHT_PX);
   });
 
   it("places a clip in heard time and shortens it when tempo doubles", () => {

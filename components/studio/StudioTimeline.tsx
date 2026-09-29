@@ -12,6 +12,7 @@ import {
   timeAtPixel,
   timelineWidthPx,
   timeRangeRect,
+  STUDIO_ADD_TRACK_ROWS,
   STUDIO_EMPTY_PLACEHOLDER_LANES,
   type StudioTimeRange,
 } from "@/lib/studio/timeline-geometry";
@@ -33,7 +34,8 @@ export function StudioTimeline({ copy }: { copy: Messages["studio"] }) {
   const [draftRange, setDraftRange] = useState<StudioTimeRange | null>(null);
   const tracks = studio.project.tracks;
   const empty = tracks.length === 0;
-  const placeholders = empty ? STUDIO_EMPTY_PLACEHOLDER_LANES : 0;
+  // Empty project: two skeleton rows. With tracks: keep one Add-track row under them.
+  const placeholders = empty ? STUDIO_EMPTY_PLACEHOLDER_LANES : STUDIO_ADD_TRACK_ROWS;
   const selectedOnTrack = (trackId: string) => {
     const ids = new Set<string>();
     for (const item of studio.selection) {

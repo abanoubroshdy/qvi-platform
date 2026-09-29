@@ -1980,7 +1980,7 @@ export const en = {
     restoring: "Restoring project…",
     saveFailed: "Could not save this project on this device.",
     restoreFailed: "Could not restore the saved project.",
-    keys: "Space plays or pauses. Home stops. Arrow keys seek. Escape clears the time range. T taps tempo. M toggles the metronome.",
+    keys: "Space plays or pauses. Home stops. Left/Right seek. Up/Down change track. Escape clears the time range. T taps tempo. M mutes and S solos the selected track. Period toggles the metronome.",
     timeline: "Timeline",
     export: "Export",
     exportLead: "Download one mix of the tracks you can hear. Files stay on this device.",
