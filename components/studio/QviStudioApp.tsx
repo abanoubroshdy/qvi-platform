@@ -120,16 +120,18 @@ export function QviStudioApp() {
               <StudioTrackInspector copy={studioCopy} />
             </aside>
           )}
-          <aside className="studio-mixer hidden w-72 shrink-0 overflow-y-auto border-s border-border lg:block">
-            <StudioMixer copy={studioCopy} />
-          </aside>
+          {session.viewport === "desktop" && session.mixerOpen && (
+            <aside className="studio-mixer hidden w-72 shrink-0 overflow-y-auto border-s border-border lg:block" aria-label={studioCopy.mixer}>
+              <StudioMixer copy={studioCopy} />
+            </aside>
+          )}
         </div>
 
         <div className="z-30 shrink-0 border-t border-border">
           <StudioTransportDock copy={studioCopy} />
         </div>
 
-        {session.viewport === "tablet" && session.mixerOpen && (
+        {session.viewport !== "desktop" && session.mixerOpen && (
           <Sheet label={studioCopy.close} onClose={() => session.setMixerOpen(false)} side="bottom">
             <StudioMixer copy={studioCopy} />
           </Sheet>
@@ -139,17 +141,9 @@ export function QviStudioApp() {
             <StudioTrackInspector copy={studioCopy} />
           </Sheet>
         )}
-        {session.viewport === "mobile" && (session.inspectorOpen || session.mixerOpen) && (
-          <Sheet
-            label={studioCopy.close}
-            onClose={() => {
-              session.setInspectorOpen(false);
-              session.setMixerOpen(false);
-            }}
-            side="bottom"
-          >
+        {session.viewport === "mobile" && session.inspectorOpen && (
+          <Sheet label={studioCopy.close} onClose={() => session.setInspectorOpen(false)} side="bottom">
             <StudioTrackInspector copy={studioCopy} />
-            <StudioMixer copy={studioCopy} />
           </Sheet>
         )}
         {session.exportOpen && <StudioExportDialog copy={studioCopy} onClose={() => session.setExportOpen(false)} />}
