@@ -25,7 +25,7 @@ export function StudioTrackHeader({
 }) {
   return (
     <div
-      className={cn("studio-track-head flex h-16 items-center gap-1 border-b border-border px-1.5", selected && "is-selected")}
+      className={cn("studio-track-head flex items-center gap-1 border-b border-border px-1.5", selected && "is-selected")}
       data-armed={armed ? "true" : "false"}
     >
       <StudioLevelMeter id={track.id} />

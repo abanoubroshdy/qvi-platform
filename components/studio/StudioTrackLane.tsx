@@ -54,7 +54,7 @@ export function StudioTrackLane({
 }) {
   return (
     <div
-      className="studio-lane relative h-16 border-b border-border"
+      className="studio-lane relative border-b border-border"
       data-studio-lane={track.id}
       style={{ ["--beat-px" as string]: `${beatPx}px`, ["--bar-px" as string]: `${barPx}px` }}
       data-grid={beatPx >= 8 ? "beats" : "bars"}

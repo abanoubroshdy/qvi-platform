@@ -11,6 +11,12 @@ import {
 export const STUDIO_MIN_PIXELS_PER_SECOND = 12;
 export const STUDIO_MAX_PIXELS_PER_SECOND = 320;
 export const STUDIO_BEATS_PER_BAR = 4;
+/** Ruler row height in the arrange (matches the track-head corner spacer). */
+export const STUDIO_RULER_HEIGHT_PX = 28;
+/** Shared height for track headers and clip lanes. */
+export const STUDIO_LANE_HEIGHT_PX = 64;
+/** Empty-project placeholder rows so the arrange still reads as a DAW. */
+export const STUDIO_EMPTY_PLACEHOLDER_LANES = 2;
 const MIN_TRIM_SEC = 0.05;
 /** Shortest selectable time range (same floor as trim). */
 export const STUDIO_MIN_TIME_RANGE_SEC = MIN_TRIM_SEC;

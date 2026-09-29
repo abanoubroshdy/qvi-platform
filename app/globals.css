@@ -240,6 +240,8 @@ body:has(.studio-console) {
   --studio-violet: 234.5 89.5% 73.9%;
   --studio-sand: 215 20.2% 65.1%;
   --studio-navy: 220 48.8% 8.4%;
+  --studio-ruler-h: 28px;
+  --studio-lane-h: 64px;
   color: hsl(var(--foreground));
   background:
     radial-gradient(circle at 0% 0%, hsl(var(--studio-teal) / 0.08), transparent 28%),
@@ -347,8 +349,65 @@ body:has(.studio-console) {
   background: hsl(var(--studio-panel));
 }
 
+.studio-track-heads-corner {
+  box-sizing: border-box;
+  height: var(--studio-ruler-h);
+  display: flex;
+  align-items: center;
+  padding-inline: 0.55rem;
+  border-bottom: 1px solid hsl(var(--border));
+  font-size: 0.62rem;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--studio-panel));
+}
+
 .studio-lanes {
+  position: relative;
   background: hsl(var(--studio-well));
+}
+
+.studio-ruler {
+  box-sizing: border-box;
+  height: var(--studio-ruler-h);
+}
+
+.studio-lane,
+.studio-track-head {
+  box-sizing: border-box;
+  height: var(--studio-lane-h);
+}
+
+.studio-lane-placeholder,
+.studio-track-head-placeholder {
+  opacity: 0.72;
+}
+
+.studio-track-head-placeholder {
+  display: flex;
+  align-items: center;
+  padding-inline: 0.45rem;
+  border-bottom: 1px solid hsl(var(--border));
+  color: hsl(var(--muted-foreground));
+  font-size: 0.72rem;
+  background: hsl(var(--studio-panel));
+}
+
+.studio-arrange-drop {
+  position: absolute;
+  inset: var(--studio-ruler-h) 0 0 0;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 1.25rem;
+  text-align: center;
+  pointer-events: none;
+  background: linear-gradient(180deg, hsl(var(--studio-well) / 0.12), hsl(var(--studio-well) / 0.55) 45%, hsl(var(--studio-well) / 0.35));
 }
 
 .studio-ruler,
@@ -457,6 +516,11 @@ body:has(.studio-console) {
   box-shadow:
     inset 0 0 0 1px hsl(var(--studio-violet) / 0.2),
     0 0 0 1px hsl(var(--studio-navy));
+}
+
+.studio-console[data-dropping="true"] .studio-lanes {
+  outline: 1px dashed hsl(var(--studio-teal));
+  outline-offset: -4px;
 }
 
 .studio-console[data-dropping="true"] .studio-drop,
