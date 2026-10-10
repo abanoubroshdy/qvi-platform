@@ -8,7 +8,7 @@ export { QV1_DOWNLOAD_WINDOW_MS };
 export { safeNextPath };
 
 /** Signed-in Setup downloads. Set false to pause /qv1/download without taking the page down. */
-export const QV1_DOWNLOAD_ENABLED = true;
+export const QV1_DOWNLOAD_ENABLED = false;
 
 /** R2 key for the online Setup. QV1_OBJECT_KEY overrides this. */
 export const QV1_DEFAULT_OBJECT_KEY = "qv1/evaluation/QV1-Setup-Evaluation.exe";
