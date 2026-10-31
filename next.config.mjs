@@ -1,4 +1,12 @@
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
+
 /** @type {import('next').NextConfig} */
+
+// Local `next dev` only. Production builds (Vercel and the Worker) must not
+// boot Wrangler's platform proxy while loading this file.
+if (process.env.NODE_ENV === "development") {
+  initOpenNextCloudflareForDev();
+}
 
 function isSupabaseHost(value = "") {
   try {
@@ -54,6 +62,11 @@ const siteUrl = firstString(
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // The only next/image usages are already unoptimized. Skipping the optimizer
+  // keeps Vercel behavior the same and avoids a Cloudflare Images binding.
+  images: {
+    unoptimized: true,
+  },
   env: {
     NEXT_PUBLIC_SUPABASE_URL: supabaseUrl,
     NEXT_PUBLIC_SITE_URL: siteUrl,

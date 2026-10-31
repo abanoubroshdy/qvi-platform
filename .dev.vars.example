@@ -1,0 +1,3 @@
+# Copy to .dev.vars for `npm run preview`. .dev.vars is gitignored.
+# Do not put real secrets in this example.
+NEXTJS_ENV=development

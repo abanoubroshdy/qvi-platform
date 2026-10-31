@@ -1,0 +1,87 @@
+name: Cloudflare Worker
+
+# Builds the Worker on every push and pull request.
+# Does not deploy. A Workers version upload exists only as a manual workflow,
+# and it stays skipped until the cloudflare-workers-preview environment,
+# its required reviewers, and the secrets below exist.
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+concurrency:
+  group: cloudflare-worker-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Worker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Geo unit tests
+        run: npx vitest run lib/geo/request-country.test.ts
+
+      - name: Build OpenNext Worker
+        run: npm run build:worker
+        env:
+          WRANGLER_SEND_METRICS: "false"
+
+      - name: Wrangler dry-run
+        run: npx wrangler deploy --dry-run --outdir=/tmp/getqvi-worker-dry --minify
+        env:
+          WRANGLER_SEND_METRICS: "false"
+
+  deploy-preview:
+    name: Upload Workers preview version
+    needs: build
+    # Skipped on push and pull_request. Also skipped on a manual run until
+    # the repository variable CLOUDFLARE_PREVIEW_DEPLOY is exactly "true".
+    if: github.event_name == 'workflow_dispatch' && vars.CLOUDFLARE_PREVIEW_DEPLOY == 'true'
+    environment: cloudflare-workers-preview
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Upload a Worker version without production routes
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: "false"
+          # Bake the public origin into the client bundle. Runtime secrets
+          # below are read by the Worker; this one is inlined by Next at build.
+          NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "CLOUDFLARE_API_TOKEN or CLOUDFLARE_ACCOUNT_ID is unset. Skipping upload."
+            exit 0
+          fi
+          # `upload` runs `wrangler versions upload`. It does not shift traffic
+          # and wrangler.jsonc has no routes, so getqvi.com is not attached.
+          npm run upload:worker
