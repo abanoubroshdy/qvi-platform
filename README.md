@@ -111,7 +111,7 @@ The header lets you switch **English / Arabic** (RTL) and **Light / Dark / Syste
 
 ## Cloudflare Workers (not live)
 
-Vercel remains the production host for getqvi.com. A parallel Cloudflare Workers build uses OpenNext. Setup, secret names, the beta.getqvi.com plan, and rollback are in [docs/cloudflare-migration.md](docs/cloudflare-migration.md). Do not change DNS until that beta is verified.
+Vercel remains the production host for getqvi.com. A parallel Cloudflare Workers **Free** build uses OpenNext for a `beta.getqvi.com` preview only. Setup, secret names, measurement, and rollback are in [docs/cloudflare-migration.md](docs/cloudflare-migration.md). Do not change the apex DNS record.
 
 ## Stack
 

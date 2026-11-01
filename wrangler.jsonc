@@ -11,5 +11,10 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
-  "workers_dev": true
+  // Free plan. Do not set limits.cpu_ms above 10: that requires Workers Paid.
+  // The account default on Free is 10 ms. Error 1102 means a request exceeded it.
+  "workers_dev": true,
+  // Version Preview URLs (<version>-getqvi-web.<subdomain>.workers.dev) after
+  // `wrangler versions upload`. Not a custom domain and not getqvi.com.
+  "preview_urls": true
 }
