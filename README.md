@@ -31,7 +31,7 @@ Optional: copy `.env.example` to `.env.local` and set `NEXT_PUBLIC_SITE_URL` bef
 
 `/qv1` is the public page for **QV1 Evaluation** (Windows). `/qv1/models` lists third-party model sources and licenses. A signed-in request to `/qv1/download` records a row in `qv1_downloads` and redirects with HTTP 307 to the public Setup URL on `downloads.getqvi.com`. The account page lists that history. Set `QV1_DOWNLOAD_ENABLED` in `lib/qv1-download.ts` to false to pause the file URL without taking the page down.
 
-The Setup is a single Windows download of about 170 MB (`QV1-Setup-Evaluation.exe`). During install it detects the GPU and fetches components from `https://getqvi.com/downloads/evaluation/` (about 675 MB for the core, more for NVIDIA CUDA). That path is a public temporary redirect to `https://downloads.getqvi.com/qv1/`. It is not behind sign-in. Do not add an auth middleware matcher that includes `/downloads`.
+The Setup is a single Windows download of about 170 MB (`QV1-Setup-Evaluation.exe`, 177,950,552 bytes). During install it detects the GPU and fetches components from `https://getqvi.com/downloads/evaluation/` (about 675 MB for the core, more for NVIDIA CUDA). That path is a public temporary redirect to `https://downloads.getqvi.com/qv1/`. It is not behind sign-in. Do not add an auth middleware matcher that includes `/downloads`.
 
 Optional server-only R2 credentials (`R2_*`, `QV1_OBJECT_KEY`) are still read for configuration checks; the live route redirects to the public custom domain and does not presign through the Worker. Set them in **Vercel → Project Settings → Environment Variables** (Production and Preview) if you need the legacy “coming soon” path when credentials are missing. Do not prefix them with `NEXT_PUBLIC_` and do not commit real values.
 
@@ -39,7 +39,7 @@ Optional server-only R2 credentials (`R2_*`, `QV1_OBJECT_KEY`) are still read fo
 - `R2_ACCESS_KEY_ID`
 - `R2_SECRET_ACCESS_KEY`
 - `R2_BUCKET` — `qv1-downloads`
-- `QV1_OBJECT_KEY` — optional. Defaults to `qv1/QV1-Setup-Evaluation.exe`.
+- `QV1_OBJECT_KEY` — optional. Defaults to `qv1/QV1-Setup-Evaluation.exe`. If an older key is still set, replace it with this one or delete the variable.
 
 `QV1_DOWNLOAD_URL` is retired. Do not set it.
 

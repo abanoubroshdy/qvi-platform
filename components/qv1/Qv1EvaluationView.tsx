@@ -6,10 +6,9 @@ import { CopyHashButton } from "@/components/qv1/CopyHashButton";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { Button } from "@/components/ui/button";
 import { qv1Changelog } from "@/lib/qv1-changelog";
-import { formatBytes } from "@/lib/format";
 import { QV1_DOWNLOAD_ENABLED } from "@/lib/qv1-download";
 import { Qv1AutostartNotice } from "@/components/qv1/Qv1AutostartNotice";
-import { qv1DownloadSummary, qv1HasSha256, qv1Release, type Qv1DownloadNotice } from "@/lib/qv1-release";
+import { qv1HasSha256, qv1Release, type Qv1DownloadNotice } from "@/lib/qv1-release";
 import { withLocale } from "@/lib/i18n/locale-path";
 import { siteConfig } from "@/lib/site";
 
@@ -33,7 +32,6 @@ export function Qv1EvaluationView({
 }) {
   const { copy, locale } = useI18n();
   const page = copy.qv1Page;
-  const summary = qv1DownloadSummary(qv1Release, formatBytes);
   const showHash = qv1HasSha256(qv1Release);
   const releaseNotesExternal = /^https?:\/\//i.test(qv1Release.releaseNotesUrl);
   const effectiveNotice = QV1_DOWNLOAD_ENABLED ? notice : "paused";
@@ -99,25 +97,27 @@ export function Qv1EvaluationView({
 
             <div className="mt-5">
               {QV1_DOWNLOAD_ENABLED ? (
-                <Button asChild size="lg" className="h-12 w-full bg-primary text-base text-primary-foreground">
+                <Button asChild size="lg" className="h-12 w-full rounded-lg bg-[#4338CA] text-base text-white hover:bg-[#3730A3]">
                   <a href="/qv1/download" aria-describedby={describedBy}>
-                    {page.download}
+                    <svg aria-hidden="true" viewBox="0 0 24 24" className="mr-2 h-5 w-5" fill="currentColor"><path d="M3 5.5 10.5 4.5v7H3zM11.5 4.4 21 3v8.5h-9.5zM3 12.5h7.5v7L3 18.5zM11.5 12.5H21V21l-9.5-1.4z"/></svg>
+                  Download QV1 for Windows
                   </a>
                 </Button>
               ) : (
                 <Button
                   type="button"
                   size="lg"
-                  className="h-12 w-full bg-primary text-base text-primary-foreground"
+                  className="h-12 w-full rounded-lg bg-[#4338CA] text-base text-white hover:bg-[#3730A3]"
                   disabled
                   aria-describedby="qv1-download-status"
                 >
-                  {page.download}
+                  <svg aria-hidden="true" viewBox="0 0 24 24" className="mr-2 h-5 w-5" fill="currentColor"><path d="M3 5.5 10.5 4.5v7H3zM11.5 4.4 21 3v8.5h-9.5zM3 12.5h7.5v7L3 18.5zM11.5 12.5H21V21l-9.5-1.4z"/></svg>
+                  Download QV1 for Windows
                 </Button>
               )}
             </div>
 
-            <p className="mt-3 text-center text-sm text-muted-foreground">{summary}</p>
+            <p className="mt-3 text-center text-sm text-[#64748B]">v1.0 · Windows 10/11 x64 · Installer 178 MB · ~0.9 GB total download</p>
             {qv1Release.fileName ? (
               <p className="mt-1 text-center font-mono text-xs text-muted-foreground">{qv1Release.fileName}</p>
             ) : null}
