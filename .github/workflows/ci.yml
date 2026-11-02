@@ -32,5 +32,3 @@ jobs:
       - run: npm test
 
       - run: npm run build
-        env:
-          NEXT_FONT_GOOGLE_MOCKED_RESPONSES: "1"

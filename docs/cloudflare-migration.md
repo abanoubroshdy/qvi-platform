@@ -12,7 +12,8 @@ Phase 1 is the hosting path for the site. Licensing APIs for the QV1 desktop app
 | Router | `app/`. No `pages/` routes. Middleware is `middleware.ts` (Edge, the Next.js 14 default). |
 | Rendering | The root layout calls `headers()`, so HTML is dynamic SSR. No ISR, no `revalidatePath` / `revalidateTag`, no server actions. |
 | API routes | `nodejs` runtime on `/api/contact`. `/api/geo`, `/api/supabase-config`, and `/qv1/download` are `force-dynamic`. |
-| Images | The only `next/image` usages pass `unoptimized`. Config now sets `images.unoptimized` so Workers does not need a Cloudflare Images binding. |
+| Images | The only `next/image` usages pass `unoptimized`. Config sets `images.unoptimized` so Workers do not need a Cloudflare Images binding. |
+| Fonts | Inter and IBM Plex Sans Arabic load at runtime via `@import` in `globals.css` (no `next/font/google` build fetch). |
 | Vercel packages | No `@vercel/*` dependency and no `vercel.json`. `VERCEL_URL` and `VERCEL_PROJECT_PRODUCTION_URL` are only a site-URL fallback. |
 | Geo | `/api/geo` used `x-vercel-ip-country`, then `cf-ipcountry`, then `x-country-code`. It now prefers Cloudflare `request.cf.country` and still accepts those headers, so Vercel behavior stays. |
 | R2 downloads | `/qv1/download` logs to Supabase and redirects signed-in users to `https://downloads.getqvi.com/qv1/QV1-Setup-Evaluation.exe`. Installer parts use `/downloads/evaluation/*` → `https://downloads.getqvi.com/qv1/:path*`. R2 credentials are optional; the Worker does not stream the exe. |
