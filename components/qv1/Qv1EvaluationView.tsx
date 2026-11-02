@@ -6,7 +6,6 @@ import { CopyHashButton } from "@/components/qv1/CopyHashButton";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { Button } from "@/components/ui/button";
 import { qv1Changelog } from "@/lib/qv1-changelog";
-import { formatBytes } from "@/lib/format";
 import { QV1_DOWNLOAD_ENABLED } from "@/lib/qv1-download";
 import { Qv1AutostartNotice } from "@/components/qv1/Qv1AutostartNotice";
 import { qv1HasSha256, qv1Release, type Qv1DownloadNotice } from "@/lib/qv1-release";

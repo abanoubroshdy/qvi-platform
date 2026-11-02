@@ -33,7 +33,7 @@ describe("QV1 release record", () => {
     expect(qv1Release.fileSizeBytes).toBe(177_950_552);
     expect(qv1Release.sha256).toBe("77eb736ec7e80aaaeb992c61a3b76e99b2d10a708101179416b5fe46b08e9100");
     expect(qv1HasFileSize(qv1Release)).toBe(true);
-    expect(qv1HasSha256(qv1Release)).toBe(false);
+    expect(qv1HasSha256(qv1Release)).toBe(true);
     expect(qv1DownloadSummary(qv1Release, formatBytes)).toBe("v1.0 · 169.7 MB · Windows 10/11 x64");
   });
 
