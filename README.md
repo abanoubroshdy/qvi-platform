@@ -109,6 +109,10 @@ Free tools stay 100% client-side. Waitlist emails are stored in Supabase (`waitl
 
 The header lets you switch **English / Arabic** (RTL) and **Light / Dark / System** appearance. Colors follow the QVI logo: cream paper, navy wordmark, teal-to-violet wave.
 
+## Cloudflare Workers (not live)
+
+Vercel remains the production host for getqvi.com. A parallel Cloudflare Workers **Free** build uses OpenNext for a `beta.getqvi.com` preview only. Setup, secret names, measurement, and rollback are in [docs/cloudflare-migration.md](docs/cloudflare-migration.md). Do not change the apex DNS record.
+
 ## Stack
 
 Next.js 14 App Router, TypeScript, Tailwind CSS, ESLint, shadcn/ui, lucide-react, Supabase Auth, browser-image-compression, pdf-lib, pdfjs-dist, docx, qrcode, jsqr, ffmpeg.wasm.
