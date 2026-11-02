@@ -25,7 +25,7 @@ export const qv1Release: Qv1Release = {
   version: "1.0",
   fileName: "QV1-Setup-Evaluation.exe",
   fileSizeBytes: 177_950_552,
-  sha256: "",
+  sha256: "77eb736ec7e80aaaeb992c61a3b76e99b2d10a708101179416b5fe46b08e9100",
   releaseNotesUrl: "/qv1#release-notes",
   minOs: "Windows 10/11 x64",
   codeSigned: false,
