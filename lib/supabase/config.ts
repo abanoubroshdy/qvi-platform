@@ -64,8 +64,19 @@ export function resolvePublicSupabaseConfig(
   return { url, anonKey };
 }
 
+// Direct `process.env.NEXT_PUBLIC_*` member access so Next inlines the value at
+// build time. Dynamic `env.X` reads are not inlined, and on Cloudflare Workers
+// the runtime env lacks these vars, so the apex fallback would leak into beta.
+function buildTimeSiteEnv(): Record<string, string | undefined> {
+  return {
+    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+    VERCEL_PROJECT_PRODUCTION_URL: process.env.VERCEL_PROJECT_PRODUCTION_URL,
+    VERCEL_URL: process.env.VERCEL_URL,
+  };
+}
+
 export function resolveSiteUrl(
-  env: Record<string, string | undefined> = process.env as Record<string, string | undefined>,
+  env: Record<string, string | undefined> = buildTimeSiteEnv(),
 ): string {
   const raw = env.NEXT_PUBLIC_SITE_URL?.trim();
   if (raw && !isSupabaseHost(raw)) return raw.replace(/\/$/, "");

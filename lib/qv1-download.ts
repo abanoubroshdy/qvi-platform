@@ -1,5 +1,3 @@
-import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { QV1_DOWNLOAD_WINDOW_MS } from "@/lib/qv1-download-window";
 import { safeNextPath } from "@/lib/safe-next-path";
 
@@ -238,25 +236,4 @@ export function qv1DownloadLocation(decision: Qv1DownloadDecision): string {
   if (decision.kind === "limited") return QV1_DOWNLOAD_LIMITED_PATH;
   if (decision.kind === "paused") return QV1_DOWNLOAD_PAUSED_PATH;
   return QV1_DOWNLOAD_UNAVAILABLE_PATH;
-}
-
-export async function presignQv1Object(
-  config: R2DownloadConfig,
-  fileName: string,
-  expiresIn = QV1_PRESIGN_SECONDS,
-): Promise<string> {
-  const client = new S3Client({
-    region: "auto",
-    endpoint: r2Endpoint(config.accountId),
-    credentials: {
-      accessKeyId: config.accessKeyId,
-      secretAccessKey: config.secretAccessKey,
-    },
-  });
-  const command = new GetObjectCommand({
-    Bucket: config.bucket,
-    Key: config.objectKey,
-    ResponseContentDisposition: contentDispositionAttachment(fileName),
-  });
-  return getSignedUrl(client, command, { expiresIn });
 }

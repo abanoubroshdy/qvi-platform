@@ -1757,7 +1757,7 @@ export const en = {
     ],
     collectAutoTitle: "Data collected automatically",
     collectAuto: [
-      "A country code from the hosting request header (x-vercel-ip-country, or an equivalent country header) via /api/geo, used only to pre-fill the country field on sign-up. We do not store IP addresses in the profiles or waitlist_signups tables.",
+      "A country code from the hosting request (Cloudflare request.cf.country, or the x-vercel-ip-country, cf-ipcountry, or x-country-code header) via /api/geo, used only to pre-fill the country field on sign-up. We do not store IP addresses in the profiles or waitlist_signups tables.",
       "Browser language (navigator.language) to choose Arabic or English and to suggest a default country (Egypt when the interface is Arabic).",
       "Authentication session cookies after you sign in, issued through Supabase Auth.",
       "On-device local storage: interface language (qvi-locale), theme (qvi-theme), recent color-picker swatches (qvi-recent-colors), and the last Neyora demo prompt (qvi-neyora-last-prompt). A waitlist email is stored only after the server accepts it.",
@@ -1789,7 +1789,7 @@ export const en = {
     shareLead: "We share data only with the processors this site uses. We do not sell personal data.",
     share: [
       "Supabase: email/password authentication and the PostgreSQL tables public.profiles and public.waitlist_signups, plus auth user metadata. Row Level Security lets an authenticated user read and update only their own profile. Waitlist emails cannot be read with the public anon key.",
-      "Hosting platform: serves the site and supplies the country-code header used by /api/geo. Like any web host, it may retain technical request logs (such as IP and user agent) under its own operations. Those logs are not written into our application tables.",
+      "Hosting platform: serves the site and supplies the country code used by /api/geo (Cloudflare request.cf.country on Workers, x-vercel-ip-country on Vercel). Like any web host, it may retain technical request logs (such as IP and user agent) under its own operations. Those logs are not written into our application tables.",
       "unpkg.com: when you use in-browser audio conversion or trimming, the page downloads the FFmpeg engine (JavaScript/WASM) from unpkg. Your media files are not uploaded to unpkg or to our servers.",
       "Google AdSense (publisher ID ca-pub-9019451998006609): the site loads Google’s ads script on every page. Where display ads appear is controlled in Google AdSense. This site also requests a fixed display unit on free tools pages. Those units are not placed on product hero sections or purchase calls to action. We do not send your account profile — name, email, country, or similar account fields — to Google. When the script or an ad loads, your browser contacts Google, which may receive technical data such as IP address, browser type, the page URL, and cookie or advertising identifiers. Google uses that data to deliver ads, measure them, and personalize them where permitted.",
     ],

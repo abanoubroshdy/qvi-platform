@@ -1,9 +1,13 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
+    --font-inter: "Inter", system-ui, sans-serif;
+    --font-ibm-plex-sans-arabic: "IBM Plex Sans Arabic", system-ui, sans-serif;
     /* Cool neutrals: 50 page, 100 surfaces, 200 borders, 800 body, 950 headings. */
     --background: 210 40% 98%;
     --foreground: 217.2 32.6% 17.5%;

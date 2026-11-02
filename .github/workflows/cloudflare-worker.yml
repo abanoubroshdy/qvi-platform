@@ -1,0 +1,117 @@
+name: Cloudflare Worker
+
+# Builds the Worker on every push and pull request. Does not upload.
+# A Free-plan version upload runs only on workflow_dispatch, after
+# cloudflare-workers-preview has CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID.
+# wrangler.jsonc has no routes, so getqvi.com is not attached.
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+concurrency:
+  group: cloudflare-worker-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Worker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Build OpenNext Worker
+        run: npm run build:worker
+        env:
+          WRANGLER_SEND_METRICS: "false"
+
+      - name: Wrangler dry-run
+        run: |
+          set -o pipefail
+          npx wrangler deploy --dry-run --outdir=/tmp/getqvi-worker-dry --minify | tee /tmp/wrangler-dry.txt
+          node scripts/check-worker-free-tier.mjs --dry-log /tmp/wrangler-dry.txt
+        env:
+          WRANGLER_SEND_METRICS: "false"
+
+  deploy-preview:
+    name: Upload Workers preview version
+    needs: build
+    # Push and pull_request never upload. One manual run is enough after the
+    # cloudflare-workers-preview secrets exist. No CLOUDFLARE_PREVIEW_DEPLOY flag.
+    if: github.event_name == 'workflow_dispatch'
+    environment: cloudflare-workers-preview
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Upload a Worker version without production routes
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: "false"
+          # Beta bundle only. Production getqvi.com stays on Vercel.
+          NEXT_PUBLIC_SITE_URL: https://beta.getqvi.com
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          CONTACT_FROM_EMAIL: ${{ secrets.CONTACT_FROM_EMAIL }}
+          CONTACT_TO_EMAIL: ${{ secrets.CONTACT_TO_EMAIL }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          QV1_OBJECT_KEY: ${{ secrets.QV1_OBJECT_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CLOUDFLARE_API_TOKEN}" ] || [ -z "${CLOUDFLARE_ACCOUNT_ID}" ]; then
+            echo "Set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID on the cloudflare-workers-preview environment, then re-run this workflow."
+            exit 1
+          fi
+          node scripts/check-worker-free-tier.mjs
+          # versions upload publishes a Preview URL. wrangler.jsonc has no routes,
+          # so getqvi.com is not attached and DNS is not changed.
+          npm run upload:worker
+          put_secret() {
+            key="$1"
+            value="${2-}"
+            if [ -z "${value}" ]; then
+              echo "secret ${key} unset; skipping"
+              return 0
+            fi
+            printf '%s' "${value}" | npx wrangler versions secret put "${key}"
+            echo "stored secret name ${key}"
+          }
+          put_secret RESEND_API_KEY "${RESEND_API_KEY-}"
+          put_secret CONTACT_FROM_EMAIL "${CONTACT_FROM_EMAIL-}"
+          put_secret CONTACT_TO_EMAIL "${CONTACT_TO_EMAIL-}"
+          put_secret R2_ACCOUNT_ID "${R2_ACCOUNT_ID-}"
+          put_secret R2_ACCESS_KEY_ID "${R2_ACCESS_KEY_ID-}"
+          put_secret R2_SECRET_ACCESS_KEY "${R2_SECRET_ACCESS_KEY-}"
+          put_secret R2_BUCKET "${R2_BUCKET-}"
+          put_secret QV1_OBJECT_KEY "${QV1_OBJECT_KEY-}"

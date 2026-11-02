@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Sans_Arabic, Inter } from "next/font/google";
 import { headers } from "next/headers";
 import { AppProviders } from "@/components/AppProviders";
 import { Footer } from "@/components/Footer";
@@ -16,20 +15,8 @@ import "./globals.css";
  * Type scale: 12 / 14 / 16 / 20 / 24 / 32 / 48, with comfortable line-heights.
  * Headings 600–700, body 400–500.
  * Latin uses Inter. Arabic glyphs fall through to IBM Plex Sans Arabic.
+ * Fonts load at runtime via @import in globals.css (no next/font build fetch).
  */
-const inter = Inter({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-  variable: "--font-inter",
-});
-
-const ibmPlexSansArabic = IBM_Plex_Sans_Arabic({
-  subsets: ["arabic"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-  variable: "--font-ibm-plex-sans-arabic",
-});
 
 const defaultOg = openGraphImage("/");
 
@@ -103,13 +90,7 @@ export default function RootLayout({
   const dir = locale === "ar" ? "rtl" : "ltr";
 
   return (
-    <html
-      lang={locale}
-      dir={dir}
-      data-locale={locale}
-      suppressHydrationWarning
-      className={`${inter.variable} ${ibmPlexSansArabic.variable}`}
-    >
+    <html lang={locale} dir={dir} data-locale={locale} suppressHydrationWarning>
       <head>
         <AdSenseHeadScript />
       </head>
