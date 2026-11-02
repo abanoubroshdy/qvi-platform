@@ -1,5 +1,3 @@
-import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { QV1_DOWNLOAD_WINDOW_MS } from "@/lib/qv1-download-window";
 import { safeNextPath } from "@/lib/safe-next-path";
 
@@ -8,10 +6,13 @@ export { QV1_DOWNLOAD_WINDOW_MS };
 export { safeNextPath };
 
 /** Signed-in Setup downloads. Set false to pause /qv1/download without taking the page down. */
-export const QV1_DOWNLOAD_ENABLED = false;
+export const QV1_DOWNLOAD_ENABLED = true;
 
 /** R2 key for the online Setup. QV1_OBJECT_KEY overrides this. */
-export const QV1_DEFAULT_OBJECT_KEY = "qv1/evaluation/QV1-Setup-Evaluation.exe";
+export const QV1_DEFAULT_OBJECT_KEY = "qv1/QV1-Setup-Evaluation.exe";
+
+/** Public R2 custom-domain URL for the Setup exe. /qv1/download redirects here. */
+export const QV1_PUBLIC_SETUP_URL = "https://downloads.getqvi.com/qv1/QV1-Setup-Evaluation.exe";
 
 /** Signed-in download route. Anonymous visitors sign in, land on /qv1, and this route runs once from there. */
 export const QV1_DOWNLOAD_PATH = "/qv1/download";
@@ -235,25 +236,4 @@ export function qv1DownloadLocation(decision: Qv1DownloadDecision): string {
   if (decision.kind === "limited") return QV1_DOWNLOAD_LIMITED_PATH;
   if (decision.kind === "paused") return QV1_DOWNLOAD_PAUSED_PATH;
   return QV1_DOWNLOAD_UNAVAILABLE_PATH;
-}
-
-export async function presignQv1Object(
-  config: R2DownloadConfig,
-  fileName: string,
-  expiresIn = QV1_PRESIGN_SECONDS,
-): Promise<string> {
-  const client = new S3Client({
-    region: "auto",
-    endpoint: r2Endpoint(config.accountId),
-    credentials: {
-      accessKeyId: config.accessKeyId,
-      secretAccessKey: config.secretAccessKey,
-    },
-  });
-  const command = new GetObjectCommand({
-    Bucket: config.bucket,
-    Key: config.objectKey,
-    ResponseContentDisposition: contentDispositionAttachment(fileName),
-  });
-  return getSignedUrl(client, command, { expiresIn });
 }

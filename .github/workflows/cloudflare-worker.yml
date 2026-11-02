@@ -33,8 +33,8 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Geo unit tests
-        run: npx vitest run lib/geo/request-country.test.ts
+      - name: Unit tests
+        run: npm test
 
       - name: Build OpenNext Worker
         run: npm run build:worker

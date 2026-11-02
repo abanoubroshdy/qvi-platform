@@ -15,8 +15,8 @@ function fail(message) {
 
 const config = JSON.parse(stripJsonc(readFileSync("wrangler.jsonc", "utf8")));
 
-if (config.name !== "getqvi-web") {
-  fail(`worker name must stay getqvi-web (found ${config.name})`);
+if (config.name !== "qvi-platform") {
+  fail(`worker name must stay qvi-platform (found ${config.name})`);
 }
 
 const forbidden = [

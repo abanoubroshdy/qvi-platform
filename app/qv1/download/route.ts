@@ -2,9 +2,8 @@ import { NextResponse } from "next/server";
 import {
   QV1_DOWNLOAD_ENABLED,
   QV1_DOWNLOAD_PAUSED_PATH,
-  missingR2DownloadEnv,
   planQv1Download,
-  presignQv1Object,
+  QV1_PUBLIC_SETUP_URL,
   qv1DownloadErrorDetail,
   qv1DownloadLocation,
   qv1DownloadLogLine,
@@ -23,12 +22,15 @@ export async function GET(request: Request) {
   }
 
   const session = await getRequestSupabaseSession(request);
-  const config = resolveR2DownloadConfig(process.env);
+  // The Setup is public on downloads.getqvi.com; R2 credentials are no longer required.
+  const config = resolveR2DownloadConfig(process.env) ?? {
+    accountId: "public",
+    accessKeyId: "public",
+    secretAccessKey: "public",
+    bucket: "qv1-downloads",
+    objectKey: "qv1/QV1-Setup-Evaluation.exe",
+  };
   let recentCount = 0;
-
-  if (session && !config) {
-    console.error(qv1DownloadLogLine("missing config", missingR2DownloadEnv(process.env).join(", ") || "unknown"));
-  }
 
   if (session && config) {
     try {
@@ -43,7 +45,7 @@ export async function GET(request: Request) {
     userId: session?.userId ?? null,
     config,
     recentCount,
-    sign: (r2) => presignQv1Object(r2, qv1Release.fileName),
+    sign: async () => QV1_PUBLIC_SETUP_URL,
     record: async () => {
       if (!session) throw new Error("missing session");
       await insertQv1Download(session.client, {

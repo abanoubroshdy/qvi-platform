@@ -121,7 +121,7 @@ describe("QV1 public copy", () => {
       expect.arrayContaining([
         {
           source: "/downloads/evaluation/:path*",
-          destination: "https://dl.getqvi.com/qv1/evaluation/:path*",
+          destination: "https://downloads.getqvi.com/qv1/:path*",
           permanent: false,
         },
       ]),
