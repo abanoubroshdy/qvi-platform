@@ -28,25 +28,25 @@ function readTree(dir: string): string {
 
 describe("QV1 release record", () => {
   it("publishes the Evaluation Setup name and size", () => {
-    expect(qv1Release.version).toBe("1.2.0");
+    expect(qv1Release.version).toBe("1.0");
     expect(qv1Release.fileName).toBe("QV1-Setup-Evaluation.exe");
-    expect(qv1Release.fileSizeBytes).toBe(177_766_232);
+    expect(qv1Release.fileSizeBytes).toBe(177_950_552);
     expect(qv1Release.sha256).toBe("");
     expect(qv1HasFileSize(qv1Release)).toBe(true);
     expect(qv1HasSha256(qv1Release)).toBe(false);
-    expect(qv1DownloadSummary(qv1Release, formatBytes)).toBe("v1.2.0 · 169.5 MB · Windows 10/11 x64");
+    expect(qv1DownloadSummary(qv1Release, formatBytes)).toBe("v1.0 · 169.7 MB · Windows 10/11 x64");
   });
 
   it("hides an empty size and an empty hash", () => {
     const empty = { ...qv1Release, fileSizeBytes: null, sha256: "" };
     expect(qv1HasFileSize(empty)).toBe(false);
     expect(qv1HasSha256(empty)).toBe(false);
-    expect(qv1DownloadSummary(empty, (bytes) => `${bytes} B`)).toBe("v1.2.0 · Windows 10/11 x64");
+    expect(qv1DownloadSummary(empty, (bytes) => `${bytes} B`)).toBe("v1.0 · Windows 10/11 x64");
   });
 
   it("includes size and hash only when they are present", () => {
     const release = { ...qv1Release, fileSizeBytes: 90_000_000, sha256: "abc123" };
-    expect(qv1DownloadSummary(release, () => "85.8 MB")).toBe("v1.2.0 · 85.8 MB · Windows 10/11 x64");
+    expect(qv1DownloadSummary(release, () => "85.8 MB")).toBe("v1.0 · 85.8 MB · Windows 10/11 x64");
   });
 });
 
@@ -121,7 +121,7 @@ describe("QV1 public copy", () => {
       expect.arrayContaining([
         {
           source: "/downloads/evaluation/:path*",
-          destination: "https://dl.getqvi.com/qv1/evaluation/:path*",
+          destination: "https://downloads.getqvi.com/qv1/:path*",
           permanent: false,
         },
       ]),

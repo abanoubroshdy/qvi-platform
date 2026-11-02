@@ -8,10 +8,13 @@ export { QV1_DOWNLOAD_WINDOW_MS };
 export { safeNextPath };
 
 /** Signed-in Setup downloads. Set false to pause /qv1/download without taking the page down. */
-export const QV1_DOWNLOAD_ENABLED = false;
+export const QV1_DOWNLOAD_ENABLED = true;
 
 /** R2 key for the online Setup. QV1_OBJECT_KEY overrides this. */
-export const QV1_DEFAULT_OBJECT_KEY = "qv1/evaluation/QV1-Setup-Evaluation.exe";
+export const QV1_DEFAULT_OBJECT_KEY = "qv1/QV1-Setup-Evaluation.exe";
+
+/** Public R2 custom-domain URL for the Setup exe. /qv1/download redirects here. */
+export const QV1_PUBLIC_SETUP_URL = "https://downloads.getqvi.com/qv1/QV1-Setup-Evaluation.exe";
 
 /** Signed-in download route. Anonymous visitors sign in, land on /qv1, and this route runs once from there. */
 export const QV1_DOWNLOAD_PATH = "/qv1/download";

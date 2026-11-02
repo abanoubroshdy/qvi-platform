@@ -63,7 +63,7 @@ const config: R2DownloadConfig = {
   accessKeyId: "key",
   secretAccessKey: "secret",
   bucket: "qv1-downloads",
-  objectKey: "qv1/evaluation/QV1-Setup-Evaluation.exe",
+  objectKey: "qv1/QV1-Setup-Evaluation.exe",
 };
 
 function fullEnv(): Record<string, string> {
@@ -95,7 +95,7 @@ describe("resolveR2DownloadConfig", () => {
     const env = fullEnv();
     delete (env as { QV1_OBJECT_KEY?: string }).QV1_OBJECT_KEY;
     expect(resolveR2DownloadConfig(env)).toEqual({ ...config, objectKey: QV1_DEFAULT_OBJECT_KEY });
-    expect(QV1_DEFAULT_OBJECT_KEY).toBe("qv1/evaluation/QV1-Setup-Evaluation.exe");
+    expect(QV1_DEFAULT_OBJECT_KEY).toBe("qv1/QV1-Setup-Evaluation.exe");
     expect(resolveR2DownloadConfig({ ...env, QV1_OBJECT_KEY: "  custom/key.exe  " })?.objectKey).toBe("custom/key.exe");
   });
 });
@@ -197,7 +197,7 @@ describe("planQv1Download", () => {
   });
 
   it("records the download and returns the presigned URL", async () => {
-    const signed = "https://account.r2.cloudflarestorage.com/qv1-downloads/qv1/evaluation/QV1-Setup-Evaluation.exe?X-Amz-Signature=test";
+    const signed = "https://account.r2.cloudflarestorage.com/qv1-downloads/qv1/QV1-Setup-Evaluation.exe?X-Amz-Signature=test";
     const record = vi.fn(async () => undefined);
     const decision = await planQv1Download({
       userId: "user-1",
@@ -317,7 +317,7 @@ describe("GET /qv1/download", () => {
     expect(response.status).toBe(307);
     const location = response.headers.get("location") ?? "";
     expect(location.startsWith("https://")).toBe(true);
-    expect(location).toContain("qv1/evaluation/QV1-Setup-Evaluation.exe");
+    expect(location).toContain("qv1/QV1-Setup-Evaluation.exe");
     expect(location).toContain("QV1-Setup-Evaluation.exe");
     expect(insertQv1Download).toHaveBeenCalledOnce();
     expect(countRecentQv1Downloads).toHaveBeenCalledOnce();
@@ -346,7 +346,7 @@ describe("GET /qv1/download", () => {
     errorSpy.mockRestore();
   });
 
-  it("returns a signed-in user to /qv1 with a visible error when R2 is not configured", async () => {
+  it("sends a signed-in user to the public Setup URL even when R2 env is not configured", async () => {
     vi.mocked(getRequestSupabaseSession).mockResolvedValue({
       client: {} as never,
       userId: "user-1",
@@ -356,9 +356,8 @@ describe("GET /qv1/download", () => {
     const response = await GET(new Request("https://getqvi.com/qv1/download"));
 
     expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe("https://getqvi.com/qv1?download=soon");
+    expect(response.headers.get("location")).toBe("https://downloads.getqvi.com/qv1/QV1-Setup-Evaluation.exe");
     const logged = errorSpy.mock.calls.flat().join(" ");
-    expect(logged).toContain("R2_SECRET_ACCESS_KEY");
     expect(logged).not.toMatch(/secret-value|wJalr/);
     errorSpy.mockRestore();
   });

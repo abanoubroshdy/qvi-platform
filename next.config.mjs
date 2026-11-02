@@ -86,7 +86,7 @@ const nextConfig = {
         // Public. The QV1 Setup fetches these URLs with no session.
         // Keep this off any auth middleware matcher (there is none today).
         source: "/downloads/evaluation/:path*",
-        destination: "https://dl.getqvi.com/qv1/evaluation/:path*",
+        destination: "https://downloads.getqvi.com/qv1/:path*",
         permanent: false,
       },
     ];
