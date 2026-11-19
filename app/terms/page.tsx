@@ -1,6 +1,7 @@
+import { JsonLd } from "@/components/JsonLd";
 import { TermsView } from "@/components/views/LegalViews";
 import { pageMeta } from "@/lib/page-meta";
-import { buildPageMetadata } from "@/lib/seo";
+import { buildPageMetadata, termsPageJsonLd } from "@/lib/seo";
 
 export const metadata = buildPageMetadata({
   title: pageMeta.terms.title,
@@ -9,5 +10,10 @@ export const metadata = buildPageMetadata({
 });
 
 export default function TermsPage() {
-  return <TermsView />;
+  return (
+    <>
+      <JsonLd data={termsPageJsonLd()} />
+      <TermsView />
+    </>
+  );
 }

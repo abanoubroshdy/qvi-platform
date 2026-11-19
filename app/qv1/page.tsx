@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import { JsonLd } from "@/components/JsonLd";
 import { Qv1EvaluationView } from "@/components/qv1/Qv1EvaluationView";
 import { QV1_DOWNLOAD_ENABLED, qv1AutostartTokenFromQuery } from "@/lib/qv1-download";
 import type { Qv1DownloadNotice } from "@/lib/qv1-release";
-import { buildPageMetadata } from "@/lib/seo";
+import { buildPageMetadata, qv1PageJsonLd } from "@/lib/seo";
 
 const pageTitle = "QV1 Evaluation";
 const pageDescription =
@@ -27,9 +28,12 @@ function noticeFrom(flag: string | string[] | undefined): Qv1DownloadNotice {
 
 export default function Qv1EvaluationPage({ searchParams }: Qv1PageProps) {
   return (
-    <Qv1EvaluationView
-      notice={noticeFrom(searchParams?.download)}
-      autostartToken={qv1AutostartTokenFromQuery(searchParams?.autostart)}
-    />
+    <>
+      <JsonLd data={qv1PageJsonLd()} />
+      <Qv1EvaluationView
+        notice={noticeFrom(searchParams?.download)}
+        autostartToken={qv1AutostartTokenFromQuery(searchParams?.autostart)}
+      />
+    </>
   );
 }

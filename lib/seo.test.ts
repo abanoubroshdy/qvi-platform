@@ -11,7 +11,11 @@ import {
   homePageJsonLd,
   neyoraPageJsonLd,
   organizationSchema,
+  privacyPageJsonLd,
+  qv1ModelsPageJsonLd,
   qv1PageJsonLd,
+  studioPageJsonLd,
+  termsPageJsonLd,
 } from "@/lib/seo";
 import { siteConfig } from "@/lib/site";
 import { tools } from "@/lib/tools";
@@ -100,7 +104,28 @@ describe("seo json-ld", () => {
     );
     expect(app?.inLanguage).toBe("ar");
     expect(app?.operatingSystem).toBe("Windows 10/11 x64");
-    expect(app?.url).toBe(`${siteConfig.url}/ar/products/qv1`);
+    expect(app?.url).toBe(`${siteConfig.url}/ar/qv1`);
+  });
+
+  it("emits WebPage graphs for studio, legal, and QV1 model pages", () => {
+    for (const factory of [
+      studioPageJsonLd,
+      qv1ModelsPageJsonLd,
+      privacyPageJsonLd,
+      termsPageJsonLd,
+    ] as const) {
+      const data = factory();
+      expect(data["@graph"]).toBeTruthy();
+      const types = (data["@graph"] as { "@type": string }[]).map((node) => node["@type"]);
+      expect(types).toContain("Organization");
+      expect(types).toContain("BreadcrumbList");
+    }
+    const studio = (studioPageJsonLd()["@graph"] as { "@type": string }[]).map((node) => node["@type"]);
+    expect(studio).toContain("SoftwareApplication");
+    const models = (qv1ModelsPageJsonLd()["@graph"] as { "@type": string; url?: string }[]).find(
+      (node) => node["@type"] === "WebPage",
+    );
+    expect(models?.url).toBe(`${siteConfig.url}/qv1/models`);
   });
 
   it("matches Arabic Neyora FAQ schema to the visible Arabic answers", () => {
@@ -143,6 +168,16 @@ describe("page metadata", () => {
     expect(metadata.alternates).toEqual({ canonical: "/login" });
   });
 
+  it("can point product overview canonicals at the QV1 evaluation hub", () => {
+    const metadata = buildPageMetadata({
+      title: pageMeta.qv1.title,
+      description: pageMeta.qv1.description,
+      path: "/products/qv1",
+      canonicalPath: "/qv1",
+    });
+    expect(metadata.alternates?.canonical).toBe("/qv1");
+  });
+
   it("points Arabic metadata at itself and pairs hreflang back to English", () => {
     const metadata = buildArabicPageMetadata({
       title: "عن QVI",
@@ -157,7 +192,7 @@ describe("page metadata", () => {
         "x-default": "/about",
       },
     });
-    expect(metadata.openGraph).toMatchObject({ locale: "ar_AR" });
+    expect(metadata.openGraph).toMatchObject({ locale: "ar_EG" });
     const images = metadata.openGraph?.images;
     const image = Array.isArray(images) ? images[0] : images;
     expect(image).toMatchObject({ alt: expect.stringMatching(arabic) });
@@ -183,6 +218,12 @@ describe("page metadata", () => {
 describe("crawl files", () => {
   it("serves a sitemap without /lab and a robots file without a Host line", () => {
     const urls = sitemap().map((entry) => entry.url);
+    const lastMods = new Set(
+      sitemap()
+        .map((entry) => entry.lastModified?.toISOString().slice(0, 10))
+        .filter(Boolean),
+    );
+    expect(lastMods.size).toBeGreaterThan(1);
     expect(urls.some((url) => url.endsWith("/lab"))).toBe(false);
     expect(urls.some((url) => url.endsWith("/products/neyora"))).toBe(true);
     expect(urls).toContain(`${siteConfig.url}/ar`);

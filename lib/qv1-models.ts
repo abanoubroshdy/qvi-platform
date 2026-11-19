@@ -43,7 +43,7 @@ export const qv1Dependencies: readonly Qv1Dependency[] = [
     id: "onnxruntime",
     name: "ONNX Runtime",
     license: "MIT",
-    url: "https://github.com/microsoft/onnxruntime/blob/main/LICENSE",
+    url: "https://pypi.org/project/onnxruntime/license/",
   },
   {
     id: "naudio",
