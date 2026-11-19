@@ -66,21 +66,25 @@ export function buildPageMetadata({
   description,
   path,
   absolute = false,
+  canonicalPath,
 }: {
   title: string;
   description: string;
   path: string;
   absolute?: boolean;
+  /** When set, rel=canonical uses this path instead of `path` (e.g. product overview → download hub). */
+  canonicalPath?: string;
 }): Metadata {
   const url = `${siteConfig.url}${path === "/" ? "" : path}`;
   const image = openGraphImage(path);
   const languages = isIndexableLocalizedPath(path) ? hreflangLanguages(path) : undefined;
+  const canonical = canonicalPath ?? path;
 
   return {
     title: absolute ? { absolute: title } : title,
     description,
     alternates: {
-      canonical: path,
+      canonical,
       ...(languages ? { languages } : {}),
     },
     openGraph: {
@@ -106,13 +110,17 @@ export function buildArabicPageMetadata({
   description,
   englishPath,
   indexable = true,
+  canonicalEnglishPath,
 }: {
   title: string;
   description: string;
   englishPath: string;
   indexable?: boolean;
+  /** English path for rel=canonical when it differs from `englishPath`. */
+  canonicalEnglishPath?: string;
 }): Metadata {
   const path = withLocale(englishPath, "ar");
+  const canonical = withLocale(canonicalEnglishPath ?? englishPath, "ar");
   const url = `${siteConfig.url}${path === "/" ? "" : path}`;
   const image = openGraphImage(englishPath, "ar");
   const languages = indexable ? hreflangLanguages(englishPath) : undefined;
@@ -121,7 +129,7 @@ export function buildArabicPageMetadata({
     title: { absolute: title },
     description,
     alternates: {
-      canonical: path,
+      canonical,
       ...(languages ? { languages } : {}),
     },
     openGraph: {
@@ -130,7 +138,7 @@ export function buildArabicPageMetadata({
       url,
       type: "website",
       siteName: siteConfig.fullName,
-      locale: "ar_AR",
+      locale: "ar_EG",
       images: [image],
     },
     twitter: {
@@ -274,7 +282,7 @@ function absoluteUrl(path: string) {
 
 export function qv1PageJsonLd(locale: Locale = "en") {
   const page = messages[locale].products.qv1;
-  const path = withLocale("/products/qv1", locale);
+  const path = withLocale("/qv1", locale);
   const platform = page.specs.find(([, value]) => value === "Windows 10/11 x64")?.[1] ?? "Windows 10/11 x64";
   const homeName = locale === "ar" ? messages.ar.nav.home : "Home";
   const productsName = locale === "ar" ? messages.ar.nav.products : "Products";
@@ -410,6 +418,117 @@ export function aboutPageJsonLd(locale: Locale = "en") {
         isPartOf: { "@id": websiteId },
         about: { "@id": organizationId },
       },
+    ],
+  };
+}
+
+export function studioPageJsonLd(locale: Locale = "en") {
+  const path = withLocale("/studio", locale);
+  const copy = messages[locale];
+  const homeName = locale === "ar" ? ar.nav.home : "Home";
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      organizationSchema(locale),
+      {
+        "@type": "SoftwareApplication",
+        "@id": `${absoluteUrl(path)}#software`,
+        name: "QVI Studio",
+        url: absoluteUrl(path),
+        image: `${siteConfig.url}/og/studio.png`,
+        applicationCategory: "MultimediaApplication",
+        applicationSubCategory:
+          locale === "ar" ? "مكسر متعدد المسارات في المتصفح" : "In-browser multitrack audio mixer",
+        operatingSystem: locale === "ar" ? "متصفح الويب" : "Web Browser",
+        inLanguage: locale,
+        description: copy.studio.lead,
+        offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+        publisher: { "@id": organizationId },
+      },
+      breadcrumb([
+        { name: homeName, path: withLocale("/", locale) },
+        { name: copy.products.studio.name, path },
+      ]),
+    ],
+  };
+}
+
+export function qv1ModelsPageJsonLd(locale: Locale = "en") {
+  const path = withLocale("/qv1/models", locale);
+  const copy = messages[locale].qv1Models;
+  const homeName = locale === "ar" ? ar.nav.home : "Home";
+  const evaluationName = locale === "ar" ? messages.ar.qv1Page.shortName : "QV1 Evaluation";
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      organizationSchema(locale),
+      {
+        "@type": "WebPage",
+        "@id": `${absoluteUrl(path)}#webpage`,
+        url: absoluteUrl(path),
+        name: copy.title,
+        description: copy.lead,
+        inLanguage: locale,
+        isPartOf: { "@id": websiteId },
+        about: { "@id": organizationId },
+      },
+      breadcrumb([
+        { name: homeName, path: withLocale("/", locale) },
+        { name: evaluationName, path: withLocale("/qv1", locale) },
+        { name: copy.title, path },
+      ]),
+    ],
+  };
+}
+
+export function privacyPageJsonLd(locale: Locale = "en") {
+  const path = withLocale("/privacy-policy", locale);
+  const page = messages[locale].privacy;
+  const homeName = locale === "ar" ? ar.nav.home : "Home";
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      organizationSchema(locale),
+      {
+        "@type": "WebPage",
+        "@id": `${absoluteUrl(path)}#webpage`,
+        url: absoluteUrl(path),
+        name: page.title.replace(/\s*\|.*$/, "").trim(),
+        description: page.intro[0],
+        inLanguage: locale,
+        isPartOf: { "@id": websiteId },
+        about: { "@id": organizationId },
+      },
+      breadcrumb([
+        { name: homeName, path: withLocale("/", locale) },
+        { name: messages[locale].footer.privacy, path },
+      ]),
+    ],
+  };
+}
+
+export function termsPageJsonLd(locale: Locale = "en") {
+  const path = withLocale("/terms", locale);
+  const page = messages[locale].terms;
+  const homeName = locale === "ar" ? ar.nav.home : "Home";
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      organizationSchema(locale),
+      {
+        "@type": "WebPage",
+        "@id": `${absoluteUrl(path)}#webpage`,
+        url: absoluteUrl(path),
+        name: page.title.replace(/\s*\|.*$/, "").trim(),
+        description: page.p1,
+        inLanguage: locale,
+        isPartOf: { "@id": websiteId },
+        about: { "@id": organizationId },
+      },
+      breadcrumb([
+        { name: homeName, path: withLocale("/", locale) },
+        { name: messages[locale].footer.terms, path },
+      ]),
     ],
   };
 }

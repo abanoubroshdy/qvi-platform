@@ -31,7 +31,11 @@ import {
   contactPageJsonLd,
   homePageJsonLd,
   neyoraPageJsonLd,
+  privacyPageJsonLd,
+  qv1ModelsPageJsonLd,
   qv1PageJsonLd,
+  studioPageJsonLd,
+  termsPageJsonLd,
 } from "@/lib/seo";
 import { getToolBySlug, isToolCategory } from "@/lib/tools";
 
@@ -97,6 +101,7 @@ export function generateMetadata({ params }: PageProps): Metadata {
     description: seo.description,
     englishPath,
     indexable: isIndexableLocalizedPath(englishPath),
+    canonicalEnglishPath: englishPath === "/products/qv1" ? "/qv1" : undefined,
   });
 }
 
@@ -110,12 +115,7 @@ function ArabicBody({ englishPath, searchParams }: { englishPath: string; search
         </>
       );
     case "/products/qv1":
-      return (
-        <>
-          <JsonLd data={qv1PageJsonLd("ar")} />
-          <Qv1View />
-        </>
-      );
+      return <Qv1View />;
     case "/products/neyora":
       return (
         <>
@@ -125,21 +125,32 @@ function ArabicBody({ englishPath, searchParams }: { englishPath: string; search
       );
     case "/studio":
       return (
-        <StudioSessionProvider>
-          <QviStudioApp />
-        </StudioSessionProvider>
+        <>
+          <JsonLd data={studioPageJsonLd("ar")} />
+          <StudioSessionProvider>
+            <QviStudioApp />
+          </StudioSessionProvider>
+        </>
       );
     case "/tools":
       return <ToolsHubView />;
     case "/qv1":
       return (
-        <Qv1EvaluationView
-          notice={noticeFrom(searchParams?.download)}
-          autostartToken={qv1AutostartTokenFromQuery(searchParams?.autostart)}
-        />
+        <>
+          <JsonLd data={qv1PageJsonLd("ar")} />
+          <Qv1EvaluationView
+            notice={noticeFrom(searchParams?.download)}
+            autostartToken={qv1AutostartTokenFromQuery(searchParams?.autostart)}
+          />
+        </>
       );
     case "/qv1/models":
-      return <Qv1ModelsView />;
+      return (
+        <>
+          <JsonLd data={qv1ModelsPageJsonLd("ar")} />
+          <Qv1ModelsView />
+        </>
+      );
     case "/about":
       return (
         <>
@@ -155,9 +166,19 @@ function ArabicBody({ englishPath, searchParams }: { englishPath: string; search
         </>
       );
     case "/privacy-policy":
-      return <PrivacyView />;
+      return (
+        <>
+          <JsonLd data={privacyPageJsonLd("ar")} />
+          <PrivacyView />
+        </>
+      );
     case "/terms":
-      return <TermsView />;
+      return (
+        <>
+          <JsonLd data={termsPageJsonLd("ar")} />
+          <TermsView />
+        </>
+      );
     case "/login":
       return (
         <LoginView

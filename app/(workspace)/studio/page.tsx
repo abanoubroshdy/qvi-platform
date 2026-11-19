@@ -1,6 +1,7 @@
+import { JsonLd } from "@/components/JsonLd";
 import { QviStudioApp } from "@/components/studio/QviStudioApp";
 import { pageMeta } from "@/lib/page-meta";
-import { buildPageMetadata } from "@/lib/seo";
+import { buildPageMetadata, studioPageJsonLd } from "@/lib/seo";
 
 export const metadata = buildPageMetadata({
   title: pageMeta.studio.title,
@@ -10,5 +11,10 @@ export const metadata = buildPageMetadata({
 });
 
 export default function StudioPage() {
-  return <QviStudioApp />;
+  return (
+    <>
+      <JsonLd data={studioPageJsonLd()} />
+      <QviStudioApp />
+    </>
+  );
 }

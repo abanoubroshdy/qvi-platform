@@ -1,7 +1,6 @@
 "use client";
 
 import { LocaleLink as Link } from "@/components/LocaleLink";
-import { JsonLd } from "@/components/JsonLd";
 import { CopyHashButton } from "@/components/qv1/CopyHashButton";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,6 @@ import { qv1Changelog } from "@/lib/qv1-changelog";
 import { QV1_DOWNLOAD_ENABLED } from "@/lib/qv1-download";
 import { Qv1AutostartNotice } from "@/components/qv1/Qv1AutostartNotice";
 import { qv1HasSha256, qv1Release, type Qv1DownloadNotice } from "@/lib/qv1-release";
-import { withLocale } from "@/lib/i18n/locale-path";
 import { siteConfig } from "@/lib/site";
 
 function formatReleaseDate(iso: string, locale: "en" | "ar") {
@@ -52,26 +50,6 @@ export function Qv1EvaluationView({
 
   return (
     <div>
-      <JsonLd
-        data={{
-          "@context": "https://schema.org",
-          "@type": "SoftwareApplication",
-          name: "QV1 Evaluation",
-          applicationCategory: "MultimediaApplication",
-          operatingSystem: qv1Release.minOs,
-          softwareVersion: qv1Release.version,
-          inLanguage: locale,
-          url: `${siteConfig.url}${withLocale("/qv1", locale)}`,
-          description: page.metaDescription,
-          offers: {
-            "@type": "Offer",
-            price: "0",
-            priceCurrency: "USD",
-          },
-          ...(QV1_DOWNLOAD_ENABLED ? { downloadUrl: `${siteConfig.url}/qv1/download` } : {}),
-        }}
-      />
-
       <section className="border-b border-border">
         <div className="mx-auto max-w-3xl px-4 py-14 sm:py-20">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">{page.kicker}</p>

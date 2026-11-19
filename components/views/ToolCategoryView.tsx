@@ -66,6 +66,7 @@ export function ToolCategoryView({ category }: { category: ToolCategory }) {
       </section>
 
       <section className="mx-auto max-w-6xl px-4 py-10 sm:py-14">
+        <h2 className="sr-only">{group.title}</h2>
         <div className="qvi-tool-grid grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {tools.map((tool) => (
             <ToolCard key={tool.slug} tool={tool} />

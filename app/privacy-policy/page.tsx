@@ -1,6 +1,7 @@
+import { JsonLd } from "@/components/JsonLd";
 import { PrivacyView } from "@/components/views/LegalViews";
 import { pageMeta } from "@/lib/page-meta";
-import { buildPageMetadata } from "@/lib/seo";
+import { buildPageMetadata, privacyPageJsonLd } from "@/lib/seo";
 
 export const metadata = buildPageMetadata({
   title: pageMeta.privacy.title,
@@ -9,5 +10,10 @@ export const metadata = buildPageMetadata({
 });
 
 export default function PrivacyPolicyPage() {
-  return <PrivacyView />;
+  return (
+    <>
+      <JsonLd data={privacyPageJsonLd()} />
+      <PrivacyView />
+    </>
+  );
 }

@@ -124,6 +124,16 @@ describe("QV1 public copy", () => {
           destination: "https://downloads.getqvi.com/qv1/:path*",
           permanent: false,
         },
+        {
+          source: "/privacy",
+          destination: "/privacy-policy",
+          statusCode: 301,
+        },
+        {
+          source: "/ar/privacy",
+          destination: "/ar/privacy-policy",
+          statusCode: 301,
+        },
       ]),
     );
     const middleware = fs.readFileSync("middleware.ts", "utf8");
@@ -160,5 +170,12 @@ describe("QV1 public copy", () => {
     expect(qv1AppCopyright).toEqual({ year: 2026, holder: "Abanoub Roshdy (QVI)" });
     expect(en.qv1Models.license).toContain("Non-commercial");
     expect(en.qv1Models.license).toContain("MUSDB18");
+  });
+
+  it("links ONNX Runtime MIT license to a resolvable URL", async () => {
+    const dep = qv1Dependencies.find((item) => item.id === "onnxruntime");
+    expect(dep?.url).toBe("https://pypi.org/project/onnxruntime/license/");
+    const response = await fetch(dep!.url, { method: "HEAD" });
+    expect(response.ok).toBe(true);
   });
 });
