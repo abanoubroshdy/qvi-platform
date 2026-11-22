@@ -1,0 +1,150 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { getSupabaseClient } from "@/lib/supabase/client";
+import { fetchUserLicenses, type UserLicenseSummary } from "@/lib/supabase/licensing";
+import { Button } from "@/components/ui/button";
+
+export function AccountLicensesSection() {
+  const { user } = useAuth();
+  const { copy, locale, t } = useI18n();
+  const a = copy.auth;
+
+  const [state, setState] = useState<
+    | { status: "loading" }
+    | { status: "error" }
+    | { status: "ready"; rows: UserLicenseSummary[] }
+  >({ status: "loading" });
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const reload = useCallback(async () => {
+    if (!user) return;
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      setState({ status: "error" });
+      return;
+    }
+    const result = await fetchUserLicenses(supabase, user.id);
+    if (result.error) setState({ status: "error" });
+    else setState({ status: "ready", rows: result.rows });
+  }, [user]);
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+
+  async function deactivateDevice(deviceId: string) {
+    setBusyId(deviceId);
+    setNotice(null);
+    try {
+      const response = await fetch("/api/account/license-devices", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ deviceId }),
+      });
+      if (!response.ok) {
+        setNotice(a.licensesUnavailable);
+        return;
+      }
+      setNotice(a.licensesDeviceDeactivated);
+      await reload();
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  return (
+    <div className="space-y-3 border-t border-border pt-4">
+      <h2 className="text-sm font-semibold">{a.licensesTitle}</h2>
+      {notice ? (
+        <p className="text-sm text-primary" role="status">
+          {notice}
+        </p>
+      ) : null}
+      {state.status === "loading" ? (
+        <p className="text-sm text-muted-foreground">{a.loading}</p>
+      ) : state.status === "error" ? (
+        <p className="text-sm text-muted-foreground">{a.licensesUnavailable}</p>
+      ) : state.rows.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{a.licensesEmpty}</p>
+      ) : (
+        <ul className="space-y-4">
+          {state.rows.map((license) => {
+            const activeDevices = license.devices.filter((d) => !d.revoked_at);
+            return (
+              <li key={license.id} className="rounded-xl border border-border p-4">
+                <dl className="grid gap-2 text-sm sm:grid-cols-2">
+                  <div>
+                    <dt className="text-xs uppercase tracking-wide text-muted-foreground">{a.licensesProduct}</dt>
+                    <dd className="font-medium">{license.product.name}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs uppercase tracking-wide text-muted-foreground">{a.licensesStatus}</dt>
+                    <dd className="font-medium">{license.status}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs uppercase tracking-wide text-muted-foreground">{a.licensesExpires}</dt>
+                    <dd className="font-medium">
+                      {license.expires_at
+                        ? new Date(license.expires_at).toLocaleDateString(locale === "ar" ? "ar" : undefined)
+                        : a.licensesNeverExpires}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs uppercase tracking-wide text-muted-foreground">{a.licensesKeyHint}</dt>
+                    <dd className="font-mono text-xs">{license.license_key_hint}</dd>
+                  </div>
+                </dl>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  {t(a.licensesDeviceLimit, {
+                    active: String(activeDevices.length),
+                    max: String(license.max_devices),
+                  })}
+                </p>
+                {activeDevices.length > 0 ? (
+                  <ul className="mt-3 divide-y divide-border rounded-lg border border-border">
+                    {activeDevices.map((device) => (
+                      <li key={device.id} className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="text-sm">
+                          <p className="font-medium">{device.device_name || a.licensesDeviceName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {a.licensesLastSeen}{" "}
+                            {new Date(device.last_seen_at).toLocaleString(locale === "ar" ? "ar" : "en-GB", {
+                              dateStyle: "medium",
+                              timeStyle: "short",
+                            })}
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={busyId === device.id}
+                          onClick={() => void deactivateDevice(device.id)}
+                        >
+                          {busyId === device.id ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                              {a.licensesDeactivating}
+                            </>
+                          ) : (
+                            a.licensesDeactivateDevice
+                          )}
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}

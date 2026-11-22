@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { LocaleLink as Link } from "@/components/LocaleLink";
 import { useRouter } from "next/navigation";
 import { LogOut, Loader2 } from "lucide-react";
+import { AccountLicensesSection } from "@/components/auth/AccountLicensesSection";
 import { ChangePasswordForm } from "@/components/auth/ChangePasswordForm";
 import { ProfileFields, type ProfileFormValues } from "@/components/auth/ProfileFields";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -327,6 +328,8 @@ export function AccountView() {
         )}
 
         <ChangePasswordForm />
+
+        <AccountLicensesSection />
 
         <div className="space-y-3 border-t border-border pt-4">
           <div className="flex items-baseline justify-between gap-3">
