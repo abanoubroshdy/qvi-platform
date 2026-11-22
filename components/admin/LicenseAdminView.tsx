@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ConfirmActionDialog } from "@/components/licensing/ConfirmActionDialog";
 import { KNOWN_PRODUCT_CODES, isProductCode, type ProductCode } from "@/lib/licensing/products";
+import { licenseStatusLabel } from "@/lib/admin/license-status-label";
 import { patchLicenseListRevoked } from "@/lib/licensing/revoke-ui";
 
 type LicenseListItem = {
@@ -30,6 +31,7 @@ export function LicenseAdminView() {
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [licenses, setLicenses] = useState<LicenseListItem[]>([]);
   const [confirmLicense, setConfirmLicense] = useState<LicenseListItem | null>(null);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
 
   const [createForm, setCreateForm] = useState({
     email: "",
@@ -123,12 +125,12 @@ export function LicenseAdminView() {
       });
       if (!response.ok) {
         const body = (await response.json().catch(() => ({}))) as { error?: string };
-        setMessageIsError(true);
-        setMessage(body.error ?? la.revokeFailed);
+        setConfirmError(body.error ?? la.revokeFailed);
         return;
       }
       setLicenses((current) => patchLicenseListRevoked(current, row.id));
       setConfirmLicense(null);
+      setConfirmError(null);
       setMessageIsError(false);
       setMessage(la.revokeSuccess);
     } finally {
@@ -232,10 +234,12 @@ export function LicenseAdminView() {
             <li key={row.id} className="flex flex-col gap-2 p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="font-medium">
-                  {row.license_products?.name ?? row.license_products?.code} — {row.status}
+                  {row.license_products?.name ?? row.license_products?.code} —{" "}
+                  {licenseStatusLabel(row.status, copy)}
                 </p>
                 <p className="text-muted-foreground">
-                  {row.userEmail ?? "—"} · {row.license_key_hint} · {row.activeDevices}/{row.max_devices} devices
+                  {row.userEmail ?? ad.emDash} · {row.license_key_hint} · {row.activeDevices}/{row.max_devices}{" "}
+                  {ad.devicesShort}
                 </p>
               </div>
               <Button
@@ -243,7 +247,10 @@ export function LicenseAdminView() {
                 size="sm"
                 variant="destructive"
                 disabled={busy || row.status === "revoked"}
-                onClick={() => setConfirmLicense(row)}
+                onClick={() => {
+                  setConfirmError(null);
+                  setConfirmLicense(row);
+                }}
               >
                 {la.revokeLicense}
               </Button>
@@ -267,11 +274,15 @@ export function LicenseAdminView() {
         confirmLabel={la.revokeConfirmCta}
         cancelLabel={la.revokeCancel}
         busy={busy}
+        errorMessage={confirmError}
         onConfirm={() => {
           if (confirmLicense) void revokeLicenseConfirmed(confirmLicense);
         }}
         onCancel={() => {
-          if (!busy) setConfirmLicense(null);
+          if (!busy) {
+            setConfirmLicense(null);
+            setConfirmError(null);
+          }
         }}
       />
     </div>

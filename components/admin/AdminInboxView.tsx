@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { Button } from "@/components/ui/button";
+import { formatAdminDateTime } from "@/lib/admin/format";
 
 type InboxItem = {
   id: string;
@@ -18,8 +19,9 @@ type InboxItem = {
 type Tab = "contact" | "waitlist";
 
 export function AdminInboxView() {
-  const { copy } = useI18n();
+  const { copy, locale } = useI18n();
   const ad = copy.adminDashboard;
+  const localeTag = locale === "ar" ? "ar" : "en";
 
   const [tab, setTab] = useState<Tab>("contact");
   const [status, setStatus] = useState<"all" | "new" | "handled">("all");
@@ -128,7 +130,7 @@ export function AdminInboxView() {
                 {tab === "contact" && item.message ? (
                   <p className="whitespace-pre-wrap text-xs text-muted-foreground">{item.message}</p>
                 ) : null}
-                <p className="text-xs text-muted-foreground">{item.created_at}</p>
+                <p className="text-xs text-muted-foreground">{formatAdminDateTime(item.created_at, localeTag)}</p>
               </div>
               <Button
                 type="button"

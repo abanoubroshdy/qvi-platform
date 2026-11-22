@@ -3,15 +3,9 @@
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { useI18n } from "@/components/i18n/I18nProvider";
+import { formatAdminDateTime } from "@/lib/admin/format";
+import { licenseStatusLabel } from "@/lib/admin/license-status-label";
 import type { DashboardStats } from "@/lib/admin/overview";
-
-function formatWhen(iso: string, locale: string) {
-  try {
-    return new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(iso));
-  } catch {
-    return iso;
-  }
-}
 
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
@@ -87,7 +81,8 @@ export function AdminOverviewView() {
             {stats.licenses.map((row, index) => (
               <li key={`${row.product_code}-${row.status}-${index}`} className="flex justify-between gap-3 py-2">
                 <span>
-                  {row.product_name} · <span className="text-muted-foreground">{row.status}</span>
+                  {row.product_name} ·{" "}
+                  <span className="text-muted-foreground">{licenseStatusLabel(row.status, copy)}</span>
                 </span>
                 <span className="font-medium tabular-nums">{row.count}</span>
               </li>
@@ -104,8 +99,8 @@ export function AdminOverviewView() {
           <ul className="divide-y divide-border text-sm">
             {stats.recent_signups.map((row, index) => (
               <li key={`${row.created_at}-${index}`} className="flex justify-between gap-3 py-2">
-                <span>{row.email ?? "—"}</span>
-                <span className="text-muted-foreground">{formatWhen(row.created_at, localeTag)}</span>
+                <span>{row.email ?? ad.emDash}</span>
+                <span className="text-muted-foreground">{formatAdminDateTime(row.created_at, localeTag)}</span>
               </li>
             ))}
           </ul>

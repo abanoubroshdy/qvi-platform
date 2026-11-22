@@ -148,9 +148,9 @@ export function AdminReleasesView() {
               value={form.channel}
               onChange={(e) => setForm((c) => ({ ...c, channel: e.target.value }))}
             >
-              <option value="stable">stable</option>
-              <option value="beta">beta</option>
-              <option value="evaluation">evaluation</option>
+              <option value="stable">{ad.releaseChannels.stable}</option>
+              <option value="beta">{ad.releaseChannels.beta}</option>
+              <option value="evaluation">{ad.releaseChannels.evaluation}</option>
             </select>
           </div>
           <div className="space-y-2 sm:col-span-2">
@@ -185,7 +185,8 @@ export function AdminReleasesView() {
             <li key={row.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="font-medium">
-                  {row.product_code} · v{row.version} · {row.channel}
+                  {row.product_code} · v{row.version} ·{" "}
+                  {ad.releaseChannels[row.channel as keyof typeof ad.releaseChannels] ?? row.channel}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {row.is_published ? ad.published : ad.draft} · {row.sha256.slice(0, 12)}…

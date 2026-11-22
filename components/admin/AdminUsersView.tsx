@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ConfirmActionDialog } from "@/components/licensing/ConfirmActionDialog";
 import { KNOWN_PRODUCT_CODES, isProductCode } from "@/lib/licensing/products";
+import { licenseStatusLabel } from "@/lib/admin/license-status-label";
 import { patchLicenseListRevoked } from "@/lib/licensing/revoke-ui";
 
 type UserSummary = {
@@ -48,7 +49,9 @@ export function AdminUsersView() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [confirmBan, setConfirmBan] = useState(false);
+  const [confirmBanError, setConfirmBanError] = useState<string | null>(null);
   const [confirmRevoke, setConfirmRevoke] = useState<UserLicense | null>(null);
+  const [confirmRevokeError, setConfirmRevokeError] = useState<string | null>(null);
   const [issueForm, setIssueForm] = useState({
     productCode: KNOWN_PRODUCT_CODES[0],
     expiresAt: "",
@@ -130,10 +133,11 @@ export function AdminUsersView() {
       });
       if (!response.ok) {
         const body = (await response.json().catch(() => ({}))) as { error?: string };
-        setMessage(body.error ?? la.error);
+        setConfirmBanError(body.error ?? la.error);
         return;
       }
       setConfirmBan(false);
+      setConfirmBanError(null);
       await loadDetail(selectedId);
       await loadUsers(query);
     } finally {
@@ -161,7 +165,7 @@ export function AdminUsersView() {
         credentials: "include",
       });
       if (!response.ok) {
-        setMessage(la.revokeFailed);
+        setConfirmRevokeError(la.revokeFailed);
         return;
       }
       if (detail) {
@@ -171,6 +175,7 @@ export function AdminUsersView() {
         });
       }
       setConfirmRevoke(null);
+      setConfirmRevokeError(null);
     } finally {
       setBusy(false);
     }
@@ -248,7 +253,16 @@ export function AdminUsersView() {
                     {ad.unbanUser}
                   </Button>
                 ) : (
-                  <Button type="button" size="sm" variant="destructive" disabled={busy} onClick={() => setConfirmBan(true)}>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="destructive"
+                    disabled={busy}
+                    onClick={() => {
+                      setConfirmBanError(null);
+                      setConfirmBan(true);
+                    }}
+                  >
                     {ad.banUser}
                   </Button>
                 )}
@@ -310,14 +324,18 @@ export function AdminUsersView() {
                   {detail.licenses.map((license) => (
                     <li key={license.id} className="flex flex-col gap-2 py-2 sm:flex-row sm:items-center sm:justify-between">
                       <span>
-                        {license.license_products?.name ?? license.license_products?.code} — {license.status} · {license.license_key_hint}
+                        {license.license_products?.name ?? license.license_products?.code} —{" "}
+                        {licenseStatusLabel(license.status, copy)} · {license.license_key_hint}
                       </span>
                       <Button
                         type="button"
                         size="sm"
                         variant="destructive"
                         disabled={busy || license.status === "revoked"}
-                        onClick={() => setConfirmRevoke(license)}
+                        onClick={() => {
+                          setConfirmRevokeError(null);
+                          setConfirmRevoke(license);
+                        }}
                       >
                         {la.revokeLicense}
                       </Button>
@@ -340,9 +358,13 @@ export function AdminUsersView() {
         confirmLabel={ad.banConfirmCta}
         cancelLabel={la.revokeCancel}
         busy={busy}
+        errorMessage={confirmBanError}
         onConfirm={() => void banConfirmed()}
         onCancel={() => {
-          if (!busy) setConfirmBan(false);
+          if (!busy) {
+            setConfirmBan(false);
+            setConfirmBanError(null);
+          }
         }}
       />
 
@@ -361,11 +383,15 @@ export function AdminUsersView() {
         confirmLabel={la.revokeConfirmCta}
         cancelLabel={la.revokeCancel}
         busy={busy}
+        errorMessage={confirmRevokeError}
         onConfirm={() => {
           if (confirmRevoke) void revokeConfirmed(confirmRevoke);
         }}
         onCancel={() => {
-          if (!busy) setConfirmRevoke(null);
+          if (!busy) {
+            setConfirmRevoke(null);
+            setConfirmRevokeError(null);
+          }
         }}
       />
     </div>

@@ -6,6 +6,7 @@ import { useI18n } from "@/components/i18n/I18nProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { formatAdminDateTime } from "@/lib/admin/format";
 
 type LicenseEvent = {
   id: string;
@@ -16,36 +17,47 @@ type LicenseEvent = {
   created_at: string;
 };
 
+type EventsFilters = {
+  eventType: string;
+  success: "all" | "true" | "false";
+  since: string;
+  until: string;
+};
+
+const emptyFilters: EventsFilters = {
+  eventType: "",
+  success: "all",
+  since: "",
+  until: "",
+};
+
 export function AdminEventsView() {
-  const { copy } = useI18n();
+  const { copy, locale } = useI18n();
   const ad = copy.adminDashboard;
+  const localeTag = locale === "ar" ? "ar" : "en";
 
   const [events, setEvents] = useState<LicenseEvent[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [offset, setOffset] = useState(0);
-  const [filters, setFilters] = useState({
-    eventType: "",
-    success: "all" as "all" | "true" | "false",
-    since: "",
-    until: "",
-  });
+  const [draftFilters, setDraftFilters] = useState<EventsFilters>(emptyFilters);
+  const [appliedFilters, setAppliedFilters] = useState<EventsFilters>(emptyFilters);
   const limit = 50;
 
   const load = useCallback(async () => {
     setLoading(true);
     const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
-    if (filters.eventType.trim()) params.set("event_type", filters.eventType.trim());
-    if (filters.success !== "all") params.set("success", filters.success);
-    if (filters.since) params.set("since", new Date(filters.since).toISOString());
-    if (filters.until) params.set("until", new Date(filters.until).toISOString());
+    if (appliedFilters.eventType.trim()) params.set("event_type", appliedFilters.eventType.trim());
+    if (appliedFilters.success !== "all") params.set("success", appliedFilters.success);
+    if (appliedFilters.since) params.set("since", new Date(appliedFilters.since).toISOString());
+    if (appliedFilters.until) params.set("until", new Date(appliedFilters.until).toISOString());
     const response = await fetch(`/api/admin/events?${params}`, { credentials: "include" });
     setLoading(false);
     if (!response.ok) return;
     const body = (await response.json()) as { events?: LicenseEvent[]; total?: number };
     setEvents(body.events ?? []);
     setTotal(body.total ?? 0);
-  }, [filters, offset]);
+  }, [appliedFilters, offset]);
 
   useEffect(() => {
     void load();
@@ -54,7 +66,7 @@ export function AdminEventsView() {
   function onFilterSubmit(event: FormEvent) {
     event.preventDefault();
     setOffset(0);
-    void load();
+    setAppliedFilters(draftFilters);
   }
 
   const canPrev = offset > 0;
@@ -70,14 +82,19 @@ export function AdminEventsView() {
       <form onSubmit={onFilterSubmit} className="grid gap-3 rounded-2xl border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="space-y-1">
           <Label>{ad.eventType}</Label>
-          <Input value={filters.eventType} onChange={(e) => setFilters((f) => ({ ...f, eventType: e.target.value }))} />
+          <Input
+            value={draftFilters.eventType}
+            onChange={(e) => setDraftFilters((f) => ({ ...f, eventType: e.target.value }))}
+          />
         </div>
         <div className="space-y-1">
           <Label>{ad.successFilter}</Label>
           <select
             className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-            value={filters.success}
-            onChange={(e) => setFilters((f) => ({ ...f, success: e.target.value as typeof f.success }))}
+            value={draftFilters.success}
+            onChange={(e) =>
+              setDraftFilters((f) => ({ ...f, success: e.target.value as EventsFilters["success"] }))
+            }
           >
             <option value="all">{ad.filterAll}</option>
             <option value="true">{ad.successOnly}</option>
@@ -86,11 +103,19 @@ export function AdminEventsView() {
         </div>
         <div className="space-y-1">
           <Label>{ad.since}</Label>
-          <Input type="datetime-local" value={filters.since} onChange={(e) => setFilters((f) => ({ ...f, since: e.target.value }))} />
+          <Input
+            type="datetime-local"
+            value={draftFilters.since}
+            onChange={(e) => setDraftFilters((f) => ({ ...f, since: e.target.value }))}
+          />
         </div>
         <div className="space-y-1">
           <Label>{ad.until}</Label>
-          <Input type="datetime-local" value={filters.until} onChange={(e) => setFilters((f) => ({ ...f, until: e.target.value }))} />
+          <Input
+            type="datetime-local"
+            value={draftFilters.until}
+            onChange={(e) => setDraftFilters((f) => ({ ...f, until: e.target.value }))}
+          />
         </div>
         <div className="sm:col-span-2 lg:col-span-4">
           <Button type="submit" size="sm" variant="secondary">
@@ -105,7 +130,7 @@ export function AdminEventsView() {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-border bg-card">
-          <table className="w-full min-w-[640px] text-left text-xs">
+          <table className="w-full min-w-[640px] text-start text-xs">
             <thead className="border-b border-border text-muted-foreground">
               <tr>
                 <th className="p-3 font-medium">{ad.eventType}</th>
@@ -119,8 +144,8 @@ export function AdminEventsView() {
                 <tr key={row.id} className="border-b border-border/60">
                   <td className="p-3 font-mono">{row.event_type}</td>
                   <td className="p-3">{row.success ? ad.yes : ad.no}</td>
-                  <td className="p-3 font-mono text-muted-foreground">{row.license_id ?? "—"}</td>
-                  <td className="p-3 text-muted-foreground">{row.created_at}</td>
+                  <td className="p-3 font-mono text-muted-foreground">{row.license_id ?? ad.emDash}</td>
+                  <td className="p-3 text-muted-foreground">{formatAdminDateTime(row.created_at, localeTag)}</td>
                 </tr>
               ))}
               {events.length === 0 ? (
@@ -136,9 +161,17 @@ export function AdminEventsView() {
       )}
 
       <div className="flex items-center justify-between gap-3 text-sm">
-        <span className="text-muted-foreground">{total} {ad.totalLabel}</span>
+        <span className="text-muted-foreground">
+          {total} {ad.totalLabel}
+        </span>
         <div className="flex gap-2">
-          <Button type="button" size="sm" variant="outline" disabled={!canPrev} onClick={() => setOffset((o) => Math.max(0, o - limit))}>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={!canPrev}
+            onClick={() => setOffset((o) => Math.max(0, o - limit))}
+          >
             {ad.prevPage}
           </Button>
           <Button type="button" size="sm" variant="outline" disabled={!canNext} onClick={() => setOffset((o) => o + limit)}>
