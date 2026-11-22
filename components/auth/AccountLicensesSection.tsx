@@ -6,7 +6,9 @@ import { useI18n } from "@/components/i18n/I18nProvider";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { fetchUserLicenses, type UserLicenseSummary } from "@/lib/supabase/licensing";
+import { ConfirmActionDialog } from "@/components/licensing/ConfirmActionDialog";
 import { Button } from "@/components/ui/button";
+import { patchUserLicenseDeviceRevoked } from "@/lib/licensing/revoke-ui";
 
 export function AccountLicensesSection() {
   const { user } = useAuth();
@@ -20,6 +22,12 @@ export function AccountLicensesSection() {
   >({ status: "loading" });
   const [busyId, setBusyId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [noticeIsError, setNoticeIsError] = useState(false);
+  const [confirmDevice, setConfirmDevice] = useState<{
+    deviceId: string;
+    deviceName: string;
+    productName: string;
+  } | null>(null);
 
   const reload = useCallback(async () => {
     if (!user) return;
@@ -37,9 +45,10 @@ export function AccountLicensesSection() {
     void reload();
   }, [reload]);
 
-  async function deactivateDevice(deviceId: string) {
+  async function deactivateDeviceConfirmed(deviceId: string) {
     setBusyId(deviceId);
     setNotice(null);
+    setNoticeIsError(false);
     try {
       const response = await fetch("/api/account/license-devices", {
         method: "POST",
@@ -48,11 +57,21 @@ export function AccountLicensesSection() {
         body: JSON.stringify({ deviceId }),
       });
       if (!response.ok) {
-        setNotice(a.licensesUnavailable);
+        setNoticeIsError(true);
+        setNotice(a.licensesDeactivateFailed);
         return;
       }
+      const revokedAt = new Date().toISOString();
+      setState((current) => {
+        if (current.status !== "ready") return current;
+        return {
+          status: "ready",
+          rows: patchUserLicenseDeviceRevoked(current.rows, deviceId, revokedAt),
+        };
+      });
+      setConfirmDevice(null);
+      setNoticeIsError(false);
       setNotice(a.licensesDeviceDeactivated);
-      await reload();
     } finally {
       setBusyId(null);
     }
@@ -61,8 +80,30 @@ export function AccountLicensesSection() {
   return (
     <div className="space-y-3 border-t border-border pt-4">
       <h2 className="text-sm font-semibold">{a.licensesTitle}</h2>
+      <ConfirmActionDialog
+        open={confirmDevice !== null}
+        title={a.licensesDeactivateConfirmTitle}
+        description={
+          confirmDevice
+            ? t(a.licensesDeactivateConfirmDescription, {
+                product: confirmDevice.productName,
+                deviceName: confirmDevice.deviceName,
+              })
+            : ""
+        }
+        confirmLabel={a.licensesDeactivateConfirmCta}
+        cancelLabel={a.licensesDeactivateCancel}
+        busy={Boolean(busyId)}
+        onConfirm={() => {
+          if (confirmDevice) void deactivateDeviceConfirmed(confirmDevice.deviceId);
+        }}
+        onCancel={() => {
+          if (!busyId) setConfirmDevice(null);
+        }}
+      />
+
       {notice ? (
-        <p className="text-sm text-primary" role="status">
+        <p className={noticeIsError ? "text-sm text-destructive" : "text-sm text-primary"} role="status">
           {notice}
         </p>
       ) : null}
@@ -125,7 +166,13 @@ export function AccountLicensesSection() {
                           size="sm"
                           variant="outline"
                           disabled={busyId === device.id}
-                          onClick={() => void deactivateDevice(device.id)}
+                          onClick={() =>
+                            setConfirmDevice({
+                              deviceId: device.id,
+                              deviceName: device.device_name || a.licensesDeviceName,
+                              productName: license.product.name,
+                            })
+                          }
                         >
                           {busyId === device.id ? (
                             <>

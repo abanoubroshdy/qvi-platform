@@ -8,7 +8,9 @@ import { useI18n } from "@/components/i18n/I18nProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ConfirmActionDialog } from "@/components/licensing/ConfirmActionDialog";
 import { KNOWN_PRODUCT_CODES, isProductCode, type ProductCode } from "@/lib/licensing/products";
+import { patchLicenseListRevoked } from "@/lib/licensing/revoke-ui";
 
 type LicenseListItem = {
   id: string;
@@ -22,16 +24,18 @@ type LicenseListItem = {
 
 export function LicenseAdminView() {
   const { user, loading } = useAuth();
-  const { copy } = useI18n();
+  const { copy, t } = useI18n();
   const la = copy.licenseAdmin;
   const router = useRouter();
 
   const [allowed, setAllowed] = useState<"loading" | "yes" | "no">("loading");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [messageIsError, setMessageIsError] = useState(false);
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [licenses, setLicenses] = useState<LicenseListItem[]>([]);
   const [events, setEvents] = useState<unknown[]>([]);
+  const [confirmLicense, setConfirmLicense] = useState<LicenseListItem | null>(null);
 
   const [createForm, setCreateForm] = useState({
     email: "",
@@ -98,6 +102,7 @@ export function LicenseAdminView() {
     event.preventDefault();
     setBusy(true);
     setMessage(null);
+    setMessageIsError(false);
     setCreatedKey(null);
     try {
       const response = await fetch("/api/admin/licenses", {
@@ -113,10 +118,12 @@ export function LicenseAdminView() {
       });
       const body = await response.json();
       if (!response.ok) {
+        setMessageIsError(true);
         setMessage(body.error ?? la.error);
         return;
       }
       setCreatedKey(body.licenseKeyFormatted ?? body.licenseKey);
+      setMessageIsError(false);
       setMessage(la.saved);
       const list = await fetch("/api/admin/licenses", { credentials: "include" });
       if (list.ok) {
@@ -131,12 +138,14 @@ export function LicenseAdminView() {
   async function searchLicenses() {
     setBusy(true);
     setMessage(null);
+    setMessageIsError(false);
     try {
       const params = new URLSearchParams();
       if (lookupEmail.trim()) params.set("email", lookupEmail.trim());
       if (lookupKey.trim()) params.set("key", lookupKey.trim());
       const response = await fetch(`/api/admin/licenses?${params.toString()}`, { credentials: "include" });
       if (!response.ok) {
+        setMessageIsError(true);
         setMessage(la.error);
         return;
       }
@@ -147,17 +156,35 @@ export function LicenseAdminView() {
     }
   }
 
-  async function revokeLicense(id: string) {
+  async function revokeLicenseConfirmed(row: LicenseListItem) {
     setBusy(true);
-    await fetch(`/api/admin/licenses/${id}`, { method: "DELETE", credentials: "include" });
-    await searchLicenses();
-    setBusy(false);
+    setMessage(null);
+    setMessageIsError(false);
+    try {
+      const response = await fetch(`/api/admin/licenses/${row.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!response.ok) {
+        const body = (await response.json().catch(() => ({}))) as { error?: string };
+        setMessageIsError(true);
+        setMessage(body.error ?? la.revokeFailed);
+        return;
+      }
+      setLicenses((current) => patchLicenseListRevoked(current, row.id));
+      setConfirmLicense(null);
+      setMessageIsError(false);
+      setMessage(la.revokeSuccess);
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function addRelease(event: FormEvent) {
     event.preventDefault();
     setBusy(true);
   setMessage(null);
+    setMessageIsError(false);
     try {
       const response = await fetch("/api/admin/releases", {
         method: "POST",
@@ -174,9 +201,11 @@ export function LicenseAdminView() {
       });
       const body = await response.json();
       if (!response.ok) {
+        setMessageIsError(true);
         setMessage(body.error ?? la.error);
         return;
       }
+      setMessageIsError(false);
       setMessage(la.saved);
     } finally {
       setBusy(false);
@@ -203,7 +232,7 @@ export function LicenseAdminView() {
     <section className="mx-auto max-w-4xl space-y-8 px-4 py-12">
       <h1 className="text-2xl font-semibold">{la.title}</h1>
       {message ? (
-        <p className="text-sm text-primary" role="status">
+        <p className={messageIsError ? "text-sm text-destructive" : "text-sm text-primary"} role="status">
           {message}
         </p>
       ) : null}
@@ -297,7 +326,13 @@ export function LicenseAdminView() {
                   {row.userEmail ?? "—"} · {row.license_key_hint} · {row.activeDevices}/{row.max_devices} devices
                 </p>
               </div>
-              <Button type="button" size="sm" variant="destructive" onClick={() => void revokeLicense(row.id)}>
+              <Button
+                type="button"
+                size="sm"
+                variant="destructive"
+                disabled={busy || row.status === "revoked"}
+                onClick={() => setConfirmLicense(row)}
+              >
                 {la.revokeLicense}
               </Button>
             </li>
@@ -375,6 +410,29 @@ export function LicenseAdminView() {
           {la.addRelease}
         </Button>
       </form>
+
+      <ConfirmActionDialog
+        open={confirmLicense !== null}
+        title={la.revokeConfirmTitle}
+        description={
+          confirmLicense
+            ? t(la.revokeConfirmDescription, {
+                product: confirmLicense.license_products?.name ?? confirmLicense.license_products?.code ?? "—",
+                keyHint: confirmLicense.license_key_hint,
+                email: confirmLicense.userEmail ?? "—",
+              })
+            : ""
+        }
+        confirmLabel={la.revokeConfirmCta}
+        cancelLabel={la.revokeCancel}
+        busy={busy}
+        onConfirm={() => {
+          if (confirmLicense) void revokeLicenseConfirmed(confirmLicense);
+        }}
+        onCancel={() => {
+          if (!busy) setConfirmLicense(null);
+        }}
+      />
 
       <div className="space-y-3 rounded-2xl border border-border bg-card p-6">
         <div className="flex items-center justify-between gap-3">
