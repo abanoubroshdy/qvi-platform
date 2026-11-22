@@ -1,12 +1,13 @@
+import { sanitizeReleaseRow, sanitizeReleaseRows } from "@/lib/admin/release-public";
 import { jsonResponse } from "@/lib/licensing/http";
-import { requireLicenseAdmin } from "@/lib/licensing/admin-guard";
+import { requireSiteAdmin } from "@/lib/admin/guard";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 import { isProductCode } from "@/lib/licensing/products";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  const guard = await requireLicenseAdmin(request);
+  const guard = await requireSiteAdmin(request);
   if (!guard.ok) return guard.response;
 
   const client = createServiceSupabaseClient();
@@ -20,11 +21,11 @@ export async function GET(request: Request) {
 
   const { data, error } = await query;
   if (error) return jsonResponse({ error: error.message }, 500);
-  return jsonResponse({ releases: data ?? [] });
+  return jsonResponse({ releases: sanitizeReleaseRows(data ?? []) });
 }
 
 export async function POST(request: Request) {
-  const guard = await requireLicenseAdmin(request);
+  const guard = await requireSiteAdmin(request);
   if (!guard.ok) return guard.response;
 
   const client = createServiceSupabaseClient();
@@ -70,5 +71,5 @@ export async function POST(request: Request) {
     .single();
 
   if (error) return jsonResponse({ error: error.message }, 400);
-  return jsonResponse({ release: data });
+  return jsonResponse({ release: sanitizeReleaseRow(data) });
 }
