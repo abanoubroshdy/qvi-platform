@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { sendContactEmail, validateContactPayload } from "@/lib/contact";
+import { persistContactSubmission, sendContactEmail, validateContactPayload } from "@/lib/contact";
+import { createServiceSupabaseClient } from "@/lib/supabase/service";
 
 export const runtime = "nodejs";
 
@@ -24,6 +25,14 @@ export async function POST(request: Request) {
   if (!sent.ok) {
     const status = sent.reason === "not_configured" ? 503 : 502;
     return NextResponse.json({ error: sent.reason }, { status });
+  }
+
+  const service = createServiceSupabaseClient();
+  if (service) {
+    const saved = await persistContactSubmission(service, parsed.data);
+    if (!saved.ok) {
+      console.error("[contact] failed to persist submission:", saved.error);
+    }
   }
 
   return NextResponse.json({ ok: true });

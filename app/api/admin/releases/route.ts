@@ -1,12 +1,12 @@
 import { jsonResponse } from "@/lib/licensing/http";
-import { requireLicenseAdmin } from "@/lib/licensing/admin-guard";
+import { requireSiteAdmin } from "@/lib/admin/guard";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 import { isProductCode } from "@/lib/licensing/products";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  const guard = await requireLicenseAdmin(request);
+  const guard = await requireSiteAdmin(request);
   if (!guard.ok) return guard.response;
 
   const client = createServiceSupabaseClient();
@@ -24,7 +24,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const guard = await requireLicenseAdmin(request);
+  const guard = await requireSiteAdmin(request);
   if (!guard.ok) return guard.response;
 
   const client = createServiceSupabaseClient();

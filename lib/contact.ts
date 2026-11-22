@@ -1,3 +1,5 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export type ContactPayload = {
@@ -123,5 +125,18 @@ export async function sendContactEmail(payload: ContactPayload): Promise<
     return { ok: false, reason: "provider_error" };
   }
 
+  return { ok: true };
+}
+
+export async function persistContactSubmission(
+  serviceClient: SupabaseClient,
+  payload: ContactPayload,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { error } = await serviceClient.from("contact_submissions").insert({
+    name: payload.name,
+    email: payload.email,
+    message: payload.message,
+  });
+  if (error) return { ok: false, error: error.message };
   return { ok: true };
 }

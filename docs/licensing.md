@@ -9,6 +9,7 @@ Apply migrations in order in the Supabase SQL editor:
 1. Existing `supabase/migrations/0001`–`0005`
 2. **`supabase/migrations/0006_licensing.sql`**
 3. **`supabase/migrations/0007_licensing_security.sql`** (grants licensing tables to `service_role`, revokes public `license_releases` reads, adds atomic `register_license_device`)
+4. **`supabase/migrations/0008_admin_dashboard.sql`** when using site admin APIs (see `docs/admin.md`)
 
 `SUPABASE_SECRET_KEY` may be a legacy JWT service key or the newer `sb_secret_*` format; both are supported.
 
@@ -18,7 +19,8 @@ Apply migrations in order in the Supabase SQL editor:
 |----------|---------|
 | `SUPABASE_SECRET_KEY` | Service role key for license API, admin routes, and event logging (never expose to the browser). |
 | `LICENSE_SIGNING_PRIVATE_KEY` | RSA private key (PKCS#8 PEM) used to sign license JWTs (`RS256`). |
-| `LICENSE_ADMIN_EMAILS` | Comma-separated emails allowed to use `/admin/licenses`. |
+| `ADMIN_EMAILS` | Preferred allowlist for site admin APIs (see `docs/admin.md`). |
+| `LICENSE_ADMIN_EMAILS` | Fallback admin list; comma-separated emails allowed to use `/admin/licenses`. |
 | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` | Short-lived presigned GET URLs for paid artifacts (`/api/downloads/artifact`). |
 
 Public Supabase URL/anon key variables are unchanged.
