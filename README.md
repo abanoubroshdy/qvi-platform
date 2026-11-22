@@ -156,7 +156,7 @@ Every name the app reads today. Never commit values.
 
 **Vercel-only fallbacks (not used on Cloudflare):** `VERCEL_URL`, `VERCEL_PROJECT_PRODUCTION_URL` — set `NEXT_PUBLIC_SITE_URL` on Workers instead.
 
-`SUPABASE_SECRET_KEY` appears in `.env.example` but is **not read** by current server code.
+`SUPABASE_SECRET_KEY` is required for licensing APIs, admin license tools, and protected artifact downloads. See `docs/licensing.md`.
 
 ### Worker secrets
 
