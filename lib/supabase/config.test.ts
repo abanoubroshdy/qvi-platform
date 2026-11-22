@@ -3,6 +3,7 @@ import {
   DEFAULT_SITE_URL,
   DEFAULT_SUPABASE_URL,
   isLikelyServiceRoleKey,
+  isSupabaseServiceSecretKey,
   isSupabaseHost,
   resolvePublicSupabaseConfig,
   resolveSiteUrl,
@@ -37,6 +38,11 @@ describe("supabase public config", () => {
       NEXT_PUBLIC_SUPABASE_ANON_KEY: jwtWithRole("anon"),
     });
     expect(config?.url).toBe(DEFAULT_SUPABASE_URL);
+  });
+
+  it("recognizes sb_secret service keys", () => {
+    expect(isSupabaseServiceSecretKey("sb_secret_abc123")).toBe(true);
+    expect(isSupabaseServiceSecretKey(jwtWithRole("anon"))).toBe(false);
   });
 
   it("does not expose a service-role key to the browser", () => {

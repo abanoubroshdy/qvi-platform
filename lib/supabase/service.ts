@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { resolvePublicSupabaseConfig } from "@/lib/supabase/config";
+import { isSupabaseServiceSecretKey, resolvePublicSupabaseConfig } from "@/lib/supabase/config";
 
 export function resolveServiceSupabaseKey(
   env: Record<string, string | undefined> = process.env as Record<string, string | undefined>,
@@ -17,6 +17,10 @@ export function createServiceSupabaseClient(
   const publicConfig = resolvePublicSupabaseConfig(env);
   const serviceKey = resolveServiceSupabaseKey(env);
   if (!publicConfig || !serviceKey) return null;
+  if (!isSupabaseServiceSecretKey(serviceKey)) {
+    console.error("[supabase] SUPABASE_SECRET_KEY does not look like a service secret key.");
+    return null;
+  }
   return createClient(publicConfig.url, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });

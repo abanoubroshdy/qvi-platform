@@ -1,10 +1,10 @@
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
-import { decodeLicenseToken } from "@/lib/licensing/jwt";
-import { loadLicenseByToken } from "@/lib/licensing/service";
 import { checkProductUpdate } from "@/lib/licensing/updates";
-import { entitlementsForProduct, isProductCode } from "@/lib/licensing/products";
+import { isProductCode } from "@/lib/licensing/products";
 import { clientIp, jsonResponse } from "@/lib/licensing/http";
 import { checkLicenseRateLimit, rateLimitKey } from "@/lib/licensing/rate-limit";
+import { licenseHasCloudUpdates, resolveVerifiedLicenseBearer } from "@/lib/licensing/token-access";
+import { verifyLicenseToken } from "@/lib/licensing/jwt";
 
 export const dynamic = "force-dynamic";
 
@@ -31,13 +31,11 @@ export async function GET(request: Request) {
   const auth = request.headers.get("authorization");
   const bearer = auth?.startsWith("Bearer ") ? auth.slice(7).trim() : "";
   if (bearer) {
-    const payload = decodeLicenseToken(bearer);
-    if (payload?.sub) {
-      const license = await loadLicenseByToken(client, bearer);
-      if (license) {
-        const entitlements = entitlementsForProduct(product);
-        const features = payload.entitlements ?? entitlements;
-        allowPaidChannel = features.some((f) => f.toLowerCase() === "cloudupdates");
+    const verified = verifyLicenseToken(bearer);
+    if (verified.ok && verified.payload.product === product) {
+      const context = await resolveVerifiedLicenseBearer(client, bearer, product);
+      if (context) {
+        allowPaidChannel = licenseHasCloudUpdates(context.entitlements);
       }
     }
   }

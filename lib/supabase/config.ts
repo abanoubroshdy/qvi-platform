@@ -25,7 +25,9 @@ function decodeBase64Url(value: string): string {
 }
 
 export function isLikelyServiceRoleKey(key: string): boolean {
-  const parts = key.split(".");
+  const trimmed = key.trim();
+  if (trimmed.startsWith("sb_secret_")) return true;
+  const parts = trimmed.split(".");
   if (parts.length < 2) return false;
   try {
     const payload = JSON.parse(decodeBase64Url(parts[1])) as { role?: string };
@@ -33,6 +35,12 @@ export function isLikelyServiceRoleKey(key: string): boolean {
   } catch {
     return false;
   }
+}
+
+/** True for legacy JWT service_role keys and newer `sb_secret_*` API keys. */
+export function isSupabaseServiceSecretKey(key: string | undefined | null): boolean {
+  if (!key?.trim()) return false;
+  return isLikelyServiceRoleKey(key);
 }
 
 function firstString(values: Array<string | undefined | null>): string {
