@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { LocaleLink as Link } from "@/components/LocaleLink";
@@ -23,7 +23,11 @@ import {
 } from "@/lib/auth/profile";
 import { signupEmailIssue } from "@/lib/auth/disposable-domains";
 import { SignupOtpForm } from "@/components/auth/SignupOtpForm";
-import { TurnstileWidget, turnstileEnabledOnClient } from "@/components/auth/TurnstileWidget";
+import {
+  TurnstileWidget,
+  turnstileEnabledOnClient,
+  type TurnstileWidgetHandle,
+} from "@/components/auth/TurnstileWidget";
 import { detectCountryFromLocale, isCountryCode } from "@/lib/geo/countries";
 import { safeNextPath } from "@/lib/safe-next-path";
 
@@ -78,8 +82,20 @@ export function AuthForm({
   } | null>(null);
   const [emailDomainError, setEmailDomainError] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState("");
+  const turnstileRef = useRef<TurnstileWidgetHandle>(null);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const countryTouched = useRef(false);
+
+  const handleTurnstileToken = useCallback((token: string) => {
+    setTurnstileToken(token);
+  }, []);
+  const handleTurnstileExpire = useCallback(() => {
+    setTurnstileToken("");
+  }, []);
+  const releaseTurnstileAfterAttempt = useCallback(() => {
+    setTurnstileToken("");
+    turnstileRef.current?.reset();
+  }, []);
 
   const a = copy.auth;
   const isSignUp = mode === "signup";
@@ -257,6 +273,7 @@ export function AuthForm({
         setError(a.genericError);
       } finally {
         setStatus("idle");
+        releaseTurnstileAfterAttempt();
       }
       return;
     }
@@ -332,6 +349,7 @@ export function AuthForm({
       setError(a.genericError);
     } finally {
       setStatus("idle");
+      releaseTurnstileAfterAttempt();
     }
   }
 
@@ -495,10 +513,11 @@ export function AuthForm({
         ) : null}
 
         <TurnstileWidget
+          ref={turnstileRef}
           className="pt-1"
           action={isSignUp ? "signup" : "signin"}
-          onToken={setTurnstileToken}
-          onExpire={() => setTurnstileToken("")}
+          onToken={handleTurnstileToken}
+          onExpire={handleTurnstileExpire}
         />
 
         <Button
@@ -532,7 +551,7 @@ export function AuthForm({
             setAgeConfirmed(false);
             setAgreedToPrivacy(false);
             setAgreedToMarketing(false);
-            setTurnstileToken("");
+            releaseTurnstileAfterAttempt();
             setPendingOtpEmail(null);
             setOtpProfileFields(null);
             setEmailDomainError(null);
