@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useCallback, useRef, useState, type FormEvent } from "react";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { LocaleLink as Link } from "@/components/LocaleLink";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -9,7 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { isValidEmail } from "@/lib/auth/profile";
-import { TurnstileWidget, turnstileEnabledOnClient } from "@/components/auth/TurnstileWidget";
+import {
+  TurnstileWidget,
+  turnstileEnabledOnClient,
+  type TurnstileWidgetHandle,
+} from "@/components/auth/TurnstileWidget";
 
 export function ForgotPasswordForm() {
   const { copy, locale } = useI18n();
@@ -21,7 +25,19 @@ export function ForgotPasswordForm() {
   const [error, setError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [turnstileToken, setTurnstileToken] = useState("");
+  const turnstileRef = useRef<TurnstileWidgetHandle>(null);
   const turnstileRequired = turnstileEnabledOnClient();
+
+  const handleTurnstileToken = useCallback((token: string) => {
+    setTurnstileToken(token);
+  }, []);
+  const handleTurnstileExpire = useCallback(() => {
+    setTurnstileToken("");
+  }, []);
+  const releaseTurnstileAfterAttempt = useCallback(() => {
+    setTurnstileToken("");
+    turnstileRef.current?.reset();
+  }, []);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -56,18 +72,18 @@ export function ForgotPasswordForm() {
       const payload = (await response.json()) as { ok?: boolean; error?: string };
       if (response.status === 429 || payload.error === "rate_limited") {
         setError(a.forgotRateLimit);
-        setStatus("idle");
         return;
       }
       if (!response.ok || !payload.ok) {
         setError(payload.error === "turnstile" ? a.turnstileFailed : a.genericError);
-        setStatus("idle");
         return;
       }
       setStatus("sent");
     } catch {
       setError(a.genericError);
-      setStatus("idle");
+    } finally {
+      setStatus((current) => (current === "working" ? "idle" : current));
+      releaseTurnstileAfterAttempt();
     }
   }
 
@@ -143,9 +159,10 @@ export function ForgotPasswordForm() {
         ) : null}
 
         <TurnstileWidget
+          ref={turnstileRef}
           action="forgot_password"
-          onToken={setTurnstileToken}
-          onExpire={() => setTurnstileToken("")}
+          onToken={handleTurnstileToken}
+          onExpire={handleTurnstileExpire}
         />
 
         <Button

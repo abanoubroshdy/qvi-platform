@@ -1,7 +1,7 @@
 "use client";
 
 import Script from "next/script";
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { resolveTurnstileSiteKey } from "@/lib/turnstile";
 
 type TurnstileWidgetProps = {
@@ -9,6 +9,10 @@ type TurnstileWidgetProps = {
   onExpire?: () => void;
   action?: string;
   className?: string;
+};
+
+export type TurnstileWidgetHandle = {
+  reset: () => void;
 };
 
 declare global {
@@ -36,11 +40,33 @@ export function turnstileEnabledOnClient(): boolean {
   return Boolean(siteKey);
 }
 
-export function TurnstileWidget({ onToken, onExpire, action, className }: TurnstileWidgetProps) {
+export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidgetProps>(function TurnstileWidget(
+  { onToken, onExpire, action, className },
+  ref,
+) {
   const siteKey = resolveTurnstileSiteKey();
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
+  const onTokenRef = useRef(onToken);
+  const onExpireRef = useRef(onExpire);
   const [scriptReady, setScriptReady] = useState(false);
+
+  onTokenRef.current = onToken;
+  onExpireRef.current = onExpire;
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      reset() {
+        const widgetId = widgetIdRef.current;
+        if (widgetId && window.turnstile) {
+          window.turnstile.reset(widgetId);
+        }
+        onTokenRef.current("");
+      },
+    }),
+    [],
+  );
 
   useEffect(() => {
     if (!siteKey || !scriptReady || !containerRef.current || !window.turnstile) return;
@@ -49,14 +75,14 @@ export function TurnstileWidget({ onToken, onExpire, action, className }: Turnst
       sitekey: siteKey,
       theme: "auto",
       action,
-      callback: (token) => onToken(token),
+      callback: (token) => onTokenRef.current(token),
       "expired-callback": () => {
-        onToken("");
-        onExpire?.();
+        onTokenRef.current("");
+        onExpireRef.current?.();
       },
       "error-callback": () => {
-        onToken("");
-        onExpire?.();
+        onTokenRef.current("");
+        onExpireRef.current?.();
       },
     });
 
@@ -66,7 +92,7 @@ export function TurnstileWidget({ onToken, onExpire, action, className }: Turnst
         widgetIdRef.current = null;
       }
     };
-  }, [action, onExpire, onToken, scriptReady, siteKey]);
+  }, [action, scriptReady, siteKey]);
 
   if (!siteKey) return null;
 
@@ -80,4 +106,4 @@ export function TurnstileWidget({ onToken, onExpire, action, className }: Turnst
       <div ref={containerRef} className="flex min-h-[65px] justify-center" dir="ltr" />
     </div>
   );
-}
+});

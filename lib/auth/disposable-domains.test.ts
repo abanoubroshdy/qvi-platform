@@ -23,4 +23,17 @@ describe("disposable email domains", () => {
   it("allows normal provider addresses", () => {
     expect(assessSignupEmail("studio@gmail.com")).toEqual({ ok: true });
   });
+
+  it("normalizes trailing dots before disposable checks", () => {
+    expect(assessSignupEmail("user@yopmail.com.")).toEqual({
+      ok: false,
+      code: "disposable_email",
+      domain: "yopmail.com",
+    });
+    expect(assessSignupEmail("user@mailinator.com...")).toEqual({
+      ok: false,
+      code: "disposable_email",
+      domain: "mailinator.com",
+    });
+  });
 });

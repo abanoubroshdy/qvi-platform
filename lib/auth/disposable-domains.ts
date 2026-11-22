@@ -87,16 +87,21 @@ export type SignupEmailAssessment =
   | { ok: false; code: "disposable_email"; domain: string }
   | { ok: false; code: "email_typo"; domain: string; suggestion: string };
 
+/** Trim, lowercase, and strip trailing dots from a hostname fragment. */
+export function normalizeEmailDomain(domain: string): string {
+  return domain.trim().toLowerCase().replace(/\.+$/, "");
+}
+
 function emailDomain(email: string): string | null {
   const at = email.lastIndexOf("@");
   if (at < 1) return null;
-  const domain = email.slice(at + 1).trim().toLowerCase();
+  const domain = normalizeEmailDomain(email.slice(at + 1));
   if (!domain || !domain.includes(".")) return null;
   return domain;
 }
 
 export function isDisposableEmailDomain(domain: string): boolean {
-  const host = domain.trim().toLowerCase();
+  const host = normalizeEmailDomain(domain);
   if (!host) return false;
   if (DISPOSABLE_EMAIL_DOMAINS.has(host)) return true;
   const parts = host.split(".");
