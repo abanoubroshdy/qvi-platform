@@ -14,6 +14,13 @@ Apply **`supabase/migrations/0008_admin_dashboard.sql`** after the licensing mig
 | `CF_ANALYTICS_API_TOKEN` | Cloudflare API token with Web Analytics read access (optional; `/api/admin/traffic`). |
 | `CF_ACCOUNT_ID` | Cloudflare account ID for GraphQL analytics. |
 | `CF_WEB_ANALYTICS_SITE_TAG` | Web Analytics site tag for the production site. |
+| `NEXT_PUBLIC_CF_BEACON_TOKEN` | Cloudflare Web Analytics **browser beacon** token (see below). |
+
+getqvi.com is served on **Vercel** with **Cloudflare DNS-only** (not proxied). Page views only appear in Cloudflare when the **beacon script** is on the site. When `NEXT_PUBLIC_CF_BEACON_TOKEN` is set, the root layout loads `https://static.cloudflareinsights.com/beacon.min.js` via `next/script` (`afterInteractive`). The beacon is cookieless and does not use the signup marketing consent checkbox.
+
+The `/api/admin/traffic` route uses the GraphQL API (`CF_ANALYTICS_*` vars) and complements the beacon; configure both for admin charts plus Cloudflare dashboard data.
+
+If you add a Content-Security-Policy, allow `script-src https://static.cloudflareinsights.com` and `connect-src https://cloudflareinsights.com` (and subdomains as needed).
 
 Contact form submissions are emailed through Resend **and** persisted to `contact_submissions` when the service role is configured.
 

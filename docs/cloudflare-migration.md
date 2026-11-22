@@ -20,6 +20,7 @@ Phase 1 is the hosting path for the site. Licensing APIs for the QV1 desktop app
 | Email | `/api/contact` calls `https://api.resend.com/emails`. |
 | Auth | Supabase Auth via `@supabase/ssr`. The browser can load the URL and anon key from `/api/supabase-config` at runtime. |
 | Ads | Google AdSense. Client and slot fall back to the ids in `lib/adsense.ts` when unset. |
+| Web Analytics | Production uses DNS-only Cloudflare in front of Vercel. Set `NEXT_PUBLIC_CF_BEACON_TOKEN` so `components/CloudflareWebAnalyticsScript` loads the cookieless `static.cloudflareinsights.com` beacon (optional GraphQL vars for `/api/admin/traffic` are documented in `docs/admin.md`). |
 | Audio tools | ffmpeg.wasm in the browser, core files from `unpkg.com`. No server ffmpeg. |
 | Workers gaps | No D1, KV, or R2 **binding** is required for this app. Do not proxy the Setup exe through the Worker. |
 
