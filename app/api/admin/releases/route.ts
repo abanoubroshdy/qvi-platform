@@ -1,3 +1,4 @@
+import { sanitizeReleaseRow, sanitizeReleaseRows } from "@/lib/admin/release-public";
 import { jsonResponse } from "@/lib/licensing/http";
 import { requireSiteAdmin } from "@/lib/admin/guard";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
@@ -20,7 +21,7 @@ export async function GET(request: Request) {
 
   const { data, error } = await query;
   if (error) return jsonResponse({ error: error.message }, 500);
-  return jsonResponse({ releases: data ?? [] });
+  return jsonResponse({ releases: sanitizeReleaseRows(data ?? []) });
 }
 
 export async function POST(request: Request) {
@@ -70,5 +71,5 @@ export async function POST(request: Request) {
     .single();
 
   if (error) return jsonResponse({ error: error.message }, 400);
-  return jsonResponse({ release: data });
+  return jsonResponse({ release: sanitizeReleaseRow(data) });
 }

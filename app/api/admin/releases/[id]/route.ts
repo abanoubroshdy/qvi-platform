@@ -1,3 +1,4 @@
+import { sanitizeReleaseRow } from "@/lib/admin/release-public";
 import { requireSiteAdmin } from "@/lib/admin/guard";
 import { jsonResponse } from "@/lib/licensing/http";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
@@ -57,7 +58,7 @@ export async function PATCH(
 
   if (error) return jsonResponse({ error: error.message }, 400);
   if (!data) return jsonResponse({ error: "Release not found." }, 404);
-  return jsonResponse({ release: data });
+  return jsonResponse({ release: sanitizeReleaseRow(data) });
 }
 
 export async function DELETE(
