@@ -35,6 +35,26 @@ export function isSiteAdminEmail(
   return admins.has(email.trim().toLowerCase());
 }
 
+/** Union of ADMIN_EMAILS and LICENSE_ADMIN_EMAILS — accounts that must not be hard-deleted. */
+export function parseProtectedAdminEmails(
+  env: Record<string, string | undefined> = process.env as Record<string, string | undefined>,
+): Set<string> {
+  const merged = new Set<string>();
+  parseAdminEmails(env).forEach((email) => merged.add(email));
+  parseLicenseAdminEmails(env).forEach((email) => merged.add(email));
+  return merged;
+}
+
+export function isProtectedAdminEmail(
+  email: string | null | undefined,
+  env: Record<string, string | undefined> = process.env as Record<string, string | undefined>,
+): boolean {
+  if (!email) return false;
+  const protectedEmails = parseProtectedAdminEmails(env);
+  if (protectedEmails.size === 0) return false;
+  return protectedEmails.has(email.trim().toLowerCase());
+}
+
 export function isLicenseAdminEmail(
   email: string | null | undefined,
   env: Record<string, string | undefined> = process.env as Record<string, string | undefined>,

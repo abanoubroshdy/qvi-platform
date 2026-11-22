@@ -2,7 +2,11 @@
 
 The admin dashboard APIs live under `/api/admin/*` and require a signed-in user whose email is listed in `ADMIN_EMAILS` (or, if unset, `LICENSE_ADMIN_EMAILS` for backwards compatibility).
 
-Apply **`supabase/migrations/0008_admin_dashboard.sql`** after the licensing migrations, then **`0009_bugbot_security_search.sql`** (device RPC execute lock-down + UUID user search). It adds `contact_submissions`, waitlist handling columns, `service_role` grants, and the `admin_dashboard_stats` / `admin_search_users` RPCs.
+Apply **`supabase/migrations/0008_admin_dashboard.sql`** after the licensing migrations, then **`0009_bugbot_security_search.sql`**, then **`0010_admin_user_delete.sql`** (admin audit log, license `user_id` set null on delete, user search filters).
+
+### Hard-delete users
+
+`DELETE /api/admin/users/[id]` and `POST /api/admin/users/bulk-delete` (max 50 ids) call `auth.admin.deleteUser`. Protected accounts (any email in `ADMIN_EMAILS` or `LICENSE_ADMIN_EMAILS`), self-delete, and missing users are rejected. Active licenses are revoked and logged (`license_events` + `admin_audit_log`) before deletion. It adds `contact_submissions`, waitlist handling columns, `service_role` grants, and the `admin_dashboard_stats` / `admin_search_users` RPCs.
 
 ## Environment variables
 

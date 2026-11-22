@@ -7,8 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ConfirmActionDialog } from "@/components/licensing/ConfirmActionDialog";
+import { AdminTypedConfirmDialog } from "@/components/admin/AdminTypedConfirmDialog";
 import { KNOWN_PRODUCT_CODES, isProductCode } from "@/lib/licensing/products";
+import { formatAdminDateTime } from "@/lib/admin/format";
 import { licenseStatusLabel } from "@/lib/admin/license-status-label";
+import { DELETE_CONFIRM_KEYWORD } from "@/lib/admin/user-delete";
 import { patchLicenseListRevoked } from "@/lib/licensing/revoke-ui";
 
 type UserSummary = {
@@ -17,6 +20,7 @@ type UserSummary = {
   created_at: string;
   last_sign_in_at: string | null;
   is_banned: boolean;
+  email_confirmed?: boolean;
 };
 
 type UserLicense = {
@@ -34,15 +38,59 @@ type UserDetail = UserSummary & {
   qv1_download_count: number;
 };
 
+type UserFilters = {
+  unconfirmedOnly: boolean;
+  neverSignedIn: boolean;
+  createdSince: string;
+  createdUntil: string;
+};
+
+const defaultFilters: UserFilters = {
+  unconfirmedOnly: false,
+  neverSignedIn: false,
+  createdSince: "",
+  createdUntil: "",
+};
+
+const PAGE_SIZE = 25;
+
+function buildSearchParams(
+  query: string,
+  offset: number,
+  filters: UserFilters,
+): URLSearchParams {
+  const params = new URLSearchParams({
+    limit: String(PAGE_SIZE),
+    offset: String(offset),
+  });
+  if (query.trim()) params.set("q", query.trim());
+  if (filters.unconfirmedOnly) params.set("unconfirmed", "1");
+  if (filters.neverSignedIn) params.set("never_signed_in", "1");
+  if (filters.createdSince) {
+    params.set("created_since", new Date(filters.createdSince).toISOString());
+  }
+  if (filters.createdUntil) {
+    const end = new Date(filters.createdUntil);
+    end.setHours(23, 59, 59, 999);
+    params.set("created_until", end.toISOString());
+  }
+  return params;
+}
+
 export function AdminUsersView() {
-  const { copy, t } = useI18n();
+  const { copy, t, locale } = useI18n();
   const ad = copy.adminDashboard;
   const la = copy.licenseAdmin;
+  const localeTag = locale === "ar" ? "ar" : "en";
 
   const [query, setQuery] = useState("");
+  const [draftFilters, setDraftFilters] = useState<UserFilters>(defaultFilters);
+  const [appliedFilters, setAppliedFilters] = useState<UserFilters>(defaultFilters);
   const [users, setUsers] = useState<UserSummary[]>([]);
   const [total, setTotal] = useState(0);
+  const [offset, setOffset] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<UserDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -52,6 +100,10 @@ export function AdminUsersView() {
   const [confirmBanError, setConfirmBanError] = useState<string | null>(null);
   const [confirmRevoke, setConfirmRevoke] = useState<UserLicense | null>(null);
   const [confirmRevokeError, setConfirmRevokeError] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<UserSummary | null>(null);
+  const [deleteTargetError, setDeleteTargetError] = useState<string | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkDeleteError, setBulkDeleteError] = useState<string | null>(null);
   const [issueForm, setIssueForm] = useState({
     productCode: KNOWN_PRODUCT_CODES[0],
     expiresAt: "",
@@ -59,20 +111,35 @@ export function AdminUsersView() {
   });
   const [createdKey, setCreatedKey] = useState<string | null>(null);
 
-  const loadUsers = useCallback(async (q: string) => {
+  const mapDeleteError = useCallback(
+    (code?: string, fallback?: string) => {
+      const key = code as keyof typeof ad.deleteErrors | undefined;
+      if (key && ad.deleteErrors[key]) return ad.deleteErrors[key];
+      return fallback ?? ad.deleteErrors.generic;
+    },
+    [ad.deleteErrors],
+  );
+
+  const loadUsers = useCallback(async () => {
     setLoading(true);
-    const params = new URLSearchParams({ limit: "25", offset: "0" });
-    if (q.trim()) params.set("q", q.trim());
+    const params = buildSearchParams(query, offset, appliedFilters);
     const response = await fetch(`/api/admin/users?${params}`, { credentials: "include" });
     setLoading(false);
     if (!response.ok) return;
     const body = (await response.json()) as { users?: UserSummary[]; total?: number };
     setUsers(body.users ?? []);
     setTotal(body.total ?? 0);
-  }, []);
+    setSelected((current) => {
+      const next = new Set<string>();
+      Array.from(current).forEach((id) => {
+        if ((body.users ?? []).some((u) => u.id === id)) next.add(id);
+      });
+      return next;
+    });
+  }, [query, offset, appliedFilters]);
 
   useEffect(() => {
-    void loadUsers("");
+    void loadUsers();
   }, [loadUsers]);
 
   async function loadDetail(id: string) {
@@ -89,9 +156,23 @@ export function AdminUsersView() {
     setDetail(body.user ?? null);
   }
 
-  async function onSearch(event: FormEvent) {
+  function onSearch(event: FormEvent) {
     event.preventDefault();
-    await loadUsers(query);
+    setOffset(0);
+    setAppliedFilters(draftFilters);
+  }
+
+  function toggleSelected(id: string) {
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function selectAllOnPage() {
+    setSelected(new Set(users.map((u) => u.id)));
   }
 
   async function issueLicense(event: FormEvent) {
@@ -139,7 +220,7 @@ export function AdminUsersView() {
       setConfirmBan(false);
       setConfirmBanError(null);
       await loadDetail(selectedId);
-      await loadUsers(query);
+      await loadUsers();
     } finally {
       setBusy(false);
     }
@@ -151,7 +232,7 @@ export function AdminUsersView() {
     try {
       await fetch(`/api/admin/users/${selectedId}/unban`, { method: "POST", credentials: "include" });
       await loadDetail(selectedId);
-      await loadUsers(query);
+      await loadUsers();
     } finally {
       setBusy(false);
     }
@@ -181,6 +262,85 @@ export function AdminUsersView() {
     }
   }
 
+  async function deleteUserConfirmed() {
+    if (!deleteTarget) return;
+    setBusy(true);
+    setDeleteTargetError(null);
+    try {
+      const response = await fetch(`/api/admin/users/${deleteTarget.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      const body = (await response.json().catch(() => ({}))) as { error?: string; code?: string };
+      if (!response.ok) {
+        setDeleteTargetError(mapDeleteError(body.code, body.error));
+        return;
+      }
+      setDeleteTarget(null);
+      if (selectedId === deleteTarget.id) {
+        setSelectedId(null);
+        setDetail(null);
+      }
+      setSelected((s) => {
+        const next = new Set(s);
+        next.delete(deleteTarget.id);
+        return next;
+      });
+      await loadUsers();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function bulkDeleteConfirmed() {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+    setBusy(true);
+    setBulkDeleteError(null);
+    try {
+      const response = await fetch("/api/admin/users/bulk-delete", {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+      const body = (await response.json().catch(() => ({}))) as {
+        failed?: Array<{ id: string; error: string }>;
+        deleted?: string[];
+      };
+      if (!response.ok) {
+        setBulkDeleteError(mapDeleteError(undefined, (body as { error?: string }).error));
+        return;
+      }
+      const deleted = body.deleted ?? [];
+      if (deleted.length > 0) {
+        setSelected((current) => {
+          const next = new Set(current);
+          for (const id of deleted) next.delete(id);
+          return next;
+        });
+        if (selectedId && deleted.includes(selectedId)) {
+          setSelectedId(null);
+          setDetail(null);
+        }
+      }
+      if (body.failed?.length) {
+        setBulkDeleteError(`${ad.deleteErrors.generic} (${body.failed.length}/${ids.length})`);
+      } else {
+        setBulkDeleteOpen(false);
+        setBulkDeleteError(null);
+        setSelected(new Set());
+      }
+      await loadUsers();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const canPrev = offset > 0;
+  const canNext = offset + PAGE_SIZE < total;
+  const selectedCount = selected.size;
+
   return (
     <div className="space-y-8">
       <div>
@@ -188,39 +348,126 @@ export function AdminUsersView() {
         <p className="mt-1 text-sm text-muted-foreground">{ad.usersLead}</p>
       </div>
 
-      <form onSubmit={onSearch} className="flex flex-wrap items-end gap-3">
-        <div className="min-w-[12rem] flex-1 space-y-2">
-          <Label htmlFor="user-search">{ad.searchUsers}</Label>
-          <Input
-            id="user-search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={ad.searchUsersPlaceholder}
-          />
+      <form onSubmit={onSearch} className="space-y-4 rounded-2xl border border-border bg-card p-4">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="min-w-[12rem] flex-1 space-y-2">
+            <Label htmlFor="user-search">{ad.searchUsers}</Label>
+            <Input
+              id="user-search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={ad.searchUsersPlaceholder}
+            />
+          </div>
+          <Button type="submit" variant="secondary" disabled={loading}>
+            {loading ? la.working : ad.search}
+          </Button>
         </div>
-        <Button type="submit" variant="secondary" disabled={loading}>
-          {loading ? la.working : ad.search}
-        </Button>
+        <div className="flex flex-wrap items-end gap-4">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={draftFilters.unconfirmedOnly}
+              onChange={(e) => setDraftFilters((f) => ({ ...f, unconfirmedOnly: e.target.checked }))}
+            />
+            {ad.filterUnconfirmed}
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={draftFilters.neverSignedIn}
+              onChange={(e) => setDraftFilters((f) => ({ ...f, neverSignedIn: e.target.checked }))}
+            />
+            {ad.filterNeverSignedIn}
+          </label>
+          <div className="space-y-1">
+            <Label>{ad.filterCreatedSince}</Label>
+            <Input
+              type="date"
+              value={draftFilters.createdSince}
+              onChange={(e) => setDraftFilters((f) => ({ ...f, createdSince: e.target.value }))}
+            />
+          </div>
+          <div className="space-y-1">
+            <Label>{ad.filterCreatedUntil}</Label>
+            <Input
+              type="date"
+              value={draftFilters.createdUntil}
+              onChange={(e) => setDraftFilters((f) => ({ ...f, createdUntil: e.target.value }))}
+            />
+          </div>
+        </div>
       </form>
 
-      <p className="text-xs text-muted-foreground">
-        {t(ad.usersCount, { count: total })}
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+        <span className="text-muted-foreground">
+          {t(ad.usersCount, { count: total })}
+          {selectedCount > 0 ? ` · ${t(ad.selectedCount, { count: selectedCount })}` : ""}
+        </span>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" size="sm" variant="outline" onClick={selectAllOnPage}>
+            {ad.selectAllOnPage}
+          </Button>
+          {selectedCount > 0 ? (
+            <>
+              <Button type="button" size="sm" variant="outline" onClick={() => setSelected(new Set())}>
+                {ad.clearSelection}
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="destructive"
+                onClick={() => {
+                  setBulkDeleteError(null);
+                  setBulkDeleteOpen(true);
+                }}
+              >
+                {ad.deleteSelected}
+              </Button>
+            </>
+          ) : null}
+        </div>
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <ul className="divide-y divide-border rounded-2xl border border-border bg-card">
           {users.map((user) => (
-            <li key={user.id}>
+            <li key={user.id} className="flex items-stretch gap-2 p-2">
+              <label className="flex shrink-0 items-center px-2">
+                <input
+                  type="checkbox"
+                  checked={selected.has(user.id)}
+                  onChange={() => toggleSelected(user.id)}
+                  aria-label={user.email ?? user.id}
+                />
+              </label>
               <button
                 type="button"
-                className="flex w-full flex-col gap-1 p-4 text-start text-sm hover:bg-muted/50"
+                className="flex min-w-0 flex-1 flex-col gap-1 p-2 text-start text-sm hover:bg-muted/50 rounded-lg"
                 onClick={() => void loadDetail(user.id)}
               >
-                <span className="font-medium">{user.email ?? user.id}</span>
+                <span className="font-medium break-all">{user.email ?? user.id}</span>
                 <span className="text-xs text-muted-foreground">
                   {user.is_banned ? ad.banned : ad.active}
+                  {user.email_confirmed === false ? ` · ${ad.emailUnconfirmed}` : ""}
+                  {user.last_sign_in_at === null ? ` · ${ad.filterNeverSignedIn}` : ""}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {formatAdminDateTime(user.created_at, localeTag)}
                 </span>
               </button>
+              <Button
+                type="button"
+                size="sm"
+                variant="destructive"
+                className="shrink-0 self-center"
+                onClick={() => {
+                  setDeleteTargetError(null);
+                  setDeleteTarget(user);
+                }}
+              >
+                {ad.deleteUser}
+              </Button>
             </li>
           ))}
           {users.length === 0 && !loading ? (
@@ -240,10 +487,11 @@ export function AdminUsersView() {
           ) : (
             <div className="space-y-6">
               <div>
-                <h2 className="text-lg font-semibold">{detail.email ?? detail.id}</h2>
+                <h2 className="text-lg font-semibold break-all">{detail.email ?? detail.id}</h2>
                 <p className="text-xs text-muted-foreground">
                   {ad.qv1Downloads}: {detail.qv1_download_count}
                   {detail.is_banned ? ` · ${ad.banned}` : ""}
+                  {detail.email_confirmed === false ? ` · ${ad.emailUnconfirmed}` : ""}
                 </p>
               </div>
 
@@ -266,11 +514,25 @@ export function AdminUsersView() {
                     {ad.banUser}
                   </Button>
                 )}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="destructive"
+                  disabled={busy}
+                  onClick={() => {
+                    setDeleteTargetError(null);
+                    setDeleteTarget(detail);
+                  }}
+                >
+                  {ad.deleteUser}
+                </Button>
               </div>
 
               {message ? <p className="text-sm text-destructive">{message}</p> : null}
               {createdKey ? (
-                <p className="rounded-md border border-primary/30 bg-primary/10 p-3 font-mono text-xs">{la.createdKey}: {createdKey}</p>
+                <p className="rounded-md border border-primary/30 bg-primary/10 p-3 font-mono text-xs">
+                  {la.createdKey}: {createdKey}
+                </p>
               ) : null}
 
               <form onSubmit={issueLicense} className="space-y-3 border-t border-border pt-4">
@@ -351,6 +613,24 @@ export function AdminUsersView() {
         </div>
       </div>
 
+      <div className="flex items-center justify-between gap-3 text-sm">
+        <span className="text-muted-foreground">{total} {ad.totalLabel}</span>
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={!canPrev}
+            onClick={() => setOffset((o) => Math.max(0, o - PAGE_SIZE))}
+          >
+            {ad.prevPage}
+          </Button>
+          <Button type="button" size="sm" variant="outline" disabled={!canNext} onClick={() => setOffset((o) => o + PAGE_SIZE)}>
+            {ad.nextPage}
+          </Button>
+        </div>
+      </div>
+
       <ConfirmActionDialog
         open={confirmBan}
         title={ad.banConfirmTitle}
@@ -374,9 +654,9 @@ export function AdminUsersView() {
         description={
           confirmRevoke
             ? t(la.revokeConfirmDescription, {
-                product: confirmRevoke.license_products?.name ?? confirmRevoke.license_products?.code ?? "—",
+                product: confirmRevoke.license_products?.name ?? confirmRevoke.license_products?.code ?? ad.emDash,
                 keyHint: confirmRevoke.license_key_hint,
-                email: detail?.email ?? "—",
+                email: detail?.email ?? ad.emDash,
               })
             : ""
         }
@@ -391,6 +671,50 @@ export function AdminUsersView() {
           if (!busy) {
             setConfirmRevoke(null);
             setConfirmRevokeError(null);
+          }
+        }}
+      />
+
+      <AdminTypedConfirmDialog
+        open={deleteTarget !== null}
+        title={ad.deleteUserTitle}
+        description={
+          deleteTarget
+            ? t(ad.deleteUserDescription, { email: deleteTarget.email ?? deleteTarget.id })
+            : ""
+        }
+        confirmLabel={ad.deleteUserConfirmCta}
+        cancelLabel={la.revokeCancel}
+        typeToConfirmLabel={ad.typeToConfirm}
+        expectedPhrase={deleteTarget?.email ?? DELETE_CONFIRM_KEYWORD}
+        allowDeleteKeyword
+        busy={busy}
+        errorMessage={deleteTargetError}
+        onConfirm={() => void deleteUserConfirmed()}
+        onCancel={() => {
+          if (!busy) {
+            setDeleteTarget(null);
+            setDeleteTargetError(null);
+          }
+        }}
+      />
+
+      <AdminTypedConfirmDialog
+        open={bulkDeleteOpen}
+        title={ad.deleteBulkTitle}
+        description={t(ad.deleteBulkDescription, { count: selectedCount })}
+        confirmLabel={ad.deleteUserConfirmCta}
+        cancelLabel={la.revokeCancel}
+        typeToConfirmLabel={ad.typeToConfirm}
+        expectedPhrase={DELETE_CONFIRM_KEYWORD}
+        allowDeleteKeyword={false}
+        busy={busy}
+        errorMessage={bulkDeleteError}
+        onConfirm={() => void bulkDeleteConfirmed()}
+        onCancel={() => {
+          if (!busy) {
+            setBulkDeleteOpen(false);
+            setBulkDeleteError(null);
           }
         }}
       />

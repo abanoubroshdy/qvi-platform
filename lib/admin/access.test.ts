@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   isLicenseAdminEmail,
+  isProtectedAdminEmail,
   isSiteAdminEmail,
   parseAdminEmails,
   parseLicenseAdminEmails,
+  parseProtectedAdminEmails,
 } from "@/lib/admin/access";
 
 describe("parseAdminEmails", () => {
@@ -30,6 +32,28 @@ describe("isSiteAdminEmail", () => {
       }),
     ).toBe(true);
     expect(isSiteAdminEmail("other@getqvi.com", { ADMIN_EMAILS: "ops@getqvi.com" })).toBe(false);
+  });
+});
+
+describe("parseProtectedAdminEmails", () => {
+  it("unions ADMIN_EMAILS and LICENSE_ADMIN_EMAILS", () => {
+    const set = parseProtectedAdminEmails({
+      ADMIN_EMAILS: "ops@getqvi.com",
+      LICENSE_ADMIN_EMAILS: "license@getqvi.com",
+    });
+    expect(set.has("ops@getqvi.com")).toBe(true);
+    expect(set.has("license@getqvi.com")).toBe(true);
+  });
+});
+
+describe("isProtectedAdminEmail", () => {
+  it("matches either admin list", () => {
+    expect(
+      isProtectedAdminEmail("license@getqvi.com", {
+        ADMIN_EMAILS: "ops@getqvi.com",
+        LICENSE_ADMIN_EMAILS: "license@getqvi.com",
+      }),
+    ).toBe(true);
   });
 });
 
