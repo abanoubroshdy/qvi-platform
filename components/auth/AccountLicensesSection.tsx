@@ -28,6 +28,7 @@ export function AccountLicensesSection() {
     deviceName: string;
     productName: string;
   } | null>(null);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     if (!user) return;
@@ -57,8 +58,7 @@ export function AccountLicensesSection() {
         body: JSON.stringify({ deviceId }),
       });
       if (!response.ok) {
-        setNoticeIsError(true);
-        setNotice(a.licensesDeactivateFailed);
+        setConfirmError(a.licensesDeactivateFailed);
         return;
       }
       const revokedAt = new Date().toISOString();
@@ -70,6 +70,7 @@ export function AccountLicensesSection() {
         };
       });
       setConfirmDevice(null);
+      setConfirmError(null);
       setNoticeIsError(false);
       setNotice(a.licensesDeviceDeactivated);
     } finally {
@@ -94,11 +95,15 @@ export function AccountLicensesSection() {
         confirmLabel={a.licensesDeactivateConfirmCta}
         cancelLabel={a.licensesDeactivateCancel}
         busy={Boolean(busyId)}
+        errorMessage={confirmError}
         onConfirm={() => {
           if (confirmDevice) void deactivateDeviceConfirmed(confirmDevice.deviceId);
         }}
         onCancel={() => {
-          if (!busyId) setConfirmDevice(null);
+          if (!busyId) {
+            setConfirmDevice(null);
+            setConfirmError(null);
+          }
         }}
       />
 

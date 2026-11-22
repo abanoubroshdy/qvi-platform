@@ -105,7 +105,7 @@ async function findLicenseForActivation(
 
 type RegisterDeviceResult =
   | { ok: true }
-  | { ok: false; errorCode: "device_limit" | "invalid_license"; error: string };
+  | { ok: false; errorCode: "device_limit" | "invalid_license" | "catalog_error"; error: string };
 
 async function registerLicenseDevice(
   client: SupabaseClient,
@@ -122,8 +122,8 @@ async function registerLicenseDevice(
   if (error) {
     return {
       ok: false,
-      errorCode: "invalid_license",
-      error: "Could not register device.",
+      errorCode: "catalog_error",
+      error: "License service is temporarily unavailable.",
     };
   }
 
@@ -136,10 +136,17 @@ async function registerLicenseDevice(
       error: "Device limit reached. Deactivate another device on getqvi.com.",
     };
   }
+  if (outcome === "invalid_license" || outcome === "invalid_fingerprint") {
+    return {
+      ok: false,
+      errorCode: "invalid_license",
+      error: "Could not register device.",
+    };
+  }
   return {
     ok: false,
-    errorCode: "invalid_license",
-    error: "Could not register device.",
+    errorCode: "catalog_error",
+    error: "License service is temporarily unavailable.",
   };
 }
 
@@ -312,8 +319,9 @@ export async function activateLicense(
       errorCode: deviceResult.errorCode,
       meta,
     });
+    const status = deviceResult.errorCode === "catalog_error" ? 503 : 403;
     return {
-      status: 403,
+      status,
       body: { error: deviceResult.error, errorCode: deviceResult.errorCode },
     };
   }

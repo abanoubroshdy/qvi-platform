@@ -11,6 +11,8 @@ type ConfirmActionDialogProps = {
   cancelLabel: string;
   destructive?: boolean;
   busy?: boolean;
+  /** Shown inside the modal so failures are visible while it is open. */
+  errorMessage?: string | null;
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -23,6 +25,7 @@ export function ConfirmActionDialog({
   cancelLabel,
   destructive = true,
   busy = false,
+  errorMessage = null,
   onConfirm,
   onCancel,
 }: ConfirmActionDialogProps) {
@@ -46,6 +49,11 @@ export function ConfirmActionDialog({
     >
       <h2 className="text-lg font-semibold">{title}</h2>
       <p className="mt-2 text-sm text-muted-foreground">{description}</p>
+      {errorMessage ? (
+        <p className="mt-3 text-sm text-destructive" role="alert">
+          {errorMessage}
+        </p>
+      ) : null}
       <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <Button type="button" variant="outline" disabled={busy} onClick={onCancel}>
           {cancelLabel}
