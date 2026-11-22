@@ -1,0 +1,56 @@
+<!--
+  Supabase → Authentication → Email templates → Confirm signup
+  Subject EN: Confirm your QVI account
+  Subject AR: أكّد حسابك على QVI
+
+  Required: include the OTP token {{ .Token }} for 6-digit confirmation.
+  The magic link {{ .ConfirmationURL }} remains as a fallback.
+-->
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Confirm your QVI account</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f4f4f5;font-family:Segoe UI,Helvetica,Arial,sans-serif;color:#18181b;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f4f5;padding:24px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#ffffff;border-radius:16px;padding:28px 24px;border:1px solid #e4e4e7;">
+            <tr>
+              <td style="padding-bottom:8px;font-size:22px;font-weight:700;">QVI — Confirm your email</td>
+            </tr>
+            <tr>
+              <td style="padding-bottom:16px;font-size:15px;line-height:1.6;color:#3f3f46;">
+                Use this 6-digit code on getqvi.com to finish creating your account:
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding:12px 0 20px;">
+                <span style="display:inline-block;font-size:32px;letter-spacing:0.35em;font-weight:700;color:#0f172a;background:#f1f5f9;border-radius:12px;padding:16px 24px;">
+                  {{ .Token }}
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding-bottom:16px;font-size:14px;line-height:1.6;color:#52525b;">
+                Or confirm with this one-time link:<br />
+                <a href="{{ .ConfirmationURL }}" style="color:#2563eb;word-break:break-all;">{{ .ConfirmationURL }}</a>
+              </td>
+            </tr>
+            <tr>
+              <td style="border-top:1px solid #e4e4e7;padding-top:20px;font-size:14px;line-height:1.7;color:#3f3f46;" dir="rtl" align="right">
+                <div style="font-weight:700;padding-bottom:8px;">QVI — تأكيد البريد الإلكتروني</div>
+                أدخل رمز التأكيد المكوّن من 6 أرقام على getqvi.com لإكمال إنشاء حسابك:
+                <div style="font-size:28px;letter-spacing:0.25em;font-weight:700;text-align:center;margin:12px 0;color:#0f172a;">{{ .Token }}</div>
+                أو أكّد عبر الرابط لمرة واحدة:<br />
+                <a href="{{ .ConfirmationURL }}" style="color:#2563eb;word-break:break-all;">{{ .ConfirmationURL }}</a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

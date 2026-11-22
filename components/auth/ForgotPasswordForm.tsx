@@ -9,8 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { isValidEmail } from "@/lib/auth/profile";
-import { passwordResetOutcome, passwordResetRedirectUrl } from "@/lib/auth/recovery";
-import { getSupabaseClient } from "@/lib/supabase/client";
+import { TurnstileWidget, turnstileEnabledOnClient } from "@/components/auth/TurnstileWidget";
 
 export function ForgotPasswordForm() {
   const { copy, locale } = useI18n();
@@ -21,6 +20,8 @@ export function ForgotPasswordForm() {
   const [status, setStatus] = useState<"idle" | "working" | "sent">("idle");
   const [error, setError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const turnstileRequired = turnstileEnabledOnClient();
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -32,29 +33,34 @@ export function ForgotPasswordForm() {
     }
     setEmailError(null);
 
-    const supabase = getSupabaseClient();
-    if (!configured || !supabase) {
+    if (!configured) {
       setError(a.notConfigured);
       return;
     }
-
-    const redirectTo = passwordResetRedirectUrl(window.location.origin, locale);
-    if (!redirectTo) {
-      setError(a.genericError);
+    if (turnstileRequired && !turnstileToken) {
+      setError(a.turnstileFailed);
       return;
     }
 
     setStatus("working");
     try {
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(value, { redirectTo });
-      const outcome = passwordResetOutcome(resetError);
-      if (outcome === "rate_limited") {
+      const response = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          email: value,
+          locale,
+          turnstileToken: turnstileToken || undefined,
+        }),
+      });
+      const payload = (await response.json()) as { ok?: boolean; error?: string };
+      if (response.status === 429 || payload.error === "rate_limited") {
         setError(a.forgotRateLimit);
         setStatus("idle");
         return;
       }
-      if (outcome === "error") {
-        setError(a.genericError);
+      if (!response.ok || !payload.ok) {
+        setError(payload.error === "turnstile" ? a.turnstileFailed : a.genericError);
         setStatus("idle");
         return;
       }
@@ -136,7 +142,22 @@ export function ForgotPasswordForm() {
           </p>
         ) : null}
 
-        <Button type="submit" size="lg" className="h-11 w-full text-base" disabled={status === "working" || loading}>
+        <TurnstileWidget
+          action="forgot_password"
+          onToken={setTurnstileToken}
+          onExpire={() => setTurnstileToken("")}
+        />
+
+        <Button
+          type="submit"
+          size="lg"
+          className="h-11 w-full text-base"
+          disabled={
+            status === "working" ||
+            loading ||
+            (turnstileRequired && !turnstileToken)
+          }
+        >
           {status === "working" ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden />

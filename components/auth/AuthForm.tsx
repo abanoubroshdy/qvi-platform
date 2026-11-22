@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { LocaleLink as Link } from "@/components/LocaleLink";
 import { ConsentFields } from "@/components/auth/ConsentFields";
 import { PasswordField } from "@/components/auth/PasswordField";
@@ -17,11 +17,13 @@ import { Label } from "@/components/ui/label";
 import {
   isValidEmail,
   isValidFullName,
-  toAuthMetadata,
   validateSignIn,
   validateSignUpInput,
   type ProfileIssue,
 } from "@/lib/auth/profile";
+import { signupEmailIssue } from "@/lib/auth/disposable-domains";
+import { SignupOtpForm } from "@/components/auth/SignupOtpForm";
+import { TurnstileWidget, turnstileEnabledOnClient } from "@/components/auth/TurnstileWidget";
 import { detectCountryFromLocale, isCountryCode } from "@/lib/geo/countries";
 import { safeNextPath } from "@/lib/safe-next-path";
 
@@ -66,13 +68,23 @@ export function AuthForm({
   const [agreedToMarketing, setAgreedToMarketing] = useState(false);
   const [status, setStatus] = useState<"idle" | "working">("idle");
   const [error, setError] = useState<string | null>(null);
-  const [confirmSent, setConfirmSent] = useState<string | null>(null);
+  const [pendingOtpEmail, setPendingOtpEmail] = useState<string | null>(null);
+  const [otpProfileFields, setOtpProfileFields] = useState<{
+    fullName: string;
+    country: string;
+    ageConfirmed: boolean;
+    privacyConsent: boolean;
+    marketingConsent: boolean;
+  } | null>(null);
+  const [emailDomainError, setEmailDomainError] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState("");
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const countryTouched = useRef(false);
 
   const a = copy.auth;
   const isSignUp = mode === "signup";
   const destination = safeNextPath(nextPath);
+  const turnstileRequired = turnstileEnabledOnClient();
 
   const issueCopy = useMemo<Record<ProfileIssue, string>>(
     () => ({
@@ -119,8 +131,15 @@ export function AuthForm({
 
   const signupIssue = isSignUp ? validateSignUpInput(signupFields) : null;
   const canSubmit = isSignUp
-    ? Boolean(configured) && !loading && signupIssue === null
-    : Boolean(configured) && !loading && validateSignIn(email.trim().toLowerCase(), password) === null;
+    ? Boolean(configured) &&
+      !loading &&
+      signupIssue === null &&
+      !emailDomainError &&
+      (!turnstileRequired || Boolean(turnstileToken))
+    : Boolean(configured) &&
+      !loading &&
+      validateSignIn(email.trim().toLowerCase(), password) === null &&
+      (!turnstileRequired || Boolean(turnstileToken));
 
   function markTouched(field: string) {
     setTouched((current) => ({ ...current, [field]: true }));
@@ -129,6 +148,39 @@ export function AuthForm({
   function messageFor(issue: ProfileIssue | null, field: string) {
     if (!touched[field] || !issue) return undefined;
     return issueCopy[issue];
+  }
+
+  function refreshEmailDomainHint(value: string) {
+    if (!isSignUp) {
+      setEmailDomainError(null);
+      return;
+    }
+    const issue = signupEmailIssue(value.trim().toLowerCase());
+    if (!issue || issue.ok) {
+      setEmailDomainError(null);
+      return;
+    }
+    if (issue.code === "disposable_email") {
+      setEmailDomainError(a.disposableEmail);
+      return;
+    }
+    setEmailDomainError(t(a.emailTypo, { suggestion: issue.suggestion }));
+  }
+
+  function signupApiErrorMessage(payload: {
+    error?: string;
+    suggestion?: string;
+    issue?: ProfileIssue;
+    reason?: string;
+  }): string {
+    if (payload.error === "disposable_email") return a.disposableEmail;
+    if (payload.error === "email_typo" && payload.suggestion) {
+      return t(a.emailTypo, { suggestion: payload.suggestion });
+    }
+    if (payload.error === "turnstile") return a.turnstileFailed;
+    if (payload.error === "validation" && payload.issue) return issueCopy[payload.issue] ?? a.genericError;
+    if (payload.error === "not_configured") return a.notConfigured;
+    return a.genericError;
   }
 
   const profileErrors = {
@@ -162,15 +214,41 @@ export function AuthForm({
         setError(issueCopy[issue]);
         return;
       }
+      if (turnstileRequired && !turnstileToken) {
+        setError(a.turnstileFailed);
+        return;
+      }
 
       setStatus("working");
       try {
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: value,
-          password,
+        const response = await fetch("/api/auth/signin", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            email: value,
+            password,
+            turnstileToken: turnstileToken || undefined,
+          }),
         });
-        if (signInError) {
-          setError(signInError.message || a.genericError);
+        const payload = (await response.json()) as {
+          ok?: boolean;
+          error?: string;
+          issue?: ProfileIssue;
+          reason?: string;
+          session?: { access_token: string; refresh_token: string };
+          message?: string;
+        };
+        if (!response.ok || !payload.ok || !payload.session) {
+          setError(
+            payload.message ||
+              signupApiErrorMessage(payload) ||
+              a.genericError,
+          );
+          return;
+        }
+        const { error: sessionError } = await supabase.auth.setSession(payload.session);
+        if (sessionError) {
+          setError(sessionError.message || a.genericError);
           return;
         }
         router.push(destination);
@@ -188,10 +266,22 @@ export function AuthForm({
       setError(issueCopy[issue]);
       return;
     }
+    const domainIssue = signupEmailIssue(value);
+    if (domainIssue && !domainIssue.ok) {
+      setError(
+        domainIssue.code === "disposable_email"
+          ? a.disposableEmail
+          : t(a.emailTypo, { suggestion: domainIssue.suggestion }),
+      );
+      return;
+    }
+    if (turnstileRequired && !turnstileToken) {
+      setError(a.turnstileFailed);
+      return;
+    }
 
     setStatus("working");
     try {
-      const origin = window.location.origin;
       const fields = {
         fullName: signupFields.fullName,
         country: signupFields.country,
@@ -199,29 +289,45 @@ export function AuthForm({
         privacyConsent: true,
         marketingConsent: agreedToMarketing,
       };
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: value,
-        password,
-        options: {
-          emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(destination)}`,
-          data: {
-            ...toAuthMetadata(fields),
-            privacy_consent: true,
-            marketing_consent: agreedToMarketing,
-          },
-        },
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          ...signupFields,
+          turnstileToken: turnstileToken || undefined,
+          nextPath: destination,
+        }),
       });
-      if (signUpError) {
-        setError(signUpError.message || a.genericError);
+      const payload = (await response.json()) as {
+        ok?: boolean;
+        error?: string;
+        issue?: ProfileIssue;
+        suggestion?: string;
+        confirmed?: boolean;
+        email?: string;
+        session?: { access_token: string; refresh_token: string };
+        message?: string;
+      };
+      if (!response.ok || !payload.ok) {
+        setError(payload.message || signupApiErrorMessage(payload));
         return;
       }
-      if (data.user && data.session) {
-        await saveProfile(supabase, data.user.id, fields);
+      if (payload.confirmed && payload.session) {
+        const { error: sessionError } = await supabase.auth.setSession(payload.session);
+        if (sessionError) {
+          setError(sessionError.message || a.genericError);
+          return;
+        }
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData.user?.id) {
+          await saveProfile(supabase, userData.user.id, fields);
+        }
         router.push(destination);
         router.refresh();
         return;
       }
-      setConfirmSent(value);
+      setOtpProfileFields(fields);
+      setPendingOtpEmail(payload.email ?? value);
     } catch {
       setError(a.genericError);
     } finally {
@@ -244,16 +350,25 @@ export function AuthForm({
           placeholder={a.emailPlaceholder}
           value={email}
           aria-invalid={Boolean(messageFor(isValidEmail(email.trim()) ? null : "email", "email"))}
-          onBlur={() => markTouched("email")}
+          onBlur={() => {
+            markTouched("email");
+            refreshEmailDomainHint(email);
+          }}
           onChange={(event) => {
             setEmail(event.target.value);
             if (error) setError(null);
+            if (emailDomainError) refreshEmailDomainHint(event.target.value);
           }}
           className="h-11 bg-background text-foreground placeholder:text-muted-foreground/80"
         />
         {messageFor(isValidEmail(email.trim()) ? null : "email", "email") ? (
           <p className="text-xs text-destructive" role="alert">
             {a.invalidEmail}
+          </p>
+        ) : null}
+        {emailDomainError ? (
+          <p className="text-xs text-destructive" role="alert">
+            {emailDomainError}
           </p>
         ) : null}
       </div>
@@ -303,21 +418,9 @@ export function AuthForm({
     </>
   );
 
-  if (confirmSent) {
+  if (pendingOtpEmail && otpProfileFields) {
     return (
-      <div
-        className="space-y-2 rounded-2xl border border-primary/30 bg-primary/10 p-6"
-        role="status"
-        aria-live="polite"
-      >
-        <p className="inline-flex items-center gap-2 text-lg font-semibold text-primary">
-          <CheckCircle2 className="h-5 w-5" aria-hidden />
-          {a.checkEmailTitle}
-        </p>
-        <p className="text-sm leading-7 text-muted-foreground">
-          {t(a.checkEmailBody, { email: confirmSent })}
-        </p>
-      </div>
+      <SignupOtpForm email={pendingOtpEmail} destination={destination} profileFields={otpProfileFields} />
     );
   }
 
@@ -391,11 +494,18 @@ export function AuthForm({
           </p>
         ) : null}
 
+        <TurnstileWidget
+          className="pt-1"
+          action={isSignUp ? "signup" : "signin"}
+          onToken={setTurnstileToken}
+          onExpire={() => setTurnstileToken("")}
+        />
+
         <Button
           type="submit"
           size="lg"
           className="h-11 w-full text-base"
-          disabled={status === "working" || loading || !configured || (!isSignUp && !canSubmit)}
+          disabled={status === "working" || loading || !configured || !canSubmit}
         >
           {status === "working" ? (
             <>
@@ -422,6 +532,10 @@ export function AuthForm({
             setAgeConfirmed(false);
             setAgreedToPrivacy(false);
             setAgreedToMarketing(false);
+            setTurnstileToken("");
+            setPendingOtpEmail(null);
+            setOtpProfileFields(null);
+            setEmailDomainError(null);
           }}
         >
           {isSignUp ? a.switchToSignIn : a.switchToSignUp}
