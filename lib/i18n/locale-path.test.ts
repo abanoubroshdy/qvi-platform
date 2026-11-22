@@ -6,7 +6,9 @@ import {
   indexableEnglishPaths,
   localizeHref,
   localeFromPath,
+  resolveLocaleForPath,
   stripLocale,
+  toggledLocale,
   withLocale,
 } from "@/lib/i18n/locale-path";
 import { arabicSeoForPath } from "@/lib/page-meta-ar";
@@ -33,6 +35,19 @@ describe("locale paths", () => {
     expect(localeFromPath("/ar/qv1/models")).toBe("ar");
     expect(stripLocale("/ar/qv1/models")).toBe("/qv1/models");
     expect(withLocale("/", "ar")).toBe("/ar");
+  });
+
+  it("preserves admin and other non-prefixed paths when switching language", () => {
+    expect(alternatePath("/admin/users")).toBe("/admin/users");
+    expect(alternatePath("/admin/users", "?q=test")).toBe("/admin/users?q=test");
+    expect(alternatePath("/admin/licenses", "?page=2")).toBe("/admin/licenses?page=2");
+    expect(alternatePath("/qv1/download")).toBe("/qv1/download");
+    expect(resolveLocaleForPath("/admin/users", "ar")).toBe("ar");
+    expect(resolveLocaleForPath("/admin/users", "en")).toBe("en");
+    expect(toggledLocale("/admin/users", "en")).toBe("ar");
+    expect(toggledLocale("/admin/users", "ar")).toBe("en");
+    expect(resolveLocaleForPath("/ar/about", "en")).toBe("ar");
+    expect(resolveLocaleForPath("/about", "ar")).toBe("en");
   });
 
   it("gives every indexable English page Arabic metadata and a self canonical pair", () => {
