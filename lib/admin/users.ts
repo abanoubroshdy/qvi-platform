@@ -1,5 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+export type AdminUserSearchFilters = {
+  unconfirmedOnly?: boolean;
+  neverSignedIn?: boolean;
+  createdSince?: string | null;
+  createdUntil?: string | null;
+};
+
 export type AdminUserSummary = {
   id: string;
   email: string | null;
@@ -7,6 +14,7 @@ export type AdminUserSummary = {
   last_sign_in_at: string | null;
   banned_until: string | null;
   is_banned: boolean;
+  email_confirmed?: boolean;
 };
 
 export type AdminUserSearchResult = {
@@ -19,11 +27,16 @@ export async function searchUsers(
   query: string,
   limit: number,
   offset: number,
+  filters: AdminUserSearchFilters = {},
 ): Promise<{ ok: true; result: AdminUserSearchResult } | { ok: false; error: string }> {
   const { data, error } = await client.rpc("admin_search_users", {
     p_query: query,
     p_limit: limit,
     p_offset: offset,
+    p_unconfirmed_only: filters.unconfirmedOnly ?? false,
+    p_never_signed_in: filters.neverSignedIn ?? false,
+    p_created_since: filters.createdSince ?? null,
+    p_created_until: filters.createdUntil ?? null,
   });
   if (error) return { ok: false, error: error.message };
   const record = (data ?? {}) as AdminUserSearchResult;
@@ -57,6 +70,9 @@ export async function fetchAdminUserDetail(client: SupabaseClient, userId: strin
     .eq("user_id", userId);
 
   const isBanned = Boolean(user.banned_until && new Date(user.banned_until) > new Date());
+  const emailConfirmed = Boolean(
+    (user as { email_confirmed_at?: string | null }).email_confirmed_at,
+  );
 
   return {
     ok: true as const,
@@ -67,6 +83,7 @@ export async function fetchAdminUserDetail(client: SupabaseClient, userId: strin
       last_sign_in_at: user.last_sign_in_at ?? null,
       banned_until: user.banned_until ?? null,
       is_banned: isBanned,
+      email_confirmed: emailConfirmed,
       profile,
       licenses: licenses ?? [],
       qv1_download_count: downloadCount ?? 0,
