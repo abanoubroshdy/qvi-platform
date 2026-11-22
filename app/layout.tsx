@@ -4,6 +4,7 @@ import { AppProviders } from "@/components/AppProviders";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { AdSenseHeadScript } from "@/components/AdSenseHeadScript";
+import { CloudflareWebAnalyticsScript } from "@/components/CloudflareWebAnalyticsScript";
 import { adsenseVerificationClient } from "@/lib/adsense";
 import { localeFromPath } from "@/lib/i18n/locale-path";
 import { pageMeta } from "@/lib/page-meta";
@@ -104,6 +105,7 @@ export default function RootLayout({
             <Footer />
           </div>
         </AppProviders>
+        <CloudflareWebAnalyticsScript />
       </body>
     </html>
   );
