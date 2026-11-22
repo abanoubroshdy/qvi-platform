@@ -91,12 +91,40 @@ export function localizeHref(href: string, locale: Locale): string {
   return `${withLocale(bare, "ar")}${search}${hash}`;
 }
 
-export function alternatePath(pathname: string): string {
-  const locale = localeFromPath(pathname);
+/**
+ * English paths that use the /ar prefix for Arabic (indexable pages + auth).
+ * Other routes (e.g. /admin) keep the same URL; locale comes from client storage.
+ */
+export function usesPathLocalePrefix(pathname: string): boolean {
+  return isLocalizedRoute(stripLocale(pathname));
+}
+
+/** Effective UI locale: /ar/* paths force Arabic; prefixed routes on English URL force English; else preference. */
+export function resolveLocaleForPath(pathname: string, preference: Locale): Locale {
+  const path = normalizePathname(pathname);
+  if (localeFromPath(path) === "ar") return "ar";
+  const bare = stripLocale(path);
+  if (isLocalizedRoute(bare)) return "en";
+  return preference;
+}
+
+/** Next locale after toggling the language control on this path. */
+export function toggledLocale(pathname: string, currentLocale: Locale): Locale {
   const bare = stripLocale(pathname);
-  const target: Locale = locale === "ar" ? "en" : "ar";
-  if (!isLocalizedRoute(bare)) return target === "ar" ? "/ar" : "/";
-  return withLocale(bare, target);
+  if (localeFromPath(pathname) === "ar") return "en";
+  if (isLocalizedRoute(bare)) return "ar";
+  return currentLocale === "ar" ? "en" : "ar";
+}
+
+/** Destination path when switching language (preserves query; hash appended by caller). */
+export function alternatePath(pathname: string, search = ""): string {
+  const bare = stripLocale(pathname);
+  const pathLocale = localeFromPath(pathname);
+  const target: Locale = pathLocale === "ar" ? "en" : "ar";
+  if (!isLocalizedRoute(bare)) {
+    return `${bare}${search}`;
+  }
+  return `${withLocale(bare, target)}${search}`;
 }
 
 export function hreflangLanguages(englishPath: string) {
