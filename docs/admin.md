@@ -24,7 +24,7 @@ getqvi.com is served on **Vercel** with **Cloudflare DNS-only** (not proxied). P
 
 The `/api/admin/traffic` route queries Cloudflare **`rumPageloadEventsAdaptiveGroups`** (`CF_ANALYTICS_*` vars) for visits (`sum.visits`), page views (`count`), top paths, and countries. It complements the browser beacon; configure both for admin charts plus Cloudflare dashboard data.
 
-If you add a Content-Security-Policy, allow `script-src https://static.cloudflareinsights.com` and `connect-src https://cloudflareinsights.com` (and subdomains as needed).
+If you add a Content-Security-Policy, allow `script-src https://static.cloudflareinsights.com` and `connect-src https://cloudflareinsights.com` (and subdomains as needed). For signup Turnstile, also allow `https://challenges.cloudflare.com` in `script-src` and `frame-src`.
 
 Contact form submissions are emailed through Resend **and** persisted to `contact_submissions` when the service role is configured.
 
