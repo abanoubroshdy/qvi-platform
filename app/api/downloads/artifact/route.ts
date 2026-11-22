@@ -20,7 +20,7 @@ async function authorizeDownload(
   const bearer = auth?.startsWith("Bearer ") ? auth.slice(7).trim() : "";
 
   if (bearer) {
-    const license = await loadLicenseByToken(client, bearer);
+    const license = await loadLicenseByToken(client, bearer, productCode);
     if (!license) return null;
     const { data: licensedProduct } = await client
       .from("license_products")
@@ -118,7 +118,6 @@ export async function GET(request: Request) {
       product,
       channel,
       version: release.version,
-      storage_path: release.storage_path,
     },
   });
 

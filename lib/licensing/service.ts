@@ -1,10 +1,15 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { entitlementsForProduct, isProductCode } from "@/lib/licensing/products";
-import { decodeLicenseToken, signLicenseToken, licenseSigningKeyFromEnv } from "@/lib/licensing/jwt";
+import {
+  deviceFingerprintsMatch,
+  signLicenseToken,
+  licenseSigningKeyFromEnv,
+  verifyLicenseToken,
+} from "@/lib/licensing/jwt";
 import { hashLicenseKey } from "@/lib/licensing/license-key";
+import { loadLicenseProduct } from "@/lib/licensing/product-catalog";
 import type {
   LicenseActivateResponse,
-  LicenseProductRow,
   LicenseRow,
   LicenseStatus,
   LicenseValidateResponse,
@@ -60,18 +65,6 @@ function errorResponse(
   };
 }
 
-async function loadProduct(
-  client: SupabaseClient,
-  productCode: string,
-): Promise<LicenseProductRow | null> {
-  const { data } = await client
-    .from("license_products")
-    .select("*")
-    .eq("code", productCode)
-    .maybeSingle();
-  return (data as LicenseProductRow | null) ?? null;
-}
-
 async function resolveUserFromAccessToken(
   client: SupabaseClient,
   accessToken: string,
@@ -110,73 +103,44 @@ async function findLicenseForActivation(
   return (data as LicenseRow | null) ?? null;
 }
 
-async function activeDeviceCount(client: SupabaseClient, licenseId: string): Promise<number> {
-  const { count } = await client
-    .from("license_devices")
-    .select("id", { count: "exact", head: true })
-    .eq("license_id", licenseId)
-    .is("revoked_at", null);
-  return count ?? 0;
-}
+type RegisterDeviceResult =
+  | { ok: true }
+  | { ok: false; errorCode: "device_limit" | "invalid_license"; error: string };
 
-async function upsertDevice(
+async function registerLicenseDevice(
   client: SupabaseClient,
   licenseId: string,
   fingerprint: string,
   deviceName: string | undefined,
-): Promise<{ ok: true } | { ok: false; errorCode: "device_limit"; error: string }> {
-  const { data: existing } = await client
-    .from("license_devices")
-    .select("*")
-    .eq("license_id", licenseId)
-    .eq("device_fingerprint_hash", fingerprint)
-    .maybeSingle();
+): Promise<RegisterDeviceResult> {
+  const { data, error } = await client.rpc("register_license_device", {
+    p_license_id: licenseId,
+    p_fingerprint: fingerprint,
+    p_device_name: deviceName ?? null,
+  });
 
-  if (existing) {
-    if (existing.revoked_at) {
-      const active = await activeDeviceCount(client, licenseId);
-      const { data: license } = await client.from("licenses").select("max_devices").eq("id", licenseId).single();
-      const max = license?.max_devices ?? 2;
-      if (active >= max) {
-        return {
-          ok: false,
-          errorCode: "device_limit",
-          error: "Device limit reached. Deactivate another device on getqvi.com.",
-        };
-      }
-      await client
-        .from("license_devices")
-        .update({ revoked_at: null, last_seen_at: new Date().toISOString(), device_name: deviceName ?? existing.device_name })
-        .eq("id", existing.id);
-      return { ok: true };
-    }
-    await client
-      .from("license_devices")
-      .update({
-        last_seen_at: new Date().toISOString(),
-        device_name: deviceName ?? existing.device_name,
-      })
-      .eq("id", existing.id);
-    return { ok: true };
+  if (error) {
+    return {
+      ok: false,
+      errorCode: "invalid_license",
+      error: "Could not register device.",
+    };
   }
 
-  const active = await activeDeviceCount(client, licenseId);
-  const { data: license } = await client.from("licenses").select("max_devices").eq("id", licenseId).single();
-  const max = license?.max_devices ?? 2;
-  if (active >= max) {
+  const outcome = typeof data === "string" ? data : "";
+  if (outcome === "ok") return { ok: true };
+  if (outcome === "device_limit") {
     return {
       ok: false,
       errorCode: "device_limit",
       error: "Device limit reached. Deactivate another device on getqvi.com.",
     };
   }
-
-  await client.from("license_devices").insert({
-    license_id: licenseId,
-    device_fingerprint_hash: fingerprint,
-    device_name: deviceName ?? null,
-  });
-  return { ok: true };
+  return {
+    ok: false,
+    errorCode: "invalid_license",
+    error: "Could not register device.",
+  };
 }
 
 type TokenBuildFailure = { kind: "error"; error: string; httpStatus: number };
@@ -235,10 +199,20 @@ export async function activateLicense(
     return { status: 400, body: { error: "Unknown product.", errorCode: "invalid_product" } };
   }
 
-  const product = await loadProduct(client, input.productCode);
-  if (!product) {
+  const productResult = await loadLicenseProduct(client, input.productCode);
+  if (!productResult.ok && productResult.reason === "query_error") {
+    return {
+      status: 503,
+      body: {
+        error: "License catalog is temporarily unavailable.",
+        errorCode: "catalog_error",
+      },
+    };
+  }
+  if (!productResult.ok) {
     return { status: 400, body: { error: "Unknown product.", errorCode: "invalid_product" } };
   }
+  const product = productResult.product;
 
   let userId: string | null = null;
   if (input.accessToken?.trim()) {
@@ -321,7 +295,7 @@ export async function activateLicense(
     return { status: fail.status, body: fail.body };
   }
 
-  const deviceResult = await upsertDevice(
+  const deviceResult = await registerLicenseDevice(
     client,
     license.id,
     input.deviceFingerprint.trim(),
@@ -378,9 +352,20 @@ export async function validateLicense(
   },
   meta: RequestMeta,
 ): Promise<{ body: LicenseValidateResponse; status: number }> {
-  const payload = decodeLicenseToken(input.licenseToken);
-  if (!payload?.sub) {
-    return { status: 400, body: { error: "Invalid license token.", errorCode: "invalid_token" } };
+  const verified = verifyLicenseToken(input.licenseToken);
+  if (!verified.ok) {
+    return {
+      status: verified.errorCode === "expired" ? 403 : 401,
+      body: { error: verified.error, errorCode: verified.errorCode },
+    };
+  }
+
+  const payload = verified.payload;
+  if (!deviceFingerprintsMatch(payload.device ?? "", input.deviceFingerprint)) {
+    return {
+      status: 403,
+      body: { error: "Device not registered for this license.", errorCode: "device_limit" },
+    };
   }
 
   const { data: license } = await client.from("licenses").select("*").eq("id", payload.sub).maybeSingle();
@@ -453,7 +438,6 @@ export async function validateLicense(
       body: {
         error: "Device not registered for this license.",
         errorCode: "device_limit",
-        status: "revoked",
       },
     };
   }
@@ -493,8 +477,14 @@ export async function deactivateLicenseDevice(
   input: { licenseToken: string; deviceFingerprint: string },
   meta: RequestMeta,
 ): Promise<{ ok: boolean; status: number }> {
-  const payload = decodeLicenseToken(input.licenseToken);
-  if (!payload?.sub) return { ok: false, status: 400 };
+  const verified = verifyLicenseToken(input.licenseToken);
+  if (!verified.ok) return { ok: false, status: verified.errorCode === "expired" ? 403 : 401 };
+
+  const payload = verified.payload;
+  if (!payload.sub) return { ok: false, status: 400 };
+  if (!deviceFingerprintsMatch(payload.device ?? "", input.deviceFingerprint)) {
+    return { ok: false, status: 403 };
+  }
 
   const { data: license } = await client.from("licenses").select("*").eq("id", payload.sub).maybeSingle();
   if (!license) return { ok: false, status: 404 };
@@ -524,22 +514,39 @@ export async function deactivateLicenseDevice(
   return { ok: true, status: 200 };
 }
 
-export async function loadLicenseByToken(client: SupabaseClient, token: string) {
-  const payload = decodeLicenseToken(token);
-  if (!payload?.sub) return null;
+export async function loadLicenseByToken(
+  client: SupabaseClient,
+  token: string,
+  expectedProductCode?: string,
+) {
+  const verified = verifyLicenseToken(token);
+  if (!verified.ok) return null;
+  const payload = verified.payload;
+  if (!payload.sub || !payload.product) return null;
+  if (expectedProductCode && payload.product !== expectedProductCode) return null;
+
   const { data: license } = await client.from("licenses").select("*").eq("id", payload.sub).maybeSingle();
   if (!license) return null;
+
+  const { data: product } = await client
+    .from("license_products")
+    .select("code")
+    .eq("id", license.product_id)
+    .maybeSingle();
+  if (!product?.code || product.code !== payload.product) return null;
+  if (expectedProductCode && product.code !== expectedProductCode) return null;
+
   const status = effectiveLicenseStatus(license as LicenseRow);
   if (status !== "active") return null;
-  if (payload.device) {
-    const { data: device } = await client
-      .from("license_devices")
-      .select("id")
-      .eq("license_id", license.id)
-      .eq("device_fingerprint_hash", payload.device)
-      .is("revoked_at", null)
-      .maybeSingle();
-    if (!device) return null;
-  }
+
+  const { data: device } = await client
+    .from("license_devices")
+    .select("id")
+    .eq("license_id", license.id)
+    .eq("device_fingerprint_hash", payload.device!.trim())
+    .is("revoked_at", null)
+    .maybeSingle();
+  if (!device) return null;
+
   return license;
 }

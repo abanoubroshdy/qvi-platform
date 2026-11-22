@@ -8,6 +8,9 @@ Apply migrations in order in the Supabase SQL editor:
 
 1. Existing `supabase/migrations/0001`–`0005`
 2. **`supabase/migrations/0006_licensing.sql`**
+3. **`supabase/migrations/0007_licensing_security.sql`** (grants licensing tables to `service_role`, revokes public `license_releases` reads, adds atomic `register_license_device`)
+
+`SUPABASE_SECRET_KEY` may be a legacy JWT service key or the newer `sb_secret_*` format; both are supported.
 
 ## Environment variables (Vercel)
 
