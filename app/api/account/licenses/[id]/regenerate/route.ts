@@ -5,6 +5,7 @@ import {
   regenerateLicenseKey,
 } from "@/lib/licensing/admin-actions";
 import { formatLicenseKey } from "@/lib/licensing/license-key";
+import { emailLicenseKeyToOwner } from "@/lib/licensing/license-key-delivery";
 import { getRequestSupabaseSession } from "@/lib/supabase/request-session";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 
@@ -43,6 +44,11 @@ export async function POST(
   });
 
   if (!result.ok) return jsonResponse({ error: result.error }, 400);
+
+  await emailLicenseKeyToOwner(service, id, {
+    userId: session.userId,
+    actor: "owner",
+  });
 
   return jsonResponse({
     ok: true,

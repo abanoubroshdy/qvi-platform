@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { licenseKeyEncryptedColumn } from "@/lib/licensing/license-key-access";
 import { generateLicenseKey, hashLicenseKey, licenseKeyHint } from "@/lib/licensing/license-key";
 import { isProductCode } from "@/lib/licensing/products";
 
@@ -37,6 +38,7 @@ export async function createLicenseForUser(
 
   const licenseKey = generateLicenseKey();
   const licenseKeyHash = await hashLicenseKey(licenseKey);
+  const licenseKeyEncrypted = await licenseKeyEncryptedColumn(licenseKey);
 
   const { data: license, error } = await client
     .from("licenses")
@@ -45,6 +47,7 @@ export async function createLicenseForUser(
       product_id: product.id,
       license_key_hash: licenseKeyHash,
       license_key_hint: licenseKeyHint(licenseKey),
+      license_key_encrypted: licenseKeyEncrypted,
       status: "active",
       max_devices: input.maxDevices,
       expires_at: input.expiresAt,
@@ -86,12 +89,14 @@ export async function regenerateLicenseKey(
 
   const licenseKey = generateLicenseKey();
   const licenseKeyHash = await hashLicenseKey(licenseKey);
+  const licenseKeyEncrypted = await licenseKeyEncryptedColumn(licenseKey);
 
   const { error: updateError } = await client
     .from("licenses")
     .update({
       license_key_hash: licenseKeyHash,
       license_key_hint: licenseKeyHint(licenseKey),
+      license_key_encrypted: licenseKeyEncrypted,
     })
     .eq("id", license.id)
     .eq("status", "active");

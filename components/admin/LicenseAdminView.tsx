@@ -22,7 +22,7 @@ type LicenseListItem = {
 };
 
 export function LicenseAdminView() {
-  const { copy, t } = useI18n();
+  const { copy, t, locale } = useI18n();
   const la = copy.licenseAdmin;
   const ad = copy.adminDashboard;
 
@@ -40,6 +40,7 @@ export function LicenseAdminView() {
     productCode: KNOWN_PRODUCT_CODES[0] as ProductCode,
     expiresAt: "",
     maxDevices: "2",
+    emailKeyToUser: true,
   });
   const [lookupEmail, setLookupEmail] = useState("");
   const [lookupKey, setLookupKey] = useState("");
@@ -74,6 +75,8 @@ export function LicenseAdminView() {
           productCode: createForm.productCode,
           expiresAt: createForm.expiresAt ? new Date(createForm.expiresAt).toISOString() : null,
           maxDevices: Number(createForm.maxDevices) || 2,
+          emailKeyToUser: createForm.emailKeyToUser,
+          locale: locale === "ar" ? "ar" : "en",
         }),
       });
       const body = await response.json();
@@ -116,6 +119,49 @@ export function LicenseAdminView() {
     }
   }
 
+  async function showLicenseKey(row: LicenseListItem) {
+    setBusy(true);
+    setCreatedKey(null);
+    setMessage(null);
+    setMessageIsError(false);
+    try {
+      const response = await fetch(`/api/admin/licenses/${row.id}/key`, { credentials: "include" });
+      const body = (await response.json()) as { licenseKeyFormatted?: string; error?: string; code?: string };
+      if (!response.ok) {
+        setMessageIsError(true);
+        setMessage(body.code === "legacy" ? copy.auth.licensesLegacyKeyMessage : body.error ?? la.error);
+        return;
+      }
+      setCreatedKey(body.licenseKeyFormatted ?? null);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function emailLicenseKey(row: LicenseListItem) {
+    setBusy(true);
+    setMessage(null);
+    setMessageIsError(false);
+    try {
+      const response = await fetch(`/api/admin/licenses/${row.id}/email-key`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ locale: locale === "ar" ? "ar" : "en" }),
+      });
+      const body = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        setMessageIsError(true);
+        setMessage(body.error ?? la.emailKeyFailed);
+        return;
+      }
+      setMessageIsError(false);
+      setMessage(la.emailKeySent);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function regenerateLicenseConfirmed(row: LicenseListItem) {
     setBusy(true);
     setMessage(null);
@@ -125,6 +171,11 @@ export function LicenseAdminView() {
       const response = await fetch(`/api/admin/licenses/${row.id}/regenerate`, {
         method: "POST",
         credentials: "include",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          emailKeyToUser: createForm.emailKeyToUser,
+          locale: locale === "ar" ? "ar" : "en",
+        }),
       });
       const body = (await response.json()) as {
         licenseKeyFormatted?: string;
@@ -251,6 +302,15 @@ export function LicenseAdminView() {
             />
           </div>
         </div>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            className="h-4 w-4 rounded border-input"
+            checked={createForm.emailKeyToUser}
+            onChange={(e) => setCreateForm((c) => ({ ...c, emailKeyToUser: e.target.checked }))}
+          />
+          {la.emailKeyToUser}
+        </label>
         <Button type="submit" disabled={busy}>
           {busy ? la.working : la.createCta}
         </Button>
@@ -285,6 +345,24 @@ export function LicenseAdminView() {
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={busy || row.status !== "active"}
+                  onClick={() => void showLicenseKey(row)}
+                >
+                  {la.showKey}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={busy || row.status !== "active"}
+                  onClick={() => void emailLicenseKey(row)}
+                >
+                  {la.emailKeyToUserCta}
+                </Button>
                 <Button
                   type="button"
                   size="sm"

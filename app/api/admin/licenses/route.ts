@@ -1,6 +1,7 @@
 import { jsonResponse } from "@/lib/licensing/http";
 import { requireSiteAdmin } from "@/lib/admin/guard";
 import { createLicenseForUser, findUserIdByEmail } from "@/lib/licensing/admin-actions";
+import { maybeAutoEmailLicenseKey } from "@/lib/licensing/license-key-delivery";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 import { formatLicenseKey, hashLicenseKey } from "@/lib/licensing/license-key";
 
@@ -68,6 +69,8 @@ export async function POST(request: Request) {
     productCode?: string;
     expiresAt?: string | null;
     maxDevices?: number;
+    emailKeyToUser?: boolean;
+    locale?: string;
   };
   try {
     body = await request.json();
@@ -91,6 +94,11 @@ export async function POST(request: Request) {
   });
 
   if (!created.ok) return jsonResponse({ error: created.error }, 400);
+
+  const emailKeyToUser = body.emailKeyToUser !== false;
+  if (emailKeyToUser) {
+    await maybeAutoEmailLicenseKey(client, created.licenseId, true, body.locale === "ar" ? "ar" : "en");
+  }
 
   return jsonResponse({
     licenseId: created.licenseId,

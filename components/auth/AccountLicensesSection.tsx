@@ -81,6 +81,51 @@ export function AccountLicensesSection() {
     }
   }
 
+  async function showLicenseKey(licenseId: string) {
+    setBusyId(licenseId);
+    setNotice(null);
+    setRevealedKey(null);
+    setNoticeIsError(false);
+    try {
+      const response = await fetch(`/api/account/licenses/${licenseId}/key`, { credentials: "include" });
+      const body = (await response.json()) as { licenseKeyFormatted?: string; error?: string; code?: string };
+      if (!response.ok) {
+        setNoticeIsError(true);
+        setNotice(body.code === "legacy" ? a.licensesLegacyKeyMessage : body.error ?? a.licensesShowKeyFailed);
+        return;
+      }
+      setRevealedKey(body.licenseKeyFormatted ?? null);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function emailLicenseKey(licenseId: string) {
+    setBusyId(licenseId);
+    setNotice(null);
+    setNoticeIsError(false);
+    try {
+      const response = await fetch(`/api/account/licenses/${licenseId}/email-key`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ locale }),
+      });
+      const body = (await response.json()) as { error?: string; code?: string };
+      if (!response.ok) {
+        setNoticeIsError(true);
+        setNotice(
+          body.code === "legacy" ? a.licensesLegacyKeyMessage : body.error ?? a.licensesEmailKeyFailed,
+        );
+        return;
+      }
+      setNoticeIsError(false);
+      setNotice(a.licensesEmailKeySent);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   async function deactivateDeviceConfirmed(deviceId: string) {
     setBusyId(deviceId);
     setNotice(null);
@@ -218,25 +263,52 @@ export function AccountLicensesSection() {
                     })}
                   </p>
                   {license.status === "active" ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="secondary"
-                      disabled={Boolean(regeneratingId)}
-                      onClick={() => {
-                        setRegenerateError(null);
-                        setConfirmRegenerateLicense(license);
-                      }}
-                    >
-                      {regeneratingId === license.id ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                          {copy.licenseAdmin.working}
-                        </>
-                      ) : (
-                        a.licensesRegenerateKey
-                      )}
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={Boolean(busyId)}
+                        onClick={() => void showLicenseKey(license.id)}
+                      >
+                        {busyId === license.id && !regeneratingId ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                            {a.working}
+                          </>
+                        ) : (
+                          a.licensesShowKey
+                        )}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={Boolean(busyId)}
+                        onClick={() => void emailLicenseKey(license.id)}
+                      >
+                        {a.licensesEmailKey}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        disabled={Boolean(regeneratingId) || Boolean(busyId)}
+                        onClick={() => {
+                          setRegenerateError(null);
+                          setConfirmRegenerateLicense(license);
+                        }}
+                      >
+                        {regeneratingId === license.id ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                            {copy.licenseAdmin.working}
+                          </>
+                        ) : (
+                          a.licensesRegenerateKey
+                        )}
+                      </Button>
+                    </div>
                   ) : null}
                 </div>
                 {activeDevices.length > 0 ? (
