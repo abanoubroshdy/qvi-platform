@@ -1,6 +1,7 @@
 import { parsePaginationFromUrl } from "@/lib/admin/pagination";
 import { searchUsers } from "@/lib/admin/users";
 import { requireSiteAdmin } from "@/lib/admin/guard";
+import { NextResponse } from "next/server";
 import { jsonResponse } from "@/lib/licensing/http";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 
@@ -29,10 +30,16 @@ export async function GET(request: Request) {
   });
   if (!result.ok) return jsonResponse({ error: result.error }, 500);
 
-  return jsonResponse({
-    users: result.result.users,
-    total: result.result.total,
-    limit,
-    offset,
-  });
+  return NextResponse.json(
+    {
+      users: result.result.users,
+      total: result.result.total,
+      limit,
+      offset,
+    },
+    {
+      status: 200,
+      headers: { "Cache-Control": "no-store" },
+    },
+  );
 }
