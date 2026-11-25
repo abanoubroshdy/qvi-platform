@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { completeSignupProfileAfterConfirm } from "@/lib/supabase/profile";
 import { createQv1AutostartToken } from "@/lib/qv1-download";
 import { withLocale } from "@/lib/i18n/locale-path";
 import {
@@ -66,6 +67,13 @@ async function navigateAuthCallback(href: string, autostartToken: string): Promi
     if (preview.recovery) {
       if (data.session.user?.id) markPasswordRecovery(data.session.user.id);
       return { path: RESET_PASSWORD_PATH };
+    }
+    if (preview.otpType === "signup" && data.session.user?.id) {
+      await completeSignupProfileAfterConfirm(
+        supabase,
+        data.session.user.id,
+        data.session.user.user_metadata as Record<string, unknown>,
+      );
     }
     return { path: preview.fallbackNext };
   }

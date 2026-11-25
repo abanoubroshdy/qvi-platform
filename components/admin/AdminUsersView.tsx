@@ -18,6 +18,7 @@ import { LicenseKeyOneTimeBox } from "@/components/licensing/LicenseKeyOneTimeBo
 type UserSummary = {
   id: string;
   email: string | null;
+  full_name?: string | null;
   created_at: string;
   last_sign_in_at: string | null;
   is_banned: boolean;
@@ -85,8 +86,9 @@ export function AdminUsersView() {
   const localeTag = locale === "ar" ? "ar" : "en";
 
   const [query, setQuery] = useState("");
-  const [draftFilters, setDraftFilters] = useState<UserFilters>(defaultFilters);
-  const [appliedFilters, setAppliedFilters] = useState<UserFilters>(defaultFilters);
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [filters, setFilters] = useState<UserFilters>(defaultFilters);
+  const [listError, setListError] = useState<string | null>(null);
   const [users, setUsers] = useState<UserSummary[]>([]);
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
@@ -127,21 +129,48 @@ export function AdminUsersView() {
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
-    const params = buildSearchParams(query, offset, appliedFilters);
-    const response = await fetch(`/api/admin/users?${params}`, { credentials: "include" });
-    setLoading(false);
-    if (!response.ok) return;
-    const body = (await response.json()) as { users?: UserSummary[]; total?: number };
-    setUsers(body.users ?? []);
-    setTotal(body.total ?? 0);
-    setSelected((current) => {
-      const next = new Set<string>();
-      Array.from(current).forEach((id) => {
-        if ((body.users ?? []).some((u) => u.id === id)) next.add(id);
+    setListError(null);
+    const params = buildSearchParams(debouncedQuery, offset, filters);
+    try {
+      const response = await fetch(`/api/admin/users?${params}`, {
+        credentials: "include",
+        cache: "no-store",
       });
-      return next;
-    });
-  }, [query, offset, appliedFilters]);
+      const body = (await response.json()) as { users?: UserSummary[]; total?: number; error?: string };
+      if (!response.ok) {
+        setListError(body.error ?? ad.usersListError);
+        setUsers([]);
+        setTotal(0);
+        return;
+      }
+      setUsers(body.users ?? []);
+      setTotal(body.total ?? 0);
+      setSelected((current) => {
+        const next = new Set<string>();
+        Array.from(current).forEach((id) => {
+          if ((body.users ?? []).some((u) => u.id === id)) next.add(id);
+        });
+        return next;
+      });
+    } catch {
+      setListError(ad.usersListError);
+      setUsers([]);
+      setTotal(0);
+    } finally {
+      setLoading(false);
+    }
+  }, [ad.usersListError, debouncedQuery, filters, offset]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedQuery((prev) => {
+        const next = query.trim();
+        if (next !== prev) setOffset(0);
+        return next;
+      });
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [query]);
 
   useEffect(() => {
     void loadUsers();
@@ -167,10 +196,17 @@ export function AdminUsersView() {
     setDetail(body.user ?? null);
   }
 
-  function onSearch(event: FormEvent) {
-    event.preventDefault();
+  function clearFilters() {
+    setQuery("");
+    setDebouncedQuery("");
+    setFilters(defaultFilters);
     setOffset(0);
-    setAppliedFilters(draftFilters);
+    setListError(null);
+  }
+
+  function onFiltersChange(next: UserFilters) {
+    setFilters(next);
+    setOffset(0);
   }
 
   function toggleSelected(id: string) {
@@ -438,7 +474,7 @@ export function AdminUsersView() {
         <p className="mt-1 text-sm text-muted-foreground">{ad.usersLead}</p>
       </div>
 
-      <form onSubmit={onSearch} className="space-y-4 rounded-2xl border border-border bg-card p-4">
+      <div className="space-y-4 rounded-2xl border border-border bg-card p-4">
         <div className="flex flex-wrap items-end gap-3">
           <div className="min-w-[12rem] flex-1 space-y-2">
             <Label htmlFor="user-search">{ad.searchUsers}</Label>
@@ -447,26 +483,30 @@ export function AdminUsersView() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={ad.searchUsersPlaceholder}
+              autoComplete="off"
             />
           </div>
-          <Button type="submit" variant="secondary" disabled={loading}>
-            {loading ? la.working : ad.search}
+          <Button type="button" variant="outline" disabled={loading} onClick={() => void loadUsers()}>
+            {loading ? la.working : ad.refreshList}
+          </Button>
+          <Button type="button" variant="secondary" onClick={clearFilters}>
+            {ad.clearFilters}
           </Button>
         </div>
         <div className="flex flex-wrap items-end gap-4">
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
-              checked={draftFilters.unconfirmedOnly}
-              onChange={(e) => setDraftFilters((f) => ({ ...f, unconfirmedOnly: e.target.checked }))}
+              checked={filters.unconfirmedOnly}
+              onChange={(e) => onFiltersChange({ ...filters, unconfirmedOnly: e.target.checked })}
             />
             {ad.filterUnconfirmed}
           </label>
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
-              checked={draftFilters.neverSignedIn}
-              onChange={(e) => setDraftFilters((f) => ({ ...f, neverSignedIn: e.target.checked }))}
+              checked={filters.neverSignedIn}
+              onChange={(e) => onFiltersChange({ ...filters, neverSignedIn: e.target.checked })}
             />
             {ad.filterNeverSignedIn}
           </label>
@@ -474,20 +514,25 @@ export function AdminUsersView() {
             <Label>{ad.filterCreatedSince}</Label>
             <Input
               type="date"
-              value={draftFilters.createdSince}
-              onChange={(e) => setDraftFilters((f) => ({ ...f, createdSince: e.target.value }))}
+              value={filters.createdSince}
+              onChange={(e) => onFiltersChange({ ...filters, createdSince: e.target.value })}
             />
           </div>
           <div className="space-y-1">
             <Label>{ad.filterCreatedUntil}</Label>
             <Input
               type="date"
-              value={draftFilters.createdUntil}
-              onChange={(e) => setDraftFilters((f) => ({ ...f, createdUntil: e.target.value }))}
+              value={filters.createdUntil}
+              onChange={(e) => onFiltersChange({ ...filters, createdUntil: e.target.value })}
             />
           </div>
         </div>
-      </form>
+        {listError ? (
+          <p className="text-sm text-destructive" role="alert">
+            {listError}
+          </p>
+        ) : null}
+      </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
         <span className="text-muted-foreground">
@@ -537,6 +582,9 @@ export function AdminUsersView() {
                 onClick={() => void loadDetail(user.id)}
               >
                 <span className="font-medium break-all">{user.email ?? user.id}</span>
+                {user.full_name ? (
+                  <span className="text-sm text-foreground/90">{user.full_name}</span>
+                ) : null}
                 <span className="text-xs text-muted-foreground">
                   {user.is_banned ? ad.banned : ad.active}
                   {user.email_confirmed === false ? ` · ${ad.emailUnconfirmed}` : ""}

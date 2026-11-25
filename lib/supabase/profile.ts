@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { recordToFields, toAuthMetadata, toProfileRow, type ProfileFields, type ProfileRecord } from "@/lib/auth/profile";
+import { toAuthMetadata, toProfileRow, type ProfileFields, type ProfileRecord } from "@/lib/auth/profile";
 
 export async function fetchProfile(
   supabase: SupabaseClient,
@@ -34,10 +34,20 @@ export async function saveProfile(
 }
 
 export function fieldsFromUserMetadata(metadata: Record<string, unknown> | undefined): ProfileFields {
-  return recordToFields({
-    id: "",
-    full_name: typeof metadata?.full_name === "string" ? metadata.full_name : null,
-    country: typeof metadata?.country === "string" ? metadata.country : null,
-    age_confirmed: metadata?.age_confirmed === true,
-  });
+  return {
+    fullName: typeof metadata?.full_name === "string" ? metadata.full_name.trim() : "",
+    country: typeof metadata?.country === "string" ? metadata.country : "",
+    ageConfirmed: metadata?.age_confirmed === true,
+    privacyConsent: metadata?.privacy_consent === true,
+    marketingConsent: metadata?.marketing_consent === true,
+  };
+}
+
+/** Persist profile row + auth metadata after email confirmation (OTP or legacy link). */
+export async function completeSignupProfileAfterConfirm(
+  supabase: SupabaseClient,
+  userId: string,
+  metadata: Record<string, unknown> | undefined,
+): Promise<{ error: string | null }> {
+  return saveProfile(supabase, userId, fieldsFromUserMetadata(metadata));
 }

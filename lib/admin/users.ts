@@ -10,6 +10,7 @@ export type AdminUserSearchFilters = {
 export type AdminUserSummary = {
   id: string;
   email: string | null;
+  full_name?: string | null;
   created_at: string;
   last_sign_in_at: string | null;
   banned_until: string | null;
