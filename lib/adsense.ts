@@ -49,13 +49,23 @@ function readExplicit(raw: string | undefined, pattern: RegExp, fallback: string
   return pattern.test(trimmed) ? trimmed : null;
 }
 
+// Direct `process.env.NEXT_PUBLIC_*` reads so Next inlines values in client bundles.
+function buildTimeAdEnv(): Record<string, string | undefined> {
+  return {
+    NEXT_PUBLIC_ADSENSE_CLIENT: process.env.NEXT_PUBLIC_ADSENSE_CLIENT,
+    NEXT_PUBLIC_ADSENSE_SLOT: process.env.NEXT_PUBLIC_ADSENSE_SLOT,
+    NEXT_PUBLIC_ADSENSE_SLOT_TOP: process.env.NEXT_PUBLIC_ADSENSE_SLOT_TOP,
+    NEXT_PUBLIC_ADSENSE_SLOT_BOTTOM: process.env.NEXT_PUBLIC_ADSENSE_SLOT_BOTTOM,
+  };
+}
+
 /**
  * Unset env vars fall back to the known publisher and 300×250 slot.
  * A blank or invalid value disables that field (no fake placeholder).
  * The same slot is never placed twice on one page.
  */
 export function resolveAdSensePlacement(
-  env: Record<string, string | undefined> = process.env,
+  env: Record<string, string | undefined> = buildTimeAdEnv(),
 ): AdSensePlacement {
   const client = readExplicit(env.NEXT_PUBLIC_ADSENSE_CLIENT, CLIENT_RE, DEFAULT_ADSENSE_CLIENT);
   const baseSlot = readExplicit(env.NEXT_PUBLIC_ADSENSE_SLOT, SLOT_RE, DEFAULT_ADSENSE_SLOT);
@@ -72,7 +82,7 @@ export function resolveAdSensePlacement(
 
 /** Account meta stays present even if a bad env value disables ad units. */
 export function adsenseVerificationClient(
-  env: Record<string, string | undefined> = process.env,
+  env: Record<string, string | undefined> = buildTimeAdEnv(),
 ): string {
   const client = readExplicit(env.NEXT_PUBLIC_ADSENSE_CLIENT, CLIENT_RE, DEFAULT_ADSENSE_CLIENT);
   return client || DEFAULT_ADSENSE_CLIENT;

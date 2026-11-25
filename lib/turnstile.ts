@@ -5,9 +5,9 @@ export type TurnstileVerifyResult =
   | { ok: false; reason: "missing_token" | "invalid" | "network" };
 
 export function resolveTurnstileSiteKey(
-  env: Record<string, string | undefined> = process.env as Record<string, string | undefined>,
+  env?: Record<string, string | undefined>,
 ): string | null {
-  const key = env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim();
+  const key = (env?.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY)?.trim();
   return key || null;
 }
 

@@ -1,5 +1,6 @@
 import { ForgotPasswordView } from "@/components/auth/ForgotPasswordView";
 import { buildPageMetadata } from "@/lib/seo";
+import { isTurnstileEnforced } from "@/lib/turnstile";
 
 const pageTitle = "Forgot password";
 const pageDescription = "Request a link to reset your QVI account password.";
@@ -14,5 +15,5 @@ export const metadata = {
 };
 
 export default function ForgotPasswordPage() {
-  return <ForgotPasswordView />;
+  return <ForgotPasswordView serverEnforcesTurnstile={isTurnstileEnforced()} />;
 }

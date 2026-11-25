@@ -9,9 +9,11 @@ import { createQv1AutostartToken, postAuthPath } from "@/lib/qv1-download";
 export function LoginView({
   initialMode = "signin",
   nextPath = "/account",
+  serverEnforcesTurnstile = false,
 }: {
   initialMode?: "signin" | "signup";
   nextPath?: string;
+  serverEnforcesTurnstile?: boolean;
 }) {
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -29,7 +31,11 @@ export function LoginView({
 
   return (
     <section className="mx-auto flex min-h-[70vh] max-w-xl flex-col justify-center px-4 py-12 sm:py-16">
-      <AuthForm initialMode={initialMode} nextPath={destination} />
+      <AuthForm
+        initialMode={initialMode}
+        nextPath={destination}
+        serverEnforcesTurnstile={serverEnforcesTurnstile}
+      />
     </section>
   );
 }

@@ -1,6 +1,7 @@
 import { LoginView } from "@/components/auth/LoginView";
 import { postAuthPath } from "@/lib/qv1-download";
 import { buildPageMetadata } from "@/lib/seo";
+import { isTurnstileEnforced } from "@/lib/turnstile";
 
 const pageTitle = "Sign in";
 const pageDescription = "Sign in or create your QVI account to download QV1 Evaluation and manage your waitlist spot.";
@@ -20,5 +21,11 @@ type LoginPageProps = {
 
 export default function LoginPage({ searchParams }: LoginPageProps) {
   const initialMode = searchParams?.mode === "signup" ? "signup" : "signin";
-  return <LoginView initialMode={initialMode} nextPath={postAuthPath(searchParams?.next)} />;
+  return (
+    <LoginView
+      initialMode={initialMode}
+      nextPath={postAuthPath(searchParams?.next)}
+      serverEnforcesTurnstile={isTurnstileEnforced()}
+    />
+  );
 }

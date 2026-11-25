@@ -9,6 +9,8 @@ type TurnstileWidgetProps = {
   onExpire?: () => void;
   action?: string;
   className?: string;
+  /** When true, log if the site key is missing from the client bundle (misconfiguration). */
+  serverEnforcesTurnstile?: boolean;
 };
 
 export type TurnstileWidgetHandle = {
@@ -41,7 +43,7 @@ export function turnstileEnabledOnClient(): boolean {
 }
 
 export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidgetProps>(function TurnstileWidget(
-  { onToken, onExpire, action, className },
+  { onToken, onExpire, action, className, serverEnforcesTurnstile = false },
   ref,
 ) {
   const siteKey = resolveTurnstileSiteKey();
@@ -67,6 +69,14 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidget
     }),
     [],
   );
+
+  useEffect(() => {
+    if (serverEnforcesTurnstile && !siteKey) {
+      console.error(
+        "[QVI Turnstile] Server enforces Turnstile but NEXT_PUBLIC_TURNSTILE_SITE_KEY is missing in the client bundle. Complete the security check cannot work until the site key is set at build time.",
+      );
+    }
+  }, [serverEnforcesTurnstile, siteKey]);
 
   useEffect(() => {
     if (!siteKey || !scriptReady || !containerRef.current || !window.turnstile) return;
