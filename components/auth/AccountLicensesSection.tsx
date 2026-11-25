@@ -9,6 +9,7 @@ import { fetchUserLicenses, type UserLicenseSummary } from "@/lib/supabase/licen
 import { ConfirmActionDialog } from "@/components/licensing/ConfirmActionDialog";
 import { Button } from "@/components/ui/button";
 import { patchUserLicenseDeviceRevoked } from "@/lib/licensing/revoke-ui";
+import { LicenseKeyOneTimeBox } from "@/components/licensing/LicenseKeyOneTimeBox";
 
 export function AccountLicensesSection() {
   const { user } = useAuth();
@@ -29,6 +30,10 @@ export function AccountLicensesSection() {
     productName: string;
   } | null>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
+  const [confirmRegenerateLicense, setConfirmRegenerateLicense] = useState<UserLicenseSummary | null>(null);
+  const [regenerateError, setRegenerateError] = useState<string | null>(null);
+  const [revealedKey, setRevealedKey] = useState<string | null>(null);
+  const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     if (!user) return;
@@ -45,6 +50,81 @@ export function AccountLicensesSection() {
   useEffect(() => {
     void reload();
   }, [reload]);
+
+  async function regenerateLicenseConfirmed(licenseId: string) {
+    setRegeneratingId(licenseId);
+    setRevealedKey(null);
+    setNotice(null);
+    try {
+      const response = await fetch(`/api/account/licenses/${licenseId}/regenerate`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const body = (await response.json()) as {
+        licenseKeyFormatted?: string;
+        licenseKey?: string;
+        error?: string;
+        errorCode?: string;
+      };
+      if (!response.ok) {
+        setRegenerateError(
+          body.errorCode === "rate_limited" ? a.licensesRegenerateFailed : body.error ?? a.licensesRegenerateFailed,
+        );
+        return;
+      }
+      setRevealedKey(body.licenseKeyFormatted ?? body.licenseKey ?? null);
+      setConfirmRegenerateLicense(null);
+      setRegenerateError(null);
+      await reload();
+    } finally {
+      setRegeneratingId(null);
+    }
+  }
+
+  async function showLicenseKey(licenseId: string) {
+    setBusyId(licenseId);
+    setNotice(null);
+    setRevealedKey(null);
+    setNoticeIsError(false);
+    try {
+      const response = await fetch(`/api/account/licenses/${licenseId}/key`, { credentials: "include" });
+      const body = (await response.json()) as { licenseKeyFormatted?: string; error?: string; code?: string };
+      if (!response.ok) {
+        setNoticeIsError(true);
+        setNotice(body.code === "legacy" ? a.licensesLegacyKeyMessage : body.error ?? a.licensesShowKeyFailed);
+        return;
+      }
+      setRevealedKey(body.licenseKeyFormatted ?? null);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function emailLicenseKey(licenseId: string) {
+    setBusyId(licenseId);
+    setNotice(null);
+    setNoticeIsError(false);
+    try {
+      const response = await fetch(`/api/account/licenses/${licenseId}/email-key`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ locale }),
+      });
+      const body = (await response.json()) as { error?: string; code?: string };
+      if (!response.ok) {
+        setNoticeIsError(true);
+        setNotice(
+          body.code === "legacy" ? a.licensesLegacyKeyMessage : body.error ?? a.licensesEmailKeyFailed,
+        );
+        return;
+      }
+      setNoticeIsError(false);
+      setNotice(a.licensesEmailKeySent);
+    } finally {
+      setBusyId(null);
+    }
+  }
 
   async function deactivateDeviceConfirmed(deviceId: string) {
     setBusyId(deviceId);
@@ -112,6 +192,35 @@ export function AccountLicensesSection() {
           {notice}
         </p>
       ) : null}
+      {revealedKey ? (
+        <LicenseKeyOneTimeBox
+          licenseKey={revealedKey}
+          title={copy.licenseAdmin.createdKey}
+          warning={a.licensesOneTimeWarning}
+          copyLabel={a.licensesCopyKey}
+          copiedLabel={a.licensesCopiedKey}
+          dismissLabel={a.licensesDismissKey}
+          onDismiss={() => setRevealedKey(null)}
+        />
+      ) : null}
+      <ConfirmActionDialog
+        open={confirmRegenerateLicense !== null}
+        title={a.licensesRegenerateConfirmTitle}
+        description={a.licensesRegenerateConfirmDescription}
+        confirmLabel={a.licensesRegenerateConfirmCta}
+        cancelLabel={a.licensesRegenerateCancel}
+        busy={Boolean(regeneratingId)}
+        errorMessage={regenerateError}
+        onConfirm={() => {
+          if (confirmRegenerateLicense) void regenerateLicenseConfirmed(confirmRegenerateLicense.id);
+        }}
+        onCancel={() => {
+          if (!regeneratingId) {
+            setConfirmRegenerateLicense(null);
+            setRegenerateError(null);
+          }
+        }}
+      />
       {state.status === "loading" ? (
         <p className="text-sm text-muted-foreground">{a.loading}</p>
       ) : state.status === "error" ? (
@@ -146,12 +255,62 @@ export function AccountLicensesSection() {
                     <dd className="font-mono text-xs">{license.license_key_hint}</dd>
                   </div>
                 </dl>
-                <p className="mt-3 text-xs text-muted-foreground">
-                  {t(a.licensesDeviceLimit, {
-                    active: String(activeDevices.length),
-                    max: String(license.max_devices),
-                  })}
-                </p>
+                <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-xs text-muted-foreground">
+                    {t(a.licensesDeviceLimit, {
+                      active: String(activeDevices.length),
+                      max: String(license.max_devices),
+                    })}
+                  </p>
+                  {license.status === "active" ? (
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={Boolean(busyId)}
+                        onClick={() => void showLicenseKey(license.id)}
+                      >
+                        {busyId === license.id && !regeneratingId ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                            {a.working}
+                          </>
+                        ) : (
+                          a.licensesShowKey
+                        )}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={Boolean(busyId)}
+                        onClick={() => void emailLicenseKey(license.id)}
+                      >
+                        {a.licensesEmailKey}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        disabled={Boolean(regeneratingId) || Boolean(busyId)}
+                        onClick={() => {
+                          setRegenerateError(null);
+                          setConfirmRegenerateLicense(license);
+                        }}
+                      >
+                        {regeneratingId === license.id ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                            {copy.licenseAdmin.working}
+                          </>
+                        ) : (
+                          a.licensesRegenerateKey
+                        )}
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
                 {activeDevices.length > 0 ? (
                   <ul className="mt-3 divide-y divide-border rounded-lg border border-border">
                     {activeDevices.map((device) => (

@@ -34,6 +34,7 @@ export async function fetchUserLicenses(
       "id, status, max_devices, license_key_hint, starts_at, expires_at, product_id, license_products(code, name, is_free)",
     )
     .eq("user_id", userId)
+    .neq("status", "revoked")
     .order("created_at", { ascending: false });
 
   if (error) return { rows: [], error: error.message };

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ConfirmActionDialog } from "@/components/licensing/ConfirmActionDialog";
+import { LicenseKeyOneTimeBox } from "@/components/licensing/LicenseKeyOneTimeBox";
 import { KNOWN_PRODUCT_CODES, isProductCode, type ProductCode } from "@/lib/licensing/products";
 import { licenseStatusLabel } from "@/lib/admin/license-status-label";
 import { patchLicenseListRevoked } from "@/lib/licensing/revoke-ui";
@@ -21,7 +22,7 @@ type LicenseListItem = {
 };
 
 export function LicenseAdminView() {
-  const { copy, t } = useI18n();
+  const { copy, t, locale } = useI18n();
   const la = copy.licenseAdmin;
   const ad = copy.adminDashboard;
 
@@ -31,6 +32,7 @@ export function LicenseAdminView() {
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [licenses, setLicenses] = useState<LicenseListItem[]>([]);
   const [confirmLicense, setConfirmLicense] = useState<LicenseListItem | null>(null);
+  const [confirmRegenerate, setConfirmRegenerate] = useState<LicenseListItem | null>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
 
   const [createForm, setCreateForm] = useState({
@@ -38,6 +40,7 @@ export function LicenseAdminView() {
     productCode: KNOWN_PRODUCT_CODES[0] as ProductCode,
     expiresAt: "",
     maxDevices: "2",
+    emailKeyToUser: true,
   });
   const [lookupEmail, setLookupEmail] = useState("");
   const [lookupKey, setLookupKey] = useState("");
@@ -72,6 +75,8 @@ export function LicenseAdminView() {
           productCode: createForm.productCode,
           expiresAt: createForm.expiresAt ? new Date(createForm.expiresAt).toISOString() : null,
           maxDevices: Number(createForm.maxDevices) || 2,
+          emailKeyToUser: createForm.emailKeyToUser,
+          locale: locale === "ar" ? "ar" : "en",
         }),
       });
       const body = await response.json();
@@ -114,6 +119,88 @@ export function LicenseAdminView() {
     }
   }
 
+  async function showLicenseKey(row: LicenseListItem) {
+    setBusy(true);
+    setCreatedKey(null);
+    setMessage(null);
+    setMessageIsError(false);
+    try {
+      const response = await fetch(`/api/admin/licenses/${row.id}/key`, { credentials: "include" });
+      const body = (await response.json()) as { licenseKeyFormatted?: string; error?: string; code?: string };
+      if (!response.ok) {
+        setMessageIsError(true);
+        setMessage(body.code === "legacy" ? copy.auth.licensesLegacyKeyMessage : body.error ?? la.error);
+        return;
+      }
+      setCreatedKey(body.licenseKeyFormatted ?? null);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function emailLicenseKey(row: LicenseListItem) {
+    setBusy(true);
+    setMessage(null);
+    setMessageIsError(false);
+    try {
+      const response = await fetch(`/api/admin/licenses/${row.id}/email-key`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ locale: locale === "ar" ? "ar" : "en" }),
+      });
+      const body = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        setMessageIsError(true);
+        setMessage(body.error ?? la.emailKeyFailed);
+        return;
+      }
+      setMessageIsError(false);
+      setMessage(la.emailKeySent);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function regenerateLicenseConfirmed(row: LicenseListItem) {
+    setBusy(true);
+    setMessage(null);
+    setMessageIsError(false);
+    setCreatedKey(null);
+    try {
+      const response = await fetch(`/api/admin/licenses/${row.id}/regenerate`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          emailKeyToUser: createForm.emailKeyToUser,
+          locale: locale === "ar" ? "ar" : "en",
+        }),
+      });
+      const body = (await response.json()) as {
+        licenseKeyFormatted?: string;
+        licenseKey?: string;
+        error?: string;
+      };
+      if (!response.ok) {
+        setConfirmError(body.error ?? la.regenerateFailed);
+        return;
+      }
+      setCreatedKey(body.licenseKeyFormatted ?? body.licenseKey ?? null);
+      setConfirmRegenerate(null);
+      setConfirmError(null);
+      setMessageIsError(false);
+      setMessage(la.saved);
+      const list = await fetch("/api/admin/licenses", { credentials: "include" });
+      if (list.ok) {
+        const data = (await list.json()) as { licenses?: LicenseListItem[] };
+        setLicenses(data.licenses ?? []);
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function revokeLicenseConfirmed(row: LicenseListItem) {
     setBusy(true);
     setMessage(null);
@@ -151,9 +238,15 @@ export function LicenseAdminView() {
         </p>
       ) : null}
       {createdKey ? (
-        <p className="rounded-md border border-primary/30 bg-primary/10 p-3 font-mono text-sm" role="status">
-          {la.createdKey}: {createdKey}
-        </p>
+        <LicenseKeyOneTimeBox
+          licenseKey={createdKey}
+          title={la.createdKey}
+          warning={la.oneTimeWarning}
+          copyLabel={la.copyKey}
+          copiedLabel={la.copiedKey}
+          dismissLabel={la.dismissKey}
+          onDismiss={() => setCreatedKey(null)}
+        />
       ) : null}
 
       <form onSubmit={onCreate} className="space-y-4 rounded-2xl border border-border bg-card p-6">
@@ -209,6 +302,15 @@ export function LicenseAdminView() {
             />
           </div>
         </div>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            className="h-4 w-4 rounded border-input"
+            checked={createForm.emailKeyToUser}
+            onChange={(e) => setCreateForm((c) => ({ ...c, emailKeyToUser: e.target.checked }))}
+          />
+          {la.emailKeyToUser}
+        </label>
         <Button type="submit" disabled={busy}>
           {busy ? la.working : la.createCta}
         </Button>
@@ -242,22 +344,73 @@ export function LicenseAdminView() {
                   {ad.devicesShort}
                 </p>
               </div>
-              <Button
-                type="button"
-                size="sm"
-                variant="destructive"
-                disabled={busy || row.status === "revoked"}
-                onClick={() => {
-                  setConfirmError(null);
-                  setConfirmLicense(row);
-                }}
-              >
-                {la.revokeLicense}
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={busy || row.status !== "active"}
+                  onClick={() => void showLicenseKey(row)}
+                >
+                  {la.showKey}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={busy || row.status !== "active"}
+                  onClick={() => void emailLicenseKey(row)}
+                >
+                  {la.emailKeyToUserCta}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  disabled={busy || row.status !== "active"}
+                  onClick={() => {
+                    setConfirmError(null);
+                    setConfirmRegenerate(row);
+                  }}
+                >
+                  {la.regenerateKey}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="destructive"
+                  disabled={busy || row.status === "revoked"}
+                  onClick={() => {
+                    setConfirmError(null);
+                    setConfirmLicense(row);
+                  }}
+                >
+                  {la.revokeLicense}
+                </Button>
+              </div>
             </li>
           ))}
         </ul>
       </div>
+
+      <ConfirmActionDialog
+        open={confirmRegenerate !== null}
+        title={la.regenerateConfirmTitle}
+        description={confirmRegenerate ? la.regenerateConfirmDescription : ""}
+        confirmLabel={la.regenerateConfirmCta}
+        cancelLabel={la.regenerateCancel}
+        busy={busy}
+        errorMessage={confirmError}
+        onConfirm={() => {
+          if (confirmRegenerate) void regenerateLicenseConfirmed(confirmRegenerate);
+        }}
+        onCancel={() => {
+          if (!busy) {
+            setConfirmRegenerate(null);
+            setConfirmError(null);
+          }
+        }}
+      />
 
       <ConfirmActionDialog
         open={confirmLicense !== null}

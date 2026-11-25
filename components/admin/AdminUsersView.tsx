@@ -13,6 +13,7 @@ import { formatAdminDateTime } from "@/lib/admin/format";
 import { licenseStatusLabel } from "@/lib/admin/license-status-label";
 import { DELETE_CONFIRM_KEYWORD } from "@/lib/admin/user-delete";
 import { patchLicenseListRevoked } from "@/lib/licensing/revoke-ui";
+import { LicenseKeyOneTimeBox } from "@/components/licensing/LicenseKeyOneTimeBox";
 
 type UserSummary = {
   id: string;
@@ -100,6 +101,8 @@ export function AdminUsersView() {
   const [confirmBanError, setConfirmBanError] = useState<string | null>(null);
   const [confirmRevoke, setConfirmRevoke] = useState<UserLicense | null>(null);
   const [confirmRevokeError, setConfirmRevokeError] = useState<string | null>(null);
+  const [confirmRegenerate, setConfirmRegenerate] = useState<UserLicense | null>(null);
+  const [confirmRegenerateError, setConfirmRegenerateError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<UserSummary | null>(null);
   const [deleteTargetError, setDeleteTargetError] = useState<string | null>(null);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
@@ -108,6 +111,7 @@ export function AdminUsersView() {
     productCode: KNOWN_PRODUCT_CODES[0],
     expiresAt: "",
     maxDevices: "2",
+    emailKeyToUser: true,
   });
   const [createdKey, setCreatedKey] = useState<string | null>(null);
 
@@ -180,6 +184,7 @@ export function AdminUsersView() {
     if (!detail?.email) return;
     setBusy(true);
     setMessage(null);
+    setCreatedKey(null);
     try {
       const response = await fetch("/api/admin/licenses", {
         method: "POST",
@@ -190,6 +195,8 @@ export function AdminUsersView() {
           productCode: issueForm.productCode,
           expiresAt: issueForm.expiresAt ? new Date(issueForm.expiresAt).toISOString() : null,
           maxDevices: Number(issueForm.maxDevices) || 2,
+          emailKeyToUser: issueForm.emailKeyToUser,
+          locale: localeTag === "ar" ? "ar" : "en",
         }),
       });
       const body = await response.json();
@@ -233,6 +240,75 @@ export function AdminUsersView() {
       await fetch(`/api/admin/users/${selectedId}/unban`, { method: "POST", credentials: "include" });
       await loadDetail(selectedId);
       await loadUsers();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function showLicenseKeyAdmin(licenseId: string) {
+    setBusy(true);
+    setCreatedKey(null);
+    setMessage(null);
+    try {
+      const response = await fetch(`/api/admin/licenses/${licenseId}/key`, { credentials: "include" });
+      const body = (await response.json()) as { licenseKeyFormatted?: string; error?: string; code?: string };
+      if (!response.ok) {
+        setMessage(body.code === "legacy" ? copy.auth.licensesLegacyKeyMessage : body.error ?? la.error);
+        return;
+      }
+      setCreatedKey(body.licenseKeyFormatted ?? null);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function emailLicenseKeyAdmin(licenseId: string) {
+    setBusy(true);
+    setMessage(null);
+    try {
+      const response = await fetch(`/api/admin/licenses/${licenseId}/email-key`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ locale: localeTag === "ar" ? "ar" : "en" }),
+      });
+      const body = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        setMessage(body.error ?? la.emailKeyFailed);
+        return;
+      }
+      setMessage(la.emailKeySent);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function regenerateConfirmed(license: UserLicense) {
+    setBusy(true);
+    setCreatedKey(null);
+    try {
+      const response = await fetch(`/api/admin/licenses/${license.id}/regenerate`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          emailKeyToUser: issueForm.emailKeyToUser,
+          locale: localeTag === "ar" ? "ar" : "en",
+        }),
+      });
+      const body = (await response.json()) as {
+        licenseKeyFormatted?: string;
+        licenseKey?: string;
+        error?: string;
+      };
+      if (!response.ok) {
+        setConfirmRegenerateError(body.error ?? la.regenerateFailed);
+        return;
+      }
+      setCreatedKey(body.licenseKeyFormatted ?? body.licenseKey ?? null);
+      setConfirmRegenerate(null);
+      setConfirmRegenerateError(null);
+      if (selectedId) await loadDetail(selectedId);
     } finally {
       setBusy(false);
     }
@@ -530,9 +606,15 @@ export function AdminUsersView() {
 
               {message ? <p className="text-sm text-destructive">{message}</p> : null}
               {createdKey ? (
-                <p className="rounded-md border border-primary/30 bg-primary/10 p-3 font-mono text-xs">
-                  {la.createdKey}: {createdKey}
-                </p>
+                <LicenseKeyOneTimeBox
+                  licenseKey={createdKey}
+                  title={la.createdKey}
+                  warning={la.oneTimeWarning}
+                  copyLabel={la.copyKey}
+                  copiedLabel={la.copiedKey}
+                  dismissLabel={la.dismissKey}
+                  onDismiss={() => setCreatedKey(null)}
+                />
               ) : null}
 
               <form onSubmit={issueLicense} className="space-y-3 border-t border-border pt-4">
@@ -575,6 +657,15 @@ export function AdminUsersView() {
                     />
                   </div>
                 </div>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-input"
+                    checked={issueForm.emailKeyToUser}
+                    onChange={(e) => setIssueForm((c) => ({ ...c, emailKeyToUser: e.target.checked }))}
+                  />
+                  {la.emailKeyToUser}
+                </label>
                 <Button type="submit" size="sm" disabled={busy || !detail.email}>
                   {busy ? la.working : ad.issueLicense}
                 </Button>
@@ -589,18 +680,50 @@ export function AdminUsersView() {
                         {license.license_products?.name ?? license.license_products?.code} —{" "}
                         {licenseStatusLabel(license.status, copy)} · {license.license_key_hint}
                       </span>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="destructive"
-                        disabled={busy || license.status === "revoked"}
-                        onClick={() => {
-                          setConfirmRevokeError(null);
-                          setConfirmRevoke(license);
-                        }}
-                      >
-                        {la.revokeLicense}
-                      </Button>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={busy || license.status !== "active"}
+                          onClick={() => void showLicenseKeyAdmin(license.id)}
+                        >
+                          {la.showKey}
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={busy || license.status !== "active"}
+                          onClick={() => void emailLicenseKeyAdmin(license.id)}
+                        >
+                          {la.emailKeyToUserCta}
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          disabled={busy || license.status !== "active"}
+                          onClick={() => {
+                            setConfirmRegenerateError(null);
+                            setConfirmRegenerate(license);
+                          }}
+                        >
+                          {la.regenerateKey}
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="destructive"
+                          disabled={busy || license.status === "revoked"}
+                          onClick={() => {
+                            setConfirmRevokeError(null);
+                            setConfirmRevoke(license);
+                          }}
+                        >
+                          {la.revokeLicense}
+                        </Button>
+                      </div>
                     </li>
                   ))}
                   {detail.licenses.length === 0 ? (
@@ -644,6 +767,25 @@ export function AdminUsersView() {
           if (!busy) {
             setConfirmBan(false);
             setConfirmBanError(null);
+          }
+        }}
+      />
+
+      <ConfirmActionDialog
+        open={confirmRegenerate !== null}
+        title={la.regenerateConfirmTitle}
+        description={la.regenerateConfirmDescription}
+        confirmLabel={la.regenerateConfirmCta}
+        cancelLabel={la.regenerateCancel}
+        busy={busy}
+        errorMessage={confirmRegenerateError}
+        onConfirm={() => {
+          if (confirmRegenerate) void regenerateConfirmed(confirmRegenerate);
+        }}
+        onCancel={() => {
+          if (!busy) {
+            setConfirmRegenerate(null);
+            setConfirmRegenerateError(null);
           }
         }}
       />
