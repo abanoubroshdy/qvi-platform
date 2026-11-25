@@ -59,6 +59,8 @@ const siteUrl = firstString(
   "https://getqvi.com",
 );
 
+const turnstileSiteKey = firstString(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
+
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
@@ -71,6 +73,7 @@ const nextConfig = {
     NEXT_PUBLIC_SUPABASE_URL: supabaseUrl,
     NEXT_PUBLIC_SITE_URL: siteUrl,
     ...(supabaseAnonKey ? { NEXT_PUBLIC_SUPABASE_ANON_KEY: supabaseAnonKey } : {}),
+    ...(turnstileSiteKey ? { NEXT_PUBLIC_TURNSTILE_SITE_KEY: turnstileSiteKey } : {}),
   },
   allowedDevOrigins: ["*.trycloudflare.com"],
   webpack(config) {
@@ -137,6 +140,23 @@ const nextConfig = {
       },
       {
         source: "/ar/tools/:slug",
+        headers: [{ key: "Cross-Origin-Embedder-Policy", value: "unsafe-none" }],
+      },
+      {
+        // Turnstile challenge iframes need cross-origin embeds; credentialless blocks them.
+        source: "/login",
+        headers: [{ key: "Cross-Origin-Embedder-Policy", value: "unsafe-none" }],
+      },
+      {
+        source: "/ar/login",
+        headers: [{ key: "Cross-Origin-Embedder-Policy", value: "unsafe-none" }],
+      },
+      {
+        source: "/forgot-password",
+        headers: [{ key: "Cross-Origin-Embedder-Policy", value: "unsafe-none" }],
+      },
+      {
+        source: "/ar/forgot-password",
         headers: [{ key: "Cross-Origin-Embedder-Policy", value: "unsafe-none" }],
       },
       {

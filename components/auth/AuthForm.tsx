@@ -52,9 +52,11 @@ function FormSection({ title, children }: { title: string; children: ReactNode }
 export function AuthForm({
   initialMode = "signin",
   nextPath = "/account",
+  serverEnforcesTurnstile = false,
 }: {
   initialMode?: Mode;
   nextPath?: string;
+  serverEnforcesTurnstile?: boolean;
 }) {
   const { copy, t, locale } = useI18n();
   const { configured, loading } = useAuth();
@@ -518,6 +520,7 @@ export function AuthForm({
           action={isSignUp ? "signup" : "signin"}
           onToken={handleTurnstileToken}
           onExpire={handleTurnstileExpire}
+          serverEnforcesTurnstile={serverEnforcesTurnstile}
         />
 
         <Button

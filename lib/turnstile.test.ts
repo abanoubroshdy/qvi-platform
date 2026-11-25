@@ -1,10 +1,16 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { isTurnstileEnforced, verifyTurnstileToken } from "@/lib/turnstile";
+import { isTurnstileEnforced, resolveTurnstileSiteKey, verifyTurnstileToken } from "@/lib/turnstile";
 
 describe("turnstile", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+  });
+
+  it("resolveTurnstileSiteKey prefers explicit env override", () => {
+    expect(resolveTurnstileSiteKey({ NEXT_PUBLIC_TURNSTILE_SITE_KEY: "  from-env  " })).toBe("from-env");
+    expect(resolveTurnstileSiteKey({ NEXT_PUBLIC_TURNSTILE_SITE_KEY: "" })).toBeNull();
+    expect(resolveTurnstileSiteKey({ NEXT_PUBLIC_TURNSTILE_SITE_KEY: "   " })).toBeNull();
   });
 
   it("skips verification when the secret key is unset", async () => {

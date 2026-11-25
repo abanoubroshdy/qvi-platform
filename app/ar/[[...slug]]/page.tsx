@@ -20,6 +20,7 @@ import { AccountView } from "@/components/auth/AccountView";
 import { AuthCallback } from "@/components/auth/AuthCallback";
 import { ForgotPasswordView } from "@/components/auth/ForgotPasswordView";
 import { ResetPasswordView } from "@/components/auth/ResetPasswordView";
+import { isTurnstileEnforced } from "@/lib/turnstile";
 import type { LiveToolSlug } from "@/lib/i18n";
 import { isIndexableLocalizedPath, isLocalizedRoute } from "@/lib/i18n/locale-path";
 import { arabicSeoForPath } from "@/lib/page-meta-ar";
@@ -184,12 +185,13 @@ function ArabicBody({ englishPath, searchParams }: { englishPath: string; search
         <LoginView
           initialMode={searchParams?.mode === "signup" ? "signup" : "signin"}
           nextPath={postAuthPath(searchParams?.next)}
+          serverEnforcesTurnstile={isTurnstileEnforced()}
         />
       );
     case "/account":
       return <AccountView />;
     case "/forgot-password":
-      return <ForgotPasswordView />;
+      return <ForgotPasswordView serverEnforcesTurnstile={isTurnstileEnforced()} />;
     case "/reset-password":
       return <ResetPasswordView />;
     case "/auth/callback":

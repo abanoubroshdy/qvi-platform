@@ -15,7 +15,11 @@ import {
   type TurnstileWidgetHandle,
 } from "@/components/auth/TurnstileWidget";
 
-export function ForgotPasswordForm() {
+export function ForgotPasswordForm({
+  serverEnforcesTurnstile = false,
+}: {
+  serverEnforcesTurnstile?: boolean;
+} = {}) {
   const { copy, locale } = useI18n();
   const { configured, loading } = useAuth();
   const a = copy.auth;
@@ -163,6 +167,7 @@ export function ForgotPasswordForm() {
           action="forgot_password"
           onToken={handleTurnstileToken}
           onExpire={handleTurnstileExpire}
+          serverEnforcesTurnstile={serverEnforcesTurnstile}
         />
 
         <Button
