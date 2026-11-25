@@ -112,6 +112,7 @@ export const ar: Messages = {
     licensesRegenerateConfirmCta: "نعم، إنشاء مفتاح جديد",
     licensesRegenerateCancel: "إلغاء",
     licensesRegenerateFailed: "تعذّر إنشاء مفتاح جديد. حاول مرة أخرى.",
+    licensesRegenerateRateLimited: "محاولات كثيرة لإنشاء مفتاح جديد. حاول بعد نحو ساعة.",
     licensesOneTimeWarning: "احفظ هذا المفتاح الآن — لن يُعرض مرة أخرى.",
     licensesCopyKey: "نسخ المفتاح",
     licensesCopiedKey: "تم النسخ",

@@ -143,6 +143,7 @@ export async function countRecentOwnerRegenerations(
     .eq("license_id", licenseId)
     .eq("user_id", userId)
     .eq("event_type", "license_key_regenerated")
+    .filter("metadata->>source", "eq", "owner")
     .gte("created_at", since);
   if (error) return OWNER_REGENERATE_MAX_PER_HOUR;
   return count ?? 0;

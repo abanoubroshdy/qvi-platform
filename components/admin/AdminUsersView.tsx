@@ -97,6 +97,7 @@ export function AdminUsersView() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [messageIsError, setMessageIsError] = useState(false);
   const [confirmBan, setConfirmBan] = useState(false);
   const [confirmBanError, setConfirmBanError] = useState<string | null>(null);
   const [confirmRevoke, setConfirmRevoke] = useState<UserLicense | null>(null);
@@ -150,6 +151,12 @@ export function AdminUsersView() {
     setSelectedId(id);
     setDetailLoading(true);
     setCreatedKey(null);
+    setMessage(null);
+    await refreshUserDetail(id);
+  }
+
+  async function refreshUserDetail(id: string) {
+    setDetailLoading(true);
     const response = await fetch(`/api/admin/users/${id}`, { credentials: "include" });
     setDetailLoading(false);
     if (!response.ok) {
@@ -184,6 +191,7 @@ export function AdminUsersView() {
     if (!detail?.email) return;
     setBusy(true);
     setMessage(null);
+    setMessageIsError(false);
     setCreatedKey(null);
     try {
       const response = await fetch("/api/admin/licenses", {
@@ -201,11 +209,12 @@ export function AdminUsersView() {
       });
       const body = await response.json();
       if (!response.ok) {
+        setMessageIsError(true);
         setMessage(body.error ?? la.error);
         return;
       }
       setCreatedKey(body.licenseKeyFormatted ?? body.licenseKey);
-      if (selectedId) await loadDetail(selectedId);
+      if (selectedId) await refreshUserDetail(selectedId);
     } finally {
       setBusy(false);
     }
@@ -249,10 +258,12 @@ export function AdminUsersView() {
     setBusy(true);
     setCreatedKey(null);
     setMessage(null);
+    setMessageIsError(false);
     try {
       const response = await fetch(`/api/admin/licenses/${licenseId}/key`, { credentials: "include" });
       const body = (await response.json()) as { licenseKeyFormatted?: string; error?: string; code?: string };
       if (!response.ok) {
+        setMessageIsError(true);
         setMessage(body.code === "legacy" ? copy.auth.licensesLegacyKeyMessage : body.error ?? la.error);
         return;
       }
@@ -265,6 +276,7 @@ export function AdminUsersView() {
   async function emailLicenseKeyAdmin(licenseId: string) {
     setBusy(true);
     setMessage(null);
+    setMessageIsError(false);
     try {
       const response = await fetch(`/api/admin/licenses/${licenseId}/email-key`, {
         method: "POST",
@@ -274,9 +286,11 @@ export function AdminUsersView() {
       });
       const body = (await response.json()) as { error?: string };
       if (!response.ok) {
+        setMessageIsError(true);
         setMessage(body.error ?? la.emailKeyFailed);
         return;
       }
+      setMessageIsError(false);
       setMessage(la.emailKeySent);
     } finally {
       setBusy(false);
@@ -308,7 +322,7 @@ export function AdminUsersView() {
       setCreatedKey(body.licenseKeyFormatted ?? body.licenseKey ?? null);
       setConfirmRegenerate(null);
       setConfirmRegenerateError(null);
-      if (selectedId) await loadDetail(selectedId);
+      if (selectedId) await refreshUserDetail(selectedId);
     } finally {
       setBusy(false);
     }
@@ -604,7 +618,11 @@ export function AdminUsersView() {
                 </Button>
               </div>
 
-              {message ? <p className="text-sm text-destructive">{message}</p> : null}
+              {message ? (
+                <p className={messageIsError ? "text-sm text-destructive" : "text-sm text-primary"} role="status">
+                  {message}
+                </p>
+              ) : null}
               {createdKey ? (
                 <LicenseKeyOneTimeBox
                   licenseKey={createdKey}

@@ -124,40 +124,27 @@ const nextConfig = {
         headers: [
           { key: "Access-Control-Allow-Origin", value: "*" },
           { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
-          { key: "Cross-Origin-Embedder-Policy", value: "credentialless" },
+          // Default unsafe-none so client navigations to auth (Turnstile) and
+          // marketing pages are not stuck with credentialless from the first load.
+          { key: "Cross-Origin-Embedder-Policy", value: "unsafe-none" },
         ],
       },
       {
-        // AdSense display frames do not send COEP. credentialless still blocks
-        // them (coep-frame-resource-needs-coep-header) and the slot paints a
-        // broken "refused to connect" frame instead of an ad.
-        // Video tools therefore are not cross-origin isolated. ffmpeg.wasm
-        // detects that and uses the single-thread core. Do not set COEP on
-        // these routes: it would break ads on every free tool, including the
-        // converters. Other pages keep credentialless (studio included).
-        source: "/tools/:slug",
-        headers: [{ key: "Cross-Origin-Embedder-Policy", value: "unsafe-none" }],
+        // Studio uses multi-thread ffmpeg.wasm when cross-origin isolated.
+        source: "/studio",
+        headers: [{ key: "Cross-Origin-Embedder-Policy", value: "credentialless" }],
       },
       {
-        source: "/ar/tools/:slug",
-        headers: [{ key: "Cross-Origin-Embedder-Policy", value: "unsafe-none" }],
+        source: "/studio/:path*",
+        headers: [{ key: "Cross-Origin-Embedder-Policy", value: "credentialless" }],
       },
       {
-        // Turnstile challenge iframes need cross-origin embeds; credentialless blocks them.
-        source: "/login",
-        headers: [{ key: "Cross-Origin-Embedder-Policy", value: "unsafe-none" }],
+        source: "/ar/studio",
+        headers: [{ key: "Cross-Origin-Embedder-Policy", value: "credentialless" }],
       },
       {
-        source: "/ar/login",
-        headers: [{ key: "Cross-Origin-Embedder-Policy", value: "unsafe-none" }],
-      },
-      {
-        source: "/forgot-password",
-        headers: [{ key: "Cross-Origin-Embedder-Policy", value: "unsafe-none" }],
-      },
-      {
-        source: "/ar/forgot-password",
-        headers: [{ key: "Cross-Origin-Embedder-Policy", value: "unsafe-none" }],
+        source: "/ar/studio/:path*",
+        headers: [{ key: "Cross-Origin-Embedder-Policy", value: "credentialless" }],
       },
       {
         source: "/brand.css",

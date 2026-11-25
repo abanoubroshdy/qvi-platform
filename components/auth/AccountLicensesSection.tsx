@@ -68,7 +68,9 @@ export function AccountLicensesSection() {
       };
       if (!response.ok) {
         setRegenerateError(
-          body.errorCode === "rate_limited" ? a.licensesRegenerateFailed : body.error ?? a.licensesRegenerateFailed,
+          body.errorCode === "rate_limited"
+            ? a.licensesRegenerateRateLimited
+            : body.error ?? a.licensesRegenerateFailed,
         );
         return;
       }
