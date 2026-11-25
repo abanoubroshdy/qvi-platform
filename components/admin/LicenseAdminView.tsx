@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ConfirmActionDialog } from "@/components/licensing/ConfirmActionDialog";
+import { LicenseKeyOneTimeBox } from "@/components/licensing/LicenseKeyOneTimeBox";
 import { KNOWN_PRODUCT_CODES, isProductCode, type ProductCode } from "@/lib/licensing/products";
 import { licenseStatusLabel } from "@/lib/admin/license-status-label";
 import { patchLicenseListRevoked } from "@/lib/licensing/revoke-ui";
@@ -31,6 +32,7 @@ export function LicenseAdminView() {
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [licenses, setLicenses] = useState<LicenseListItem[]>([]);
   const [confirmLicense, setConfirmLicense] = useState<LicenseListItem | null>(null);
+  const [confirmRegenerate, setConfirmRegenerate] = useState<LicenseListItem | null>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
 
   const [createForm, setCreateForm] = useState({
@@ -114,6 +116,40 @@ export function LicenseAdminView() {
     }
   }
 
+  async function regenerateLicenseConfirmed(row: LicenseListItem) {
+    setBusy(true);
+    setMessage(null);
+    setMessageIsError(false);
+    setCreatedKey(null);
+    try {
+      const response = await fetch(`/api/admin/licenses/${row.id}/regenerate`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const body = (await response.json()) as {
+        licenseKeyFormatted?: string;
+        licenseKey?: string;
+        error?: string;
+      };
+      if (!response.ok) {
+        setConfirmError(body.error ?? la.regenerateFailed);
+        return;
+      }
+      setCreatedKey(body.licenseKeyFormatted ?? body.licenseKey ?? null);
+      setConfirmRegenerate(null);
+      setConfirmError(null);
+      setMessageIsError(false);
+      setMessage(la.saved);
+      const list = await fetch("/api/admin/licenses", { credentials: "include" });
+      if (list.ok) {
+        const data = (await list.json()) as { licenses?: LicenseListItem[] };
+        setLicenses(data.licenses ?? []);
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function revokeLicenseConfirmed(row: LicenseListItem) {
     setBusy(true);
     setMessage(null);
@@ -151,9 +187,15 @@ export function LicenseAdminView() {
         </p>
       ) : null}
       {createdKey ? (
-        <p className="rounded-md border border-primary/30 bg-primary/10 p-3 font-mono text-sm" role="status">
-          {la.createdKey}: {createdKey}
-        </p>
+        <LicenseKeyOneTimeBox
+          licenseKey={createdKey}
+          title={la.createdKey}
+          warning={la.oneTimeWarning}
+          copyLabel={la.copyKey}
+          copiedLabel={la.copiedKey}
+          dismissLabel={la.dismissKey}
+          onDismiss={() => setCreatedKey(null)}
+        />
       ) : null}
 
       <form onSubmit={onCreate} className="space-y-4 rounded-2xl border border-border bg-card p-6">
@@ -242,22 +284,55 @@ export function LicenseAdminView() {
                   {ad.devicesShort}
                 </p>
               </div>
-              <Button
-                type="button"
-                size="sm"
-                variant="destructive"
-                disabled={busy || row.status === "revoked"}
-                onClick={() => {
-                  setConfirmError(null);
-                  setConfirmLicense(row);
-                }}
-              >
-                {la.revokeLicense}
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  disabled={busy || row.status !== "active"}
+                  onClick={() => {
+                    setConfirmError(null);
+                    setConfirmRegenerate(row);
+                  }}
+                >
+                  {la.regenerateKey}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="destructive"
+                  disabled={busy || row.status === "revoked"}
+                  onClick={() => {
+                    setConfirmError(null);
+                    setConfirmLicense(row);
+                  }}
+                >
+                  {la.revokeLicense}
+                </Button>
+              </div>
             </li>
           ))}
         </ul>
       </div>
+
+      <ConfirmActionDialog
+        open={confirmRegenerate !== null}
+        title={la.regenerateConfirmTitle}
+        description={confirmRegenerate ? la.regenerateConfirmDescription : ""}
+        confirmLabel={la.regenerateConfirmCta}
+        cancelLabel={la.regenerateCancel}
+        busy={busy}
+        errorMessage={confirmError}
+        onConfirm={() => {
+          if (confirmRegenerate) void regenerateLicenseConfirmed(confirmRegenerate);
+        }}
+        onCancel={() => {
+          if (!busy) {
+            setConfirmRegenerate(null);
+            setConfirmError(null);
+          }
+        }}
+      />
 
       <ConfirmActionDialog
         open={confirmLicense !== null}
