@@ -110,6 +110,7 @@ export const en = {
     licensesRegenerateConfirmCta: "Yes, generate new key",
     licensesRegenerateCancel: "Cancel",
     licensesRegenerateFailed: "Could not generate a new key. Try again.",
+    licensesRegenerateRateLimited: "Too many key resets. Try again in about an hour.",
     licensesOneTimeWarning: "Save this key now — it will not be shown again.",
     licensesCopyKey: "Copy key",
     licensesCopiedKey: "Copied",
