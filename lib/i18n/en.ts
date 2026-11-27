@@ -491,7 +491,7 @@ export const en = {
       },
       optInTitle: "Model improvement during the free trial (required)",
       optInBody:
-        "To claim your {days}-day free trial, you must agree to contribute performance metadata and short audio clips that help improve our oriental models. You can adjust uploads in desktop Settings, but both consents are required to start the trial. Full paid licenses are not subject to this requirement.",
+        "During your {days}-day trial, you contribute to improving our oriental models. With a full license, you can toggle this setting on or off anytime in the app settings.",
       requirements: [
         "Windows 10 or 11 (64-bit)",
         "8 GB RAM (16 GB recommended)",
