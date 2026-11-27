@@ -175,8 +175,9 @@ export function NeyoraView() {
                 <li key={line}>· {line}</li>
               ))}
             </ul>
+            <p className={cn("mt-4 text-sm leading-6", neyoraMuted)}>{page.fullCard.contactNote}</p>
             <LocaleLink href="/contact">
-              <Button type="button" variant="outline" className={cn(neyoraSecondaryBtn, "mt-6 w-full")}>
+              <Button type="button" variant="outline" className={cn(neyoraSecondaryBtn, "mt-4 w-full")}>
                 {page.fullCard.cta}
               </Button>
             </LocaleLink>

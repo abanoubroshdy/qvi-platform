@@ -428,7 +428,7 @@ export const en = {
         "Convert audio, MIDI, or text prompts — maqam, root, and feeling — into realistic performance across five instruments.",
       subheadLine2: "Ney, Clarinet, Duduk, Saxophone, and expressive Strings — ready for your DAW.",
       primaryCta: "Start {days}-Day Free Trial",
-      secondaryCta: "Buy Full License",
+      secondaryCta: "Contact for Full License",
       metaLine: "Windows 10/11 x64 · {days}-day full trial · Instant activation",
       previewLabel: "Studio preview",
       instrumentsTitle: "Five expressive oriental instruments",
@@ -477,7 +477,9 @@ export const en = {
       fullCard: {
         badge: "Full Access",
         title: "Full License",
-        cta: "Contact for purchase",
+        cta: "Contact for Full License",
+        contactNote:
+          "Online checkout is coming soon — request a full license directly through our contact page.",
         bullets: ["No expiry", "Commercial use entitlements", "Priority updates"],
       },
       optInTitle: "Optional Model Improvement (Opt-in)",
