@@ -1972,9 +1972,9 @@ export const en = {
   },
   privacy: {
     title: "Privacy Policy - QVI",
-    updated: "27 September 2026",
+    updated: "27 November 2026",
     effectiveDateLabel: "Effective date",
-    effectiveDate: "27 September 2026",
+    effectiveDate: "27 November 2026",
     privacyEmail: "privacy@getqvi.com",
     comingSoon: "Content will be updated soon.",
     introTitle: "1. About QVI",
@@ -2094,7 +2094,18 @@ export const en = {
       "When you are signed in and download the QV1 installer, we store the version, the time, and your browser’s user agent on your account so the account page can show your download history.",
     ],
     qv1AppContact: "Privacy questions about the desktop app:",
-    contactTitle: "14. Contact us",
+    neyoraBetaTrainingTitle: "14. Neyora beta training data (desktop)",
+    neyoraBetaTrainingLead:
+      "During the Neyora beta, the Windows desktop app may offer an optional program to share training data that helps improve Neyora models. Participation is never required to use the app. If you opt in, uploads are tied to your QVI account and license email so we can credit contributors later.",
+    neyoraBetaTraining: [
+      "Two separate opt-ins: (1) lightweight metadata and correction signals for language, composition, and performance models (lm, composer, performer) — no raw audio; (2) short audio clips and corrections for pitch/voice models (rmvpe). You can enable either tier independently.",
+      "Data sent under this program is uploaded only after you grant the matching consent tier in the app and is stored on QVI infrastructure (Supabase records and Cloudflare R2 object storage), not in your browser.",
+      "We link submissions to your user id and account email for quality review, abuse prevention, and future contributor rewards or credits if we launch a rewards program.",
+      "You can revoke consent at any time from the desktop app settings; revocation stops new uploads. To request deletion of data you already submitted, email the privacy address below.",
+    ],
+    neyoraBetaTrainingRevoke:
+      "Revoking training consent does not delete your QVI account. Deletion requests are handled manually until a self-serve flow is added.",
+    contactTitle: "15. Contact us",
     contact:
       "For privacy requests (access, correction, deletion, or withdrawing marketing consent), email",
     contactPage: "Contact",

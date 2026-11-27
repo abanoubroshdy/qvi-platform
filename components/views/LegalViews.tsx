@@ -224,6 +224,13 @@ export function PrivacyView({ isPlaceholder = false }: { isPlaceholder?: boolean
       </section>
 
       <section className="space-y-3">
+        <h2 className="text-xl font-bold">{page.neyoraBetaTrainingTitle}</h2>
+        <p>{page.neyoraBetaTrainingLead}</p>
+        <PolicyList items={page.neyoraBetaTraining} />
+        <p>{page.neyoraBetaTrainingRevoke}</p>
+      </section>
+
+      <section className="space-y-3">
         <h2 className="text-xl font-bold">{page.contactTitle}</h2>
         <p>
           {page.contact}{" "}
