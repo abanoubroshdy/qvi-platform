@@ -40,6 +40,9 @@ export async function POST(request: Request) {
     releaseNotes?: string;
     minLicense?: string | null;
     isPublished?: boolean;
+    fileSize?: number | null;
+    mandatory?: boolean;
+    minOsVersion?: string | null;
   };
   try {
     body = await request.json();
@@ -55,6 +58,13 @@ export async function POST(request: Request) {
     return jsonResponse({ error: "Invalid channel." }, 400);
   }
 
+  const fileSize =
+    body.fileSize === null || body.fileSize === undefined
+      ? null
+      : Number.isFinite(body.fileSize)
+        ? Math.max(0, Math.trunc(body.fileSize))
+        : null;
+
   const { data, error } = await client
     .from("license_releases")
     .insert({
@@ -66,6 +76,9 @@ export async function POST(request: Request) {
       release_notes: body.releaseNotes ?? null,
       min_license: body.minLicense ?? null,
       is_published: body.isPublished ?? true,
+      file_size: fileSize,
+      mandatory: body.mandatory ?? false,
+      min_os_version: body.minOsVersion?.trim() || null,
     })
     .select("*")
     .single();

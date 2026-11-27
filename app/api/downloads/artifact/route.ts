@@ -3,7 +3,7 @@ import { createServiceSupabaseClient } from "@/lib/supabase/service";
 import { loadLicenseByToken } from "@/lib/licensing/service";
 import { getRequestSupabaseSession } from "@/lib/supabase/request-session";
 import { isProductCode, PRODUCT_CODES } from "@/lib/licensing/products";
-import { presignR2GetUrl } from "@/lib/r2-presign";
+import { artifactDownloadFilename, presignR2GetUrl } from "@/lib/r2-presign";
 import { clientIp } from "@/lib/licensing/http";
 
 export const dynamic = "force-dynamic";
@@ -101,7 +101,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Release not found." }, { status: 404 });
   }
 
-  const signed = await presignR2GetUrl(release.storage_path);
+  const filename = artifactDownloadFilename(release.storage_path);
+  const disposition = `attachment; filename="${filename.replaceAll('"', "")}"`;
+  const signed = await presignR2GetUrl(release.storage_path, undefined, process.env, disposition);
   if (!signed) {
     return NextResponse.json({ error: "Storage is not configured." }, { status: 503 });
   }
