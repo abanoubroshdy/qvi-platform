@@ -10,6 +10,11 @@ import { ConfirmActionDialog } from "@/components/licensing/ConfirmActionDialog"
 import { Button } from "@/components/ui/button";
 import { patchUserLicenseDeviceRevoked } from "@/lib/licensing/revoke-ui";
 import { LicenseKeyOneTimeBox } from "@/components/licensing/LicenseKeyOneTimeBox";
+import { TrialActivatePanel } from "@/components/licensing/TrialActivatePanel";
+import { TrialBadge } from "@/components/licensing/TrialBadge";
+import { usePublicTrialSettings } from "@/components/neyora/usePublicTrialSettings";
+import { PRODUCT_CODES } from "@/lib/licensing/products";
+import { trialDaysRemaining } from "@/lib/licensing/trial-settings";
 
 export function AccountLicensesSection() {
   const { user } = useAuth();
@@ -34,6 +39,7 @@ export function AccountLicensesSection() {
   const [regenerateError, setRegenerateError] = useState<string | null>(null);
   const [revealedKey, setRevealedKey] = useState<string | null>(null);
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
+  const { settings: trialSettings } = usePublicTrialSettings(PRODUCT_CODES.neyoraPro);
 
   const reload = useCallback(async () => {
     if (!user) return;
@@ -160,9 +166,31 @@ export function AccountLicensesSection() {
     }
   }
 
+  const neyoraLicenses =
+    state.status === "ready"
+      ? state.rows.filter((row) => row.product.code === PRODUCT_CODES.neyoraPro)
+      : [];
+  const canStartNeyoraTrial =
+    trialSettings.enabled &&
+    state.status === "ready" &&
+    neyoraLicenses.length === 0;
+
   return (
     <div className="space-y-3 border-t border-border pt-4">
       <h2 className="text-sm font-semibold">{a.licensesTitle}</h2>
+      {canStartNeyoraTrial ? (
+        <div className="rounded-xl border border-border bg-card p-4">
+          <h3 className="text-sm font-semibold">{a.trialSectionTitle}</h3>
+          <p className="mt-1 text-sm text-muted-foreground">{a.trialStartLead}</p>
+          <TrialActivatePanel
+            className="mt-4"
+            durationDays={trialSettings.duration_days}
+            isLoggedIn={Boolean(user)}
+            loginNextPath="/account"
+            onActivated={() => void reload()}
+          />
+        </div>
+      ) : null}
       <ConfirmActionDialog
         open={confirmDevice !== null}
         title={a.licensesDeactivateConfirmTitle}
@@ -238,7 +266,10 @@ export function AccountLicensesSection() {
                 <dl className="grid gap-2 text-sm sm:grid-cols-2">
                   <div>
                     <dt className="text-xs uppercase tracking-wide text-muted-foreground">{a.licensesProduct}</dt>
-                    <dd className="font-medium">{license.product.name}</dd>
+                    <dd className="flex flex-wrap items-center gap-2 font-medium">
+                      <span>{license.product.name}</span>
+                      {license.is_trial ? <TrialBadge /> : null}
+                    </dd>
                   </div>
                   <div>
                     <dt className="text-xs uppercase tracking-wide text-muted-foreground">{a.licensesStatus}</dt>
@@ -250,6 +281,13 @@ export function AccountLicensesSection() {
                       {license.expires_at
                         ? new Date(license.expires_at).toLocaleDateString(locale === "ar" ? "ar" : undefined)
                         : a.licensesNeverExpires}
+                      {license.is_trial && license.expires_at ? (
+                        <span className="ms-2 text-xs font-normal text-primary tabular-nums">
+                          {t(a.trialDaysRemaining, {
+                            days: String(trialDaysRemaining(license.expires_at) ?? 0),
+                          })}
+                        </span>
+                      ) : null}
                     </dd>
                   </div>
                   <div>

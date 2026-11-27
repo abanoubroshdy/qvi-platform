@@ -14,6 +14,7 @@ import { licenseStatusLabel } from "@/lib/admin/license-status-label";
 import { DELETE_CONFIRM_KEYWORD } from "@/lib/admin/user-delete";
 import { patchLicenseListRevoked } from "@/lib/licensing/revoke-ui";
 import { LicenseKeyOneTimeBox } from "@/components/licensing/LicenseKeyOneTimeBox";
+import { TrialBadge } from "@/components/licensing/TrialBadge";
 
 type UserSummary = {
   id: string;
@@ -30,6 +31,7 @@ type UserLicense = {
   status: string;
   license_key_hint: string;
   created_at: string;
+  is_trial?: boolean;
   license_products?: { code: string; name: string };
 };
 
@@ -742,9 +744,12 @@ export function AdminUsersView() {
                 <ul className="divide-y divide-border text-sm">
                   {detail.licenses.map((license) => (
                     <li key={license.id} className="flex flex-col gap-2 py-2 sm:flex-row sm:items-center sm:justify-between">
-                      <span>
-                        {license.license_products?.name ?? license.license_products?.code} —{" "}
-                        {licenseStatusLabel(license.status, copy)} · {license.license_key_hint}
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span>
+                          {license.license_products?.name ?? license.license_products?.code} —{" "}
+                          {licenseStatusLabel(license.status, copy)} · {license.license_key_hint}
+                        </span>
+                        {license.is_trial ? <TrialBadge /> : null}
                       </span>
                       <div className="flex flex-wrap gap-2">
                         <Button

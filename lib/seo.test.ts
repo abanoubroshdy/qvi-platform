@@ -140,7 +140,7 @@ describe("seo json-ld", () => {
       (node) => node["@type"] === "SoftwareApplication",
     );
     expect(app?.inLanguage).toBe("ar");
-    expect(app?.releaseNotes).toBe("قيد التطوير");
+    expect(app?.releaseNotes).toBe("تجريبي");
   });
 });
 

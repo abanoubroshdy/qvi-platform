@@ -61,7 +61,7 @@ export async function fetchAdminUserDetail(client: SupabaseClient, userId: strin
 
   const { data: licenses } = await client
     .from("licenses")
-    .select("id, status, license_key_hint, created_at, license_products(code, name)")
+    .select("id, status, license_key_hint, created_at, is_trial, license_products(code, name)")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
 

@@ -59,6 +59,6 @@ describe("locale paths", () => {
     }
     expect(tools.map((tool) => tool.slug)).toContain("video-converter");
     expect(ar.products.qv1.status).toBe("نسخة تقييم");
-    expect(ar.products.neyora.status).toBe("قيد التطوير");
+    expect(ar.products.neyora.status).toBe("تجريبي");
   });
 });

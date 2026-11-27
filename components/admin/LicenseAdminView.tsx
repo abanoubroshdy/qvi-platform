@@ -10,6 +10,8 @@ import { LicenseKeyOneTimeBox } from "@/components/licensing/LicenseKeyOneTimeBo
 import { KNOWN_PRODUCT_CODES, isProductCode, type ProductCode } from "@/lib/licensing/products";
 import { licenseStatusLabel } from "@/lib/admin/license-status-label";
 import { patchLicenseListRevoked } from "@/lib/licensing/revoke-ui";
+import { TrialSettingsCard } from "@/components/admin/TrialSettingsCard";
+import { TrialBadge } from "@/components/licensing/TrialBadge";
 
 type LicenseListItem = {
   id: string;
@@ -18,6 +20,7 @@ type LicenseListItem = {
   license_key_hint: string;
   userEmail: string | null;
   activeDevices: number;
+  is_trial?: boolean;
   license_products?: { code: string; name: string };
 };
 
@@ -237,6 +240,8 @@ export function LicenseAdminView() {
           {message}
         </p>
       ) : null}
+      <TrialSettingsCard />
+
       {createdKey ? (
         <LicenseKeyOneTimeBox
           licenseKey={createdKey}
@@ -335,9 +340,12 @@ export function LicenseAdminView() {
           {licenses.map((row) => (
             <li key={row.id} className="flex flex-col gap-2 p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="font-medium">
-                  {row.license_products?.name ?? row.license_products?.code} —{" "}
-                  {licenseStatusLabel(row.status, copy)}
+                <p className="flex flex-wrap items-center gap-2 font-medium">
+                  <span>
+                    {row.license_products?.name ?? row.license_products?.code} —{" "}
+                    {licenseStatusLabel(row.status, copy)}
+                  </span>
+                  {row.is_trial ? <TrialBadge /> : null}
                 </p>
                 <p className="text-muted-foreground">
                   {row.userEmail ?? ad.emDash} · {row.license_key_hint} · {row.activeDevices}/{row.max_devices}{" "}
