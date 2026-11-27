@@ -14,7 +14,7 @@ export function TrialBadge({ className }: TrialBadgeProps) {
     <Badge
       variant="outline"
       className={cn(
-        "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:border-[#FBBF24]/40 dark:bg-[#FEF3C7]/10 dark:text-[#FBBF24]",
+        "border-amber-500/40 bg-[#FEF3C7] text-amber-800 dark:border-[#FBBF24]/40 dark:bg-[#2A2420]/80 dark:text-[#FBBF24]",
         className,
       )}
     >

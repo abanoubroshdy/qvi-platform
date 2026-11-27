@@ -91,12 +91,12 @@ export function TrialActivatePanel({
       {showConsent ? (
         <div className="mb-4 space-y-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-sm">
           <div className="flex items-start gap-2">
-            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-[#4ADE80]" aria-hidden />
-            <p className="text-muted-foreground">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700 dark:text-[#4ADE80]" aria-hidden />
+            <p className="text-slate-600 dark:text-[#CBD5E1]">
               {t(copy.products.neyora.optInBody, { days: String(durationDays) })}
             </p>
           </div>
-          <label className="flex items-center gap-2">
+          <label className="flex items-center gap-2 text-slate-800 dark:text-[#F3F4F6]">
             <input
               type="checkbox"
               className="h-4 w-4 rounded border-input"
@@ -105,7 +105,7 @@ export function TrialActivatePanel({
             />
             {auth.trialConsentMeta}
           </label>
-          <label className="flex items-center gap-2">
+          <label className="flex items-center gap-2 text-slate-800 dark:text-[#F3F4F6]">
             <input
               type="checkbox"
               className="h-4 w-4 rounded border-input"

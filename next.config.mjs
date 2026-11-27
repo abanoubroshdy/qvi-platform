@@ -109,6 +109,16 @@ const nextConfig = {
         statusCode: 301,
       },
       {
+        source: "/ar/admin",
+        destination: "/admin",
+        statusCode: 301,
+      },
+      {
+        source: "/ar/admin/:path*",
+        destination: "/admin/:path*",
+        statusCode: 301,
+      },
+      {
         // Public. The QV1 Setup fetches these URLs with no session.
         // Keep this off any auth middleware matcher (there is none today).
         source: "/downloads/evaluation/:path*",
