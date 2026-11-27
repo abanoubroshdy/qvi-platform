@@ -1,8 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
-import { ShieldCheck } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Download, ShieldCheck } from "lucide-react";
+import { CopyButton } from "@/components/CopyButton";
+import type { PublicReleaseMetadata } from "@/lib/licensing/types";
+import { formatReleaseFileSize } from "@/lib/licensing/public-release";
+import { PRODUCT_CODES } from "@/lib/licensing/products";
 import { LocaleLink } from "@/components/LocaleLink";
 import { TrialActivatePanel } from "@/components/licensing/TrialActivatePanel";
 import { usePublicTrialSettings } from "@/components/neyora/usePublicTrialSettings";
@@ -33,6 +37,56 @@ export function NeyoraView() {
   const days = settings.duration_days;
   const [activeInstrument, setActiveInstrument] = useState(page.instruments[0]?.id ?? "ney");
   const [trialModalOpen, setTrialModalOpen] = useState(false);
+  const [publicRelease, setPublicRelease] = useState<PublicReleaseMetadata | null | undefined>(undefined);
+  const [canDownload, setCanDownload] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await fetch("/api/products/neyora/release");
+        if (!response.ok) {
+          if (!cancelled) setPublicRelease(null);
+          return;
+        }
+        const body = (await response.json()) as { release?: PublicReleaseMetadata | null };
+        if (!cancelled) setPublicRelease(body.release ?? null);
+      } catch {
+        if (!cancelled) setPublicRelease(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setCanDownload(false);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const response = await fetch("/api/account/licenses", { credentials: "include" });
+      if (!response.ok) {
+        if (!cancelled) setCanDownload(false);
+        return;
+      }
+      const body = (await response.json()) as {
+        licenses?: Array<{ status: string; expires_at: string | null; product: { code: string } }>;
+      };
+      const active = (body.licenses ?? []).some((license) => {
+        if (license.product.code !== PRODUCT_CODES.neyoraPro) return false;
+        if (license.status !== "active") return false;
+        if (license.expires_at && new Date(license.expires_at).getTime() < Date.now()) return false;
+        return true;
+      });
+      if (!cancelled) setCanDownload(active);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   const loginPath = useMemo(
     () => localizeHref(`/login?next=${encodeURIComponent(localizeHref("/products/neyora", locale))}`, locale),
@@ -213,11 +267,102 @@ export function NeyoraView() {
           <p className={cn("mt-2 text-sm", neyoraMuted)} dir="ltr">
             {t(page.metaLine, { days: String(days) })}
           </p>
-          <LocaleLink href="/account">
-            <Button type="button" className={cn(neyoraPrimaryBtn, "mt-6 w-full sm:w-auto")}>
-              {page.downloadCta}
-            </Button>
-          </LocaleLink>
+
+          <div className={cn(neyoraCard, "mt-6 p-6")}>
+            {publicRelease === undefined ? (
+              <p className={cn("text-sm", neyoraMuted)}>{copy.auth.loading}</p>
+            ) : publicRelease === null ? (
+              <div>
+                <p className={cn("text-lg font-semibold", neyoraHeading)}>{page.downloadCard.comingSoonTitle}</p>
+                <p className={cn("mt-2 text-sm leading-7", neyoraMuted)}>{page.downloadCard.comingSoonBody}</p>
+              </div>
+            ) : (
+              <div className="space-y-5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className={cn("text-lg font-semibold tabular-nums", neyoraHeading)} dir="ltr">
+                    {page.downloadCard.versionLabel} · v{publicRelease.version}
+                  </p>
+                  <span className="rounded-full bg-[#FEF3C7] px-2 py-0.5 text-xs font-semibold text-amber-800 dark:bg-[#352E28] dark:text-[#FCD34D]">
+                    {publicRelease.channel === "stable"
+                      ? page.downloadCard.channelStable
+                      : page.downloadCard.channelBeta}
+                  </span>
+                  {publicRelease.mandatory ? (
+                    <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-900 dark:bg-rose-950/50 dark:text-rose-200">
+                      {page.downloadCard.mandatoryBadge}
+                    </span>
+                  ) : null}
+                </div>
+
+                {publicRelease.fileSize != null ? (
+                  <p className={cn("text-sm tabular-nums", neyoraMuted)} dir="ltr">
+                    {page.downloadCard.fileSizeLabel}: {formatReleaseFileSize(publicRelease.fileSize)}
+                  </p>
+                ) : null}
+
+                {publicRelease.minOsVersion ? (
+                  <p className={cn("text-sm tabular-nums", neyoraMuted)} dir="ltr">
+                    {page.downloadCard.minOsLabel}: {publicRelease.minOsVersion}
+                  </p>
+                ) : null}
+
+                <div className="space-y-2">
+                  <p className={cn("text-xs font-semibold uppercase tracking-wide", neyoraAccent)}>
+                    {page.downloadCard.shaLabel}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2 font-mono text-xs dark:border-[#4A4037] dark:bg-[#1C1814]/60" dir="ltr">
+                    <span className="break-all text-slate-800 dark:text-[#E2E8F0]">{publicRelease.sha256}</span>
+                    <CopyButton value={publicRelease.sha256} />
+                  </div>
+                </div>
+
+                {publicRelease.releaseNotes ? (
+                  <p className={cn("text-sm leading-7", neyoraMuted)}>{publicRelease.releaseNotes}</p>
+                ) : null}
+
+                {!user ? (
+                  <div className="space-y-3 border-t border-slate-200/80 pt-4 dark:border-[#3E362F]/50">
+                    <p className={cn("text-sm", neyoraMuted)}>{page.downloadCard.signInHint}</p>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                      <Button type="button" className={cn(neyoraPrimaryBtn, "w-full sm:w-auto")} onClick={() => { window.location.href = loginPath; }}>
+                        {page.downloadCard.signInCta}
+                      </Button>
+                      {settings.enabled ? (
+                        <Button type="button" variant="outline" className={neyoraSecondaryBtn} onClick={openTrial}>
+                          {page.downloadCard.trialCta}
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : canDownload ? (
+                  <a
+                    className="inline-flex"
+                    href={`/api/downloads/artifact?product=${encodeURIComponent(PRODUCT_CODES.neyoraPro)}&channel=${encodeURIComponent(publicRelease.channel)}&version=${encodeURIComponent(publicRelease.version)}`}
+                  >
+                    <Button type="button" className={cn(neyoraPrimaryBtn, "mt-2 w-full gap-2 sm:w-auto")}>
+                      <Download className="h-4 w-4" aria-hidden />
+                      {page.downloadCard.downloadCta}
+                    </Button>
+                  </a>
+                ) : (
+                  <div className="space-y-3 border-t border-slate-200/80 pt-4 dark:border-[#3E362F]/50">
+                    <p className={cn("text-sm", neyoraMuted)}>{page.downloadCard.noLicenseHint}</p>
+                    {settings.enabled ? (
+                      <Button type="button" className={cn(neyoraPrimaryBtn, "w-full sm:w-auto")} onClick={openTrial}>
+                        {page.downloadCard.trialCta}
+                      </Button>
+                    ) : (
+                      <LocaleLink href="/account">
+                        <Button type="button" variant="outline" className={neyoraSecondaryBtn}>
+                          {page.downloadCta}
+                        </Button>
+                      </LocaleLink>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
         <div className={cn(neyoraCard, "p-6 lg:col-span-5")}>
           <h3 className={cn("text-lg font-semibold", neyoraHeading)}>{page.requirementsTitle}</h3>

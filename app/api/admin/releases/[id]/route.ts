@@ -23,6 +23,9 @@ export async function PATCH(
     releaseNotes?: string | null;
     minLicense?: string | null;
     isPublished?: boolean;
+    fileSize?: number | null;
+    mandatory?: boolean;
+    minOsVersion?: string | null;
   };
   try {
     body = await request.json();
@@ -43,6 +46,16 @@ export async function PATCH(
   if (body.releaseNotes !== undefined) patch.release_notes = body.releaseNotes;
   if (body.minLicense !== undefined) patch.min_license = body.minLicense;
   if (body.isPublished !== undefined) patch.is_published = body.isPublished;
+  if (body.fileSize !== undefined) {
+    patch.file_size =
+      body.fileSize === null
+        ? null
+        : Number.isFinite(body.fileSize)
+          ? Math.max(0, Math.trunc(body.fileSize))
+          : null;
+  }
+  if (body.mandatory !== undefined) patch.mandatory = body.mandatory;
+  if (body.minOsVersion !== undefined) patch.min_os_version = body.minOsVersion?.trim() || null;
 
   if (Object.keys(patch).length === 0) {
     return jsonResponse({ error: "No fields to update." }, 400);

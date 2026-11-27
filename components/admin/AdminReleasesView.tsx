@@ -18,6 +18,9 @@ type ReleaseRow = {
   release_notes: string | null;
   is_published: boolean;
   created_at: string;
+  fileSize?: number;
+  mandatory: boolean;
+  minOsVersion?: string;
 };
 
 export function AdminReleasesView() {
@@ -38,6 +41,9 @@ export function AdminReleasesView() {
     sha256: "",
     releaseNotes: "",
     isPublished: true,
+    fileSize: "",
+    mandatory: false,
+    minOsVersion: "",
   });
 
   async function loadReleases() {
@@ -70,6 +76,9 @@ export function AdminReleasesView() {
           sha256: form.sha256,
           releaseNotes: form.releaseNotes,
           isPublished: form.isPublished,
+          fileSize: form.fileSize.trim() ? Number(form.fileSize) : null,
+          mandatory: form.mandatory,
+          minOsVersion: form.minOsVersion.trim() || null,
         }),
       });
       const body = await response.json();
@@ -78,7 +87,15 @@ export function AdminReleasesView() {
         return;
       }
       setMessage(la.saved);
-      setForm((f) => ({ ...f, version: "", storagePath: "", sha256: "", releaseNotes: "" }));
+      setForm((f) => ({
+        ...f,
+        version: "",
+        storagePath: "",
+        sha256: "",
+        releaseNotes: "",
+        fileSize: "",
+        minOsVersion: "",
+      }));
       await loadReleases();
     } finally {
       setBusy(false);
@@ -169,6 +186,38 @@ export function AdminReleasesView() {
             <Label>{la.releaseNotes}</Label>
             <Input value={form.releaseNotes} onChange={(e) => setForm((c) => ({ ...c, releaseNotes: e.target.value }))} />
           </div>
+          <div className="space-y-2">
+            <Label>{la.releaseFileSize}</Label>
+            <Input
+              type="number"
+              min={0}
+              inputMode="numeric"
+              value={form.fileSize}
+              onChange={(e) => setForm((c) => ({ ...c, fileSize: e.target.value }))}
+              placeholder={la.releaseFileSizePlaceholder}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>{la.releaseMinOsVersion}</Label>
+            <Input
+              value={form.minOsVersion}
+              onChange={(e) => setForm((c) => ({ ...c, minOsVersion: e.target.value }))}
+              placeholder={la.releaseMinOsVersionPlaceholder}
+              dir="ltr"
+            />
+          </div>
+          <div className="flex items-center gap-2 sm:col-span-2">
+            <input
+              id="release-mandatory"
+              type="checkbox"
+              className="h-4 w-4 rounded border-input"
+              checked={form.mandatory}
+              onChange={(e) => setForm((c) => ({ ...c, mandatory: e.target.checked }))}
+            />
+            <Label htmlFor="release-mandatory" className="cursor-pointer font-normal">
+              {la.releaseMandatory}
+            </Label>
+          </div>
         </div>
         <Button type="submit" disabled={busy}>
           {busy ? la.working : la.addRelease}
@@ -190,6 +239,9 @@ export function AdminReleasesView() {
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {row.is_published ? ad.published : ad.draft} · {row.sha256.slice(0, 12)}…
+                  {row.fileSize != null ? ` · ${row.fileSize.toLocaleString()} B` : ""}
+                  {row.mandatory ? ` · ${la.releaseMandatoryShort}` : ""}
+                  {row.minOsVersion ? ` · min OS ${row.minOsVersion}` : ""}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">

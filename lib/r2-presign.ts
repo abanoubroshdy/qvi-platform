@@ -3,7 +3,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { r2Endpoint, resolveR2DownloadConfig } from "@/lib/qv1-download";
 import { resolveR2TelemetryConfig, r2Endpoint as telemetryR2Endpoint } from "@/lib/neyora/telemetry/r2-config";
 
-export const LICENSE_DOWNLOAD_PRESIGN_SECONDS = 10 * 60;
+export const LICENSE_DOWNLOAD_PRESIGN_SECONDS = 60 * 60;
 
 export type PresignR2PutInput = {
   objectKey: string;
@@ -17,6 +17,7 @@ export async function presignR2GetUrl(
   objectKey: string,
   expiresInSeconds = LICENSE_DOWNLOAD_PRESIGN_SECONDS,
   env: Record<string, string | undefined> = process.env as Record<string, string | undefined>,
+  responseContentDisposition?: string,
 ): Promise<string | null> {
   const config = resolveR2DownloadConfig(env);
   if (!config) return null;
@@ -33,6 +34,9 @@ export async function presignR2GetUrl(
   const command = new GetObjectCommand({
     Bucket: config.bucket,
     Key: objectKey,
+    ...(responseContentDisposition
+      ? { ResponseContentDisposition: responseContentDisposition }
+      : {}),
   });
 
   return getSignedUrl(client, command, { expiresIn: expiresInSeconds });
@@ -66,4 +70,11 @@ export async function presignR2PutUrl(
     expiresIn: expiresInSeconds,
     unhoistableHeaders: new Set(["content-length"]),
   });
+}
+
+export function artifactDownloadFilename(storagePath: string): string {
+  const trimmed = storagePath.trim();
+  if (!trimmed) return "download";
+  const parts = trimmed.split("/").filter(Boolean);
+  return parts[parts.length - 1] ?? "download";
 }

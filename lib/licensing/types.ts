@@ -48,6 +48,10 @@ export type UpdateCheckResponse = {
   releaseNotes?: string;
   sha256?: string;
   downloadUrl?: string;
+  channel?: "evaluation" | "stable" | "beta";
+  fileSize?: number;
+  mandatory?: boolean;
+  minOsVersion?: string;
   error?: string;
 };
 
@@ -91,4 +95,18 @@ export type LicenseReleaseRow = {
   sha256: string;
   release_notes: string | null;
   is_published: boolean;
+  file_size?: number | null;
+  mandatory?: boolean;
+  min_os_version?: string | null;
+};
+
+export type PublicReleaseMetadata = {
+  productCode: string;
+  version: string;
+  channel: "stable" | "beta" | "evaluation";
+  sha256: string;
+  releaseNotes: string | null;
+  fileSize?: number;
+  mandatory: boolean;
+  minOsVersion?: string;
 };
