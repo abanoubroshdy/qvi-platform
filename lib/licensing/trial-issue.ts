@@ -10,8 +10,11 @@ import {
   type TrialIneligibilityCode,
 } from "@/lib/licensing/trial-eligibility";
 import { formatLicenseKey } from "@/lib/licensing/license-key";
-
-const TRAINING_CONSENT_VERSION = "2026-11-27-beta";
+import {
+  TRIAL_TRAINING_CONSENT_VERSION,
+  trialConsentRequiredMessage,
+  validateTrialTrainingConsent,
+} from "@/lib/licensing/trial-consent";
 
 export type IssueTrialInput = {
   userId: string;
@@ -29,7 +32,12 @@ export type IssueTrialResult =
       licenseKeyFormatted: string;
       expiresAt: string;
     }
-  | { ok: false; error: string; errorCode: TrialIneligibilityCode | "create_failed"; status: number };
+  | {
+      ok: false;
+      error: string;
+      errorCode: TrialIneligibilityCode | "create_failed" | "consent_required";
+      status: number;
+    };
 
 export async function issueProductTrial(
   client: SupabaseClient,
@@ -37,6 +45,19 @@ export async function issueProductTrial(
 ): Promise<IssueTrialResult> {
   const productCode = input.productCode ?? PRODUCT_CODES.neyoraPro;
   const locale: Locale = input.locale === "ar" ? "ar" : "en";
+
+  const consent = validateTrialTrainingConsent(
+    input.trainingMetadataConsent,
+    input.trainingAudioConsent,
+  );
+  if (!consent.ok) {
+    return {
+      ok: false,
+      error: trialConsentRequiredMessage(locale),
+      errorCode: consent.code,
+      status: 400,
+    };
+  }
 
   const eligibility = await evaluateTrialEligibility(client, input.userId, productCode);
   if (!eligibility.eligible) {
@@ -69,18 +90,16 @@ export async function issueProductTrial(
     metadata: { productCode, durationDays: eligibility.settings.duration_days },
   });
 
-  const wantsConsent =
-    input.trainingMetadataConsent === true || input.trainingAudioConsent === true;
-  if (wantsConsent) {
-    await client
-      .from("profiles")
-      .update({
-        training_consent_version: TRAINING_CONSENT_VERSION,
-        training_metadata_consent: input.trainingMetadataConsent === true,
-        training_audio_consent: input.trainingAudioConsent === true,
-      })
-      .eq("id", input.userId);
-  }
+  const consentedAt = new Date().toISOString();
+  await client
+    .from("profiles")
+    .update({
+      training_consent_version: TRIAL_TRAINING_CONSENT_VERSION,
+      training_metadata_consent: true,
+      training_audio_consent: true,
+      training_consent_at: consentedAt,
+    })
+    .eq("id", input.userId);
 
   await maybeAutoEmailLicenseKey(client, created.licenseId, true, locale);
 

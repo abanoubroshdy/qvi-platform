@@ -185,6 +185,7 @@ export function AccountLicensesSection() {
           <TrialActivatePanel
             className="mt-4"
             durationDays={trialSettings.duration_days}
+            showConsent
             isLoggedIn={Boolean(user)}
             loginNextPath="/account"
             onActivated={() => void reload()}

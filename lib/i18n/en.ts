@@ -138,8 +138,12 @@ export const en = {
     trialStartLead: "Try Neyora Pro with full desktop activation for the configured trial period.",
     trialSectionTitle: "Neyora free trial",
     trialActivateTitle: "Start your Neyora trial",
-    trialConsentMeta: "Optional: share anonymized performance metadata to improve oriental models",
-    trialConsentAudio: "Optional: share short audio snippets to improve oriental models",
+    trialConsentMeta:
+      "Required: share anonymized performance metadata to improve oriental models during the free trial",
+    trialConsentAudio:
+      "Required: share short audio clips to improve oriental pitch/voice models during the free trial",
+    trialConsentRequiredHint:
+      "Check both boxes above to enable your free trial. Full paid licenses do not require this program.",
     trialActivateBusy: "Activating trial…",
     trialActivateFailed: "Could not start the trial. Try again.",
     licensesLastSeen: "Last seen",
@@ -428,11 +432,14 @@ export const en = {
         "Convert audio, MIDI, or text prompts — maqam, root, and feeling — into realistic performance across five instruments.",
       subheadLine2: "Ney, Clarinet, Duduk, Saxophone, and expressive Strings — ready for your DAW.",
       primaryCta: "Start {days}-Day Free Trial",
-      secondaryCta: "Buy Full License",
+      secondaryCta: "Contact for Full License",
       metaLine: "Windows 10/11 x64 · {days}-day full trial · Instant activation",
       previewLabel: "Studio preview",
       instrumentsTitle: "Five expressive oriental instruments",
       workflowTitle: "Three steps to performance",
+      studioShowcaseTitle: "Inside Neyora Studio",
+      studioShowcaseSubtitle:
+        "A focused desktop workflow to shape maqam, feeling, and tempo before you generate.",
       compareTitle: "Free trial vs full license",
       downloadTitle: "Download Neyora",
       downloadCta: "Get Neyora for Windows",
@@ -477,12 +484,14 @@ export const en = {
       fullCard: {
         badge: "Full Access",
         title: "Full License",
-        cta: "Contact for purchase",
+        cta: "Contact for Full License",
+        contactNote:
+          "Online checkout is coming soon — request a full license directly through our contact page.",
         bullets: ["No expiry", "Commercial use entitlements", "Priority updates"],
       },
-      optInTitle: "Optional Model Improvement (Opt-in)",
+      optInTitle: "Model improvement during the free trial (required)",
       optInBody:
-        "During your {days}-day trial, you can optionally choose to help improve our oriental models. It's 100% opt-in, toggleable anytime in Settings, and never required to use the trial.",
+        "During your {days}-day trial, you contribute to improving our oriental models. With a full license, you can toggle this setting on or off anytime in the app settings.",
       requirements: [
         "Windows 10 or 11 (64-bit)",
         "8 GB RAM (16 GB recommended)",
@@ -2157,15 +2166,16 @@ export const en = {
     qv1AppContact: "Privacy questions about the desktop app:",
     neyoraBetaTrainingTitle: "14. Neyora beta training data (desktop)",
     neyoraBetaTrainingLead:
-      "During the Neyora beta, the Windows desktop app may offer an optional program to share training data that helps improve Neyora models. Participation is never required to use the app. If you opt in, uploads are tied to your QVI account and license email so we can credit contributors later.",
+      "Neyora Pro free trials require agreeing to share performance metadata and short audio clips that help improve oriental models. Full paid Neyora licenses do not require this program. When you start a free trial on getqvi.com, we record both consents on your profile (version 2026-11-27-beta) with a timestamp. In the desktop app, uploads remain tied to your QVI account and license email.",
     neyoraBetaTraining: [
-      "Two separate opt-ins: (1) lightweight metadata and correction signals for language, composition, and performance models (lm, composer, performer) — no raw audio; (2) short audio clips and corrections for pitch/voice models (rmvpe). You can enable either tier independently.",
-      "Data sent under this program is uploaded only after you grant the matching consent tier in the app and is stored on QVI infrastructure (Supabase records and Cloudflare R2 object storage), not in your browser.",
+      "Free trial (web activation): both consents are required — (1) lightweight metadata and correction signals for language, composition, and performance models (lm, composer, performer) with no raw audio; (2) short audio clips and corrections for pitch/voice models (rmvpe).",
+      "Full paid license: no training-data contribution requirement is imposed at purchase.",
+      "Data sent under this program is uploaded only after you grant the matching consent in the app or at trial activation, and is stored on QVI infrastructure (Supabase records and Cloudflare R2 object storage), not in your browser.",
       "We link submissions to your user id and account email for quality review, abuse prevention, and future contributor rewards or credits if we launch a rewards program.",
       "You can revoke consent at any time from the desktop app settings; revocation stops new uploads. To request deletion of data you already submitted, email the privacy address below.",
     ],
     neyoraBetaTrainingRevoke:
-      "Revoking training consent does not delete your QVI account. Deletion requests are handled manually until a self-serve flow is added.",
+      "Revoking training consent does not delete your QVI account or paid license. Deletion requests are handled manually until a self-serve flow is added.",
     contactTitle: "15. Contact us",
     contact:
       "For privacy requests (access, correction, deletion, or withdrawing marketing consent), email",

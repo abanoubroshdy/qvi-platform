@@ -4,9 +4,11 @@ import { useState } from "react";
 import { Loader2, ShieldCheck } from "lucide-react";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { LicenseKeyOneTimeBox } from "@/components/licensing/LicenseKeyOneTimeBox";
+import { isTrialTrainingConsentComplete } from "@/lib/licensing/trial-consent";
 import { Button } from "@/components/ui/button";
 import { localizeHref } from "@/lib/i18n/locale-path";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 type TrialActivatePanelProps = {
   durationDays: number;
@@ -15,15 +17,18 @@ type TrialActivatePanelProps = {
   className?: string;
   loginNextPath?: string;
   isLoggedIn: boolean;
+  /** Warm studio palette (Neyora product page modal) — avoids shadcn navy surfaces in dark mode. */
+  neyoraTheme?: boolean;
 };
 
 export function TrialActivatePanel({
   durationDays,
-  showConsent = false,
+  showConsent = true,
   onActivated,
   className,
   loginNextPath = "/products/neyora",
   isLoggedIn,
+  neyoraTheme = false,
 }: TrialActivatePanelProps) {
   const { copy, locale, t } = useI18n();
   const auth = copy.auth;
@@ -34,14 +39,23 @@ export function TrialActivatePanel({
   const [metaConsent, setMetaConsent] = useState(false);
   const [audioConsent, setAudioConsent] = useState(false);
   const [licenseKey, setLicenseKey] = useState<string | null>(null);
+  const [showConsentHint, setShowConsentHint] = useState(false);
+
+  const consentComplete = isTrialTrainingConsentComplete(metaConsent, audioConsent);
+  const trialStartBlocked = showConsent && isLoggedIn && !consentComplete;
 
   async function activate() {
     if (!isLoggedIn) {
       router.push(localizeHref(`/login?next=${encodeURIComponent(loginNextPath)}`, locale));
       return;
     }
+    if (showConsent && !consentComplete) {
+      setShowConsentHint(true);
+      return;
+    }
     setBusy(true);
     setError(null);
+    setShowConsentHint(false);
     try {
       const response = await fetch("/api/account/licenses/trial", {
         method: "POST",
@@ -89,37 +103,73 @@ export function TrialActivatePanel({
         </p>
       ) : null}
       {showConsent ? (
-        <div className="mb-4 space-y-2 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-sm">
+        <div
+          className={cn(
+            "mb-4 space-y-2 rounded-xl border p-4 text-sm",
+            neyoraTheme
+              ? "border-emerald-500/25 bg-emerald-50/80 dark:border-emerald-500/20 dark:bg-[#2A2420]"
+              : "border-emerald-500/20 bg-emerald-500/5",
+          )}
+        >
           <div className="flex items-start gap-2">
-            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-[#4ADE80]" aria-hidden />
-            <p className="text-muted-foreground">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700 dark:text-[#4ADE80]" aria-hidden />
+            <p className="text-slate-600 dark:text-[#CBD5E1]">
               {t(copy.products.neyora.optInBody, { days: String(durationDays) })}
             </p>
           </div>
-          <label className="flex items-center gap-2">
+          <label className="flex items-center gap-2 text-slate-800 dark:text-[#F3F4F6]">
             <input
               type="checkbox"
-              className="h-4 w-4 rounded border-input"
+              required
+              className={cn(
+                "h-4 w-4 rounded",
+                neyoraTheme
+                  ? "border-slate-300 bg-white dark:border-[#4A4037] dark:bg-[#1C1814]"
+                  : "border-input",
+              )}
               checked={metaConsent}
-              onChange={(e) => setMetaConsent(e.target.checked)}
+              onChange={(e) => {
+                setMetaConsent(e.target.checked);
+                if (e.target.checked && audioConsent) setShowConsentHint(false);
+              }}
             />
             {auth.trialConsentMeta}
           </label>
-          <label className="flex items-center gap-2">
+          <label className="flex items-center gap-2 text-slate-800 dark:text-[#F3F4F6]">
             <input
               type="checkbox"
-              className="h-4 w-4 rounded border-input"
+              required
+              className={cn(
+                "h-4 w-4 rounded",
+                neyoraTheme
+                  ? "border-slate-300 bg-white dark:border-[#4A4037] dark:bg-[#1C1814]"
+                  : "border-input",
+              )}
               checked={audioConsent}
-              onChange={(e) => setAudioConsent(e.target.checked)}
+              onChange={(e) => {
+                setAudioConsent(e.target.checked);
+                if (e.target.checked && metaConsent) setShowConsentHint(false);
+              }}
             />
             {auth.trialConsentAudio}
           </label>
+          {showConsentHint || (!consentComplete && isLoggedIn) ? (
+            <p
+              className={cn(
+                "text-xs leading-6",
+                showConsentHint ? "text-destructive" : "text-slate-600 dark:text-[#94A3B8]",
+              )}
+              role={showConsentHint ? "alert" : "status"}
+            >
+              {auth.trialConsentRequiredHint}
+            </p>
+          ) : null}
         </div>
       ) : null}
       <Button
         type="button"
-        className="min-h-[48px] w-full bg-[#FBBF24] font-bold text-[#1C1814] hover:bg-[#FCD34D] sm:w-auto"
-        disabled={busy}
+        className="min-h-[48px] w-full bg-[#FBBF24] font-bold text-[#1C1814] hover:bg-[#FCD34D] disabled:opacity-60 sm:w-auto"
+        disabled={busy || trialStartBlocked}
         onClick={() => void activate()}
       >
         {busy ? (
