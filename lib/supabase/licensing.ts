@@ -5,6 +5,7 @@ export type UserLicenseSummary = {
   status: string;
   max_devices: number;
   license_key_hint: string;
+  hasRetrievableKey: boolean;
   starts_at: string;
   expires_at: string | null;
   is_trial: boolean;
@@ -15,6 +16,10 @@ export type UserLicenseSummary = {
   };
   devices: UserLicenseDevice[];
 };
+
+export function hasRetrievableKeyFromRow(row: { license_key_encrypted?: string | null }): boolean {
+  return row.license_key_encrypted != null && row.license_key_encrypted.length > 0;
+}
 
 export type UserLicenseDevice = {
   id: string;
@@ -32,7 +37,7 @@ export async function fetchUserLicenses(
   const { data: licenses, error } = await client
     .from("licenses")
     .select(
-      "id, status, max_devices, license_key_hint, starts_at, expires_at, is_trial, product_id, license_products(code, name, is_free)",
+      "id, status, max_devices, license_key_hint, license_key_encrypted, starts_at, expires_at, is_trial, product_id, license_products(code, name, is_free)",
     )
     .eq("user_id", userId)
     .neq("status", "revoked")
@@ -57,11 +62,13 @@ export async function fetchUserLicenses(
       .eq("license_id", row.id)
       .order("activated_at", { ascending: false });
 
+    const encrypted = (row as { license_key_encrypted?: string | null }).license_key_encrypted;
     rows.push({
       id: row.id,
       status: row.status,
       max_devices: row.max_devices,
       license_key_hint: row.license_key_hint,
+      hasRetrievableKey: hasRetrievableKeyFromRow({ license_key_encrypted: encrypted }),
       starts_at: row.starts_at,
       expires_at: row.expires_at,
       is_trial: Boolean((row as { is_trial?: boolean }).is_trial),

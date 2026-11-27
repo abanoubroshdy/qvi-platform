@@ -30,6 +30,7 @@ type UserLicense = {
   id: string;
   status: string;
   license_key_hint: string;
+  hasRetrievableKey?: boolean;
   created_at: string;
   is_trial?: boolean;
   license_products?: { code: string; name: string };
@@ -245,13 +246,22 @@ export function AdminUsersView() {
           locale: localeTag === "ar" ? "ar" : "en",
         }),
       });
-      const body = await response.json();
+      const body = (await response.json()) as {
+        licenseKeyFormatted?: string;
+        licenseKey?: string;
+        error?: string;
+        emailWarning?: string;
+      };
       if (!response.ok) {
         setMessageIsError(true);
         setMessage(body.error ?? la.error);
         return;
       }
-      setCreatedKey(body.licenseKeyFormatted ?? body.licenseKey);
+      setCreatedKey(body.licenseKeyFormatted ?? body.licenseKey ?? null);
+      if (body.emailWarning) {
+        setMessageIsError(true);
+        setMessage(t(la.emailKeyAutoWarning, { reason: body.emailWarning }));
+      }
       if (selectedId) await refreshUserDetail(selectedId);
     } finally {
       setBusy(false);
@@ -302,7 +312,7 @@ export function AdminUsersView() {
       const body = (await response.json()) as { licenseKeyFormatted?: string; error?: string; code?: string };
       if (!response.ok) {
         setMessageIsError(true);
-        setMessage(body.code === "legacy" ? copy.auth.licensesLegacyKeyMessage : body.error ?? la.error);
+        setMessage(body.code === "legacy" ? la.legacyKeyMessage : body.error ?? la.error);
         return;
       }
       setCreatedKey(body.licenseKeyFormatted ?? null);
@@ -352,6 +362,7 @@ export function AdminUsersView() {
         licenseKeyFormatted?: string;
         licenseKey?: string;
         error?: string;
+        emailWarning?: string;
       };
       if (!response.ok) {
         setConfirmRegenerateError(body.error ?? la.regenerateFailed);
@@ -360,6 +371,10 @@ export function AdminUsersView() {
       setCreatedKey(body.licenseKeyFormatted ?? body.licenseKey ?? null);
       setConfirmRegenerate(null);
       setConfirmRegenerateError(null);
+      if (body.emailWarning) {
+        setMessageIsError(true);
+        setMessage(t(la.emailKeyAutoWarning, { reason: body.emailWarning }));
+      }
       if (selectedId) await refreshUserDetail(selectedId);
     } finally {
       setBusy(false);
@@ -677,7 +692,7 @@ export function AdminUsersView() {
                 <LicenseKeyOneTimeBox
                   licenseKey={createdKey}
                   title={la.createdKey}
-                  warning={la.oneTimeWarning}
+                  warning={la.keyNote}
                   copyLabel={la.copyKey}
                   copiedLabel={la.copiedKey}
                   dismissLabel={la.dismissKey}

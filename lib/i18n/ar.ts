@@ -113,7 +113,8 @@ export const ar: Messages = {
     licensesRegenerateCancel: "إلغاء",
     licensesRegenerateFailed: "تعذّر إنشاء مفتاح جديد. حاول مرة أخرى.",
     licensesRegenerateRateLimited: "محاولات كثيرة لإنشاء مفتاح جديد. حاول بعد نحو ساعة.",
-    licensesOneTimeWarning: "احفظ هذا المفتاح الآن — لن يُعرض مرة أخرى.",
+    licensesKeyNote:
+      "احفظ المفتاح لتفعيل البرنامج. تقدر تعرضه أو تبعته على إيميلك تاني في أي وقت من ملفك الشخصي.",
     licensesCopyKey: "نسخ المفتاح",
     licensesCopiedKey: "تم النسخ",
     licensesDismissKey: "إغلاق",
@@ -122,7 +123,9 @@ export const ar: Messages = {
     licensesEmailKeySent: "أرسلنا مفتاح الترخيص إلى بريدك.",
     licensesEmailKeyFailed: "تعذّر إرسال البريد. حاول لاحقًا.",
     licensesShowKeyFailed: "تعذّر تحميل مفتاح الترخيص.",
-    licensesLegacyKeyMessage: "أنشئ مفتاحًا جديدًا لعرضه.",
+    licensesLegacyKeyMessage: "هذا ترخيص قديم بدون مفتاح محفوظ. تواصل مع الدعم لإعادة ضبطه.",
+    licensesLegacyKeyNote:
+      "هذا ترخيص قديم بدون مفتاح محفوظ. تواصل مع الدعم إذا احتجت مفتاحًا جديدًا.",
     licensesDevices: "الأجهزة",
     licensesDeviceLimit: "{active} من {max} أجهزة",
     licensesDeactivateDevice: "إلغاء التفعيل",
@@ -538,8 +541,12 @@ export const ar: Messages = {
     expiresLabel: "تاريخ الانتهاء (اختياري)",
     maxDevicesLabel: "حد الأجهزة",
     createCta: "إنشاء ترخيص",
-    createdKey: "مفتاح الترخيص (يُعرض مرة واحدة)",
-    oneTimeWarning: "احفظ هذا المفتاح الآن — لن يُعرض مرة أخرى.",
+    createdKey: "مفتاح الترخيص",
+    keyNote:
+      "المفتاح محفوظ بأمان. تقدر تعرضه أو ترسله للمستخدم بالبريد في أي وقت من هذه الصفحة.",
+    legacyKeyMessage:
+      "لا يوجد مفتاح محفوظ لهذا الترخيص. أنشئ مفتاحًا جديدًا لتفعيل العرض أو الإرسال بالبريد.",
+    emailKeyAutoWarning: "تم إنشاء الترخيص، لكن البريد التلقائي لم يُرسل: {reason}",
     copyKey: "نسخ المفتاح",
     copiedKey: "تم النسخ",
     dismissKey: "إغلاق",

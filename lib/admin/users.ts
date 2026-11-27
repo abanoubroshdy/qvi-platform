@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { hasRetrievableKeyFromRow } from "@/lib/supabase/licensing";
 
 export type AdminUserSearchFilters = {
   unconfirmedOnly?: boolean;
@@ -61,7 +62,9 @@ export async function fetchAdminUserDetail(client: SupabaseClient, userId: strin
 
   const { data: licenses } = await client
     .from("licenses")
-    .select("id, status, license_key_hint, created_at, is_trial, license_products(code, name)")
+    .select(
+      "id, status, license_key_hint, license_key_encrypted, created_at, is_trial, license_products(code, name)",
+    )
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
@@ -86,7 +89,15 @@ export async function fetchAdminUserDetail(client: SupabaseClient, userId: strin
       is_banned: isBanned,
       email_confirmed: emailConfirmed,
       profile,
-      licenses: licenses ?? [],
+      licenses: (licenses ?? []).map((license) => {
+        const { license_key_encrypted, ...row } = license as typeof license & {
+          license_key_encrypted?: string | null;
+        };
+        return {
+          ...row,
+          hasRetrievableKey: hasRetrievableKeyFromRow({ license_key_encrypted }),
+        };
+      }),
       qv1_download_count: downloadCount ?? 0,
     },
   };

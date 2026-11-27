@@ -1,6 +1,7 @@
 import { jsonResponse } from "@/lib/licensing/http";
 import { requireSiteAdmin } from "@/lib/admin/guard";
 import { createLicenseForUser, findUserIdByEmail } from "@/lib/licensing/admin-actions";
+import { hasRetrievableKeyFromRow } from "@/lib/supabase/licensing";
 import { maybeAutoEmailLicenseKey } from "@/lib/licensing/license-key-delivery";
 import { createServiceSupabaseClient } from "@/lib/supabase/service";
 import { formatLicenseKey, hashLicenseKey } from "@/lib/licensing/license-key";
@@ -21,7 +22,7 @@ export async function GET(request: Request) {
   let query = client
     .from("licenses")
     .select(
-      "id, user_id, status, max_devices, license_key_hint, starts_at, expires_at, created_at, is_trial, license_products(code, name)",
+      "id, user_id, status, max_devices, license_key_hint, license_key_encrypted, starts_at, expires_at, created_at, is_trial, license_products(code, name)",
     )
     .order("created_at", { ascending: false })
     .limit(50);
@@ -46,8 +47,12 @@ export async function GET(request: Request) {
         .eq("license_id", row.id)
         .is("revoked_at", null);
       const { data: userData } = await client.auth.admin.getUserById(row.user_id);
+      const { license_key_encrypted, ...publicRow } = row as typeof row & {
+        license_key_encrypted?: string | null;
+      };
       return {
-        ...row,
+        ...publicRow,
+        hasRetrievableKey: hasRetrievableKeyFromRow({ license_key_encrypted }),
         userEmail: userData.user?.email ?? null,
         activeDevices: count ?? 0,
       };
@@ -96,13 +101,21 @@ export async function POST(request: Request) {
   if (!created.ok) return jsonResponse({ error: created.error }, 400);
 
   const emailKeyToUser = body.emailKeyToUser !== false;
+  let emailWarning: string | undefined;
   if (emailKeyToUser) {
-    await maybeAutoEmailLicenseKey(client, created.licenseId, true, body.locale === "ar" ? "ar" : "en");
+    const emailed = await maybeAutoEmailLicenseKey(
+      client,
+      created.licenseId,
+      true,
+      body.locale === "ar" ? "ar" : "en",
+    );
+    if (!emailed.ok) emailWarning = emailed.warning;
   }
 
   return jsonResponse({
     licenseId: created.licenseId,
     licenseKey: created.licenseKey,
     licenseKeyFormatted: formatLicenseKey(created.licenseKey),
+    ...(emailWarning ? { emailWarning } : {}),
   });
 }

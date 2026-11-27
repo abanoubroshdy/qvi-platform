@@ -18,6 +18,7 @@ type LicenseListItem = {
   status: string;
   max_devices: number;
   license_key_hint: string;
+  hasRetrievableKey?: boolean;
   userEmail: string | null;
   activeDevices: number;
   is_trial?: boolean;
@@ -82,15 +83,24 @@ export function LicenseAdminView() {
           locale: locale === "ar" ? "ar" : "en",
         }),
       });
-      const body = await response.json();
+      const body = (await response.json()) as {
+        licenseKeyFormatted?: string;
+        licenseKey?: string;
+        error?: string;
+        emailWarning?: string;
+      };
       if (!response.ok) {
         setMessageIsError(true);
         setMessage(body.error ?? la.error);
         return;
       }
-      setCreatedKey(body.licenseKeyFormatted ?? body.licenseKey);
-      setMessageIsError(false);
-      setMessage(la.saved);
+      setCreatedKey(body.licenseKeyFormatted ?? body.licenseKey ?? null);
+      setMessageIsError(Boolean(body.emailWarning));
+      setMessage(
+        body.emailWarning
+          ? t(la.emailKeyAutoWarning, { reason: body.emailWarning })
+          : la.saved,
+      );
       const list = await fetch("/api/admin/licenses", { credentials: "include" });
       if (list.ok) {
         const data = (await list.json()) as { licenses?: LicenseListItem[] };
@@ -132,7 +142,7 @@ export function LicenseAdminView() {
       const body = (await response.json()) as { licenseKeyFormatted?: string; error?: string; code?: string };
       if (!response.ok) {
         setMessageIsError(true);
-        setMessage(body.code === "legacy" ? copy.auth.licensesLegacyKeyMessage : body.error ?? la.error);
+        setMessage(body.code === "legacy" ? la.legacyKeyMessage : body.error ?? la.error);
         return;
       }
       setCreatedKey(body.licenseKeyFormatted ?? null);
@@ -184,6 +194,7 @@ export function LicenseAdminView() {
         licenseKeyFormatted?: string;
         licenseKey?: string;
         error?: string;
+        emailWarning?: string;
       };
       if (!response.ok) {
         setConfirmError(body.error ?? la.regenerateFailed);
@@ -192,8 +203,10 @@ export function LicenseAdminView() {
       setCreatedKey(body.licenseKeyFormatted ?? body.licenseKey ?? null);
       setConfirmRegenerate(null);
       setConfirmError(null);
-      setMessageIsError(false);
-      setMessage(la.saved);
+      setMessageIsError(Boolean(body.emailWarning));
+      setMessage(
+        body.emailWarning ? t(la.emailKeyAutoWarning, { reason: body.emailWarning }) : la.saved,
+      );
       const list = await fetch("/api/admin/licenses", { credentials: "include" });
       if (list.ok) {
         const data = (await list.json()) as { licenses?: LicenseListItem[] };
@@ -246,7 +259,7 @@ export function LicenseAdminView() {
         <LicenseKeyOneTimeBox
           licenseKey={createdKey}
           title={la.createdKey}
-          warning={la.oneTimeWarning}
+          warning={la.keyNote}
           copyLabel={la.copyKey}
           copiedLabel={la.copiedKey}
           dismissLabel={la.dismissKey}

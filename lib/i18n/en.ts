@@ -111,7 +111,8 @@ export const en = {
     licensesRegenerateCancel: "Cancel",
     licensesRegenerateFailed: "Could not generate a new key. Try again.",
     licensesRegenerateRateLimited: "Too many key resets. Try again in about an hour.",
-    licensesOneTimeWarning: "Save this key now — it will not be shown again.",
+    licensesKeyNote:
+      "Keep this key to activate the app. You can view it again or email it to yourself anytime from your profile.",
     licensesCopyKey: "Copy key",
     licensesCopiedKey: "Copied",
     licensesDismissKey: "Dismiss",
@@ -120,7 +121,9 @@ export const en = {
     licensesEmailKeySent: "We emailed your license key.",
     licensesEmailKeyFailed: "Could not send the email. Try again later.",
     licensesShowKeyFailed: "Could not load your license key.",
-    licensesLegacyKeyMessage: "Generate a new key to view it.",
+    licensesLegacyKeyMessage: "This older license has no stored key. Contact support to reset it.",
+    licensesLegacyKeyNote:
+      "This older license has no stored key on file. Contact support if you need a new key.",
     licensesDevices: "Devices",
     licensesDeviceLimit: "{active} of {max} devices",
     licensesDeactivateDevice: "Deactivate",
@@ -536,8 +539,12 @@ export const en = {
     expiresLabel: "Expiry (optional)",
     maxDevicesLabel: "Max devices",
     createCta: "Create license",
-    createdKey: "License key (shown once)",
-    oneTimeWarning: "Save this key now — it will not be shown again.",
+    createdKey: "License key",
+    keyNote:
+      "The key is stored securely. You can show it again or email it to the user anytime from this page.",
+    legacyKeyMessage:
+      "This license has no stored key yet. Regenerate the key to enable viewing or emailing.",
+    emailKeyAutoWarning: "License created, but the automatic email did not send: {reason}",
     copyKey: "Copy key",
     copiedKey: "Copied",
     dismissKey: "Dismiss",
