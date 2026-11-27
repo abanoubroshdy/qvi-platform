@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useMemo, useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import { LocaleLink } from "@/components/LocaleLink";
@@ -12,14 +13,17 @@ import { localizeHref } from "@/lib/i18n/locale-path";
 import { cn } from "@/lib/utils";
 
 const neyoraCard =
-  "rounded-2xl border border-border bg-card dark:border-[#3E362F] dark:bg-[#2A2420]";
+  "rounded-2xl border border-slate-200 bg-white dark:border-[#4A4037] dark:bg-[#2A2420]";
 const neyoraHeading = "text-slate-900 dark:text-[#F3F4F6]";
 const neyoraMuted = "text-slate-600 dark:text-[#CBD5E1]";
 const neyoraAccent = "text-amber-800 dark:text-[#FBBF24]";
 const neyoraSecondaryBtn =
-  "min-h-[48px] w-full border-slate-300 bg-transparent text-slate-900 hover:bg-slate-100 dark:border-[#3E362F] dark:text-[#F3F4F6] dark:hover:bg-[#2A2420] sm:w-auto";
+  "min-h-[48px] w-full border-slate-300 bg-transparent text-slate-900 shadow-none hover:bg-slate-100 dark:border-[#4A4037] dark:bg-[#2A2420] dark:text-[#F3F4F6] dark:hover:bg-[#352E28] sm:w-auto";
+const neyoraFullLicenseBtn =
+  "min-h-[48px] w-full border-slate-300 bg-transparent text-slate-900 shadow-none hover:bg-slate-100 dark:border-[#4A4037] dark:bg-[#2A2420] dark:text-[#F3F4F6] dark:hover:bg-[#352E28]";
 const neyoraPrimaryBtn =
-  "min-h-[48px] bg-[#FBBF24] font-bold text-[#1C1814] hover:bg-[#FCD34D]";
+  "min-h-[48px] bg-[#FBBF24] font-bold text-[#1C1814] shadow-none hover:bg-[#FCD34D] hover:text-[#1C1814]";
+const neyoraSectionDivider = "border-slate-200/80 dark:border-[#3E362F]/50";
 
 export function NeyoraView() {
   const { copy, locale, t } = useI18n();
@@ -49,10 +53,10 @@ export function NeyoraView() {
 
   return (
     <div className="neyora-product bg-white text-slate-900 dark:bg-[#1C1814] dark:text-[#F3F4F6]">
-      <section className="border-b border-border/40">
+      <section className={cn("border-b", neyoraSectionDivider)}>
         <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 lg:grid-cols-[55fr_45fr] lg:items-center lg:py-20">
           <div>
-            <span className="inline-flex rounded-full bg-[#FEF3C7] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-amber-800 dark:bg-[#2A2420] dark:text-[#FBBF24]">
+            <span className="inline-flex rounded-full bg-[#FEF3C7] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-amber-800 dark:bg-[#352E28] dark:text-[#FCD34D]">
               {page.eyebrow}
             </span>
             <h1 className={cn("mt-4 text-4xl font-semibold leading-tight sm:text-5xl", neyoraHeading)}>
@@ -75,30 +79,17 @@ export function NeyoraView() {
             </p>
           </div>
           <div
-            className="relative overflow-hidden rounded-2xl border border-[#3E362F] bg-[#1C1814] p-6 text-[#F3F4F6] shadow-[0_0_80px_-20px_rgba(251,191,36,0.25)]"
+            className="overflow-hidden rounded-2xl border border-[#3E362F] bg-[#1C1814] shadow-[0_0_80px_-20px_rgba(251,191,36,0.28)]"
             aria-label={page.previewLabel}
           >
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#94A3B8]">{page.previewLabel}</p>
-            <div className="mt-6 rounded-xl border border-[#3E362F] bg-[#2A2420] p-4">
-              <svg viewBox="0 0 400 80" className="h-24 w-full text-[#FBBF24]" role="img" aria-hidden>
-                <path
-                  fill="currentColor"
-                  d="M0 40 Q20 10 40 40 T80 40 T120 40 T160 40 T200 40 T240 40 T280 40 T320 40 T360 40 T400 40 V80 H0 Z"
-                  opacity="0.35"
-                />
-                <path
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  d="M0 40 Q25 8 50 42 T100 38 T150 44 T200 36 T250 42 T300 38 T350 40 T400 38"
-                />
-              </svg>
-              <div className="mt-4 grid grid-cols-3 gap-2 text-center text-[10px] text-[#CBD5E1]">
-                <span>Maqam</span>
-                <span>Feeling</span>
-                <span>Tempo</span>
-              </div>
-            </div>
+            <Image
+              src="/images/neyora-hero.jpg"
+              alt={page.previewLabel}
+              width={1280}
+              height={720}
+              className="h-auto w-full rounded-2xl object-cover"
+              priority
+            />
           </div>
         </div>
       </section>
@@ -115,7 +106,7 @@ export function NeyoraView() {
                 onClick={() => setActiveInstrument(item.id)}
                 className={cn(
                   neyoraCard,
-                  "p-4 text-start transition-colors",
+                  "p-4 text-start transition-colors hover:border-slate-300 dark:hover:border-[#4A4037]",
                   active ? "border-[#FBBF24] ring-1 ring-[#FBBF24]/40" : "",
                 )}
               >
@@ -143,11 +134,27 @@ export function NeyoraView() {
         </div>
       </section>
 
+      <section className="mx-auto max-w-6xl px-4 pb-14">
+        <div className="mx-auto max-w-3xl text-center">
+          <h2 className={cn("text-2xl font-semibold", neyoraHeading)}>{page.studioShowcaseTitle}</h2>
+          <p className={cn("mt-2 text-base leading-7", neyoraMuted)}>{page.studioShowcaseSubtitle}</p>
+        </div>
+        <div className="mx-auto mt-8 max-w-5xl overflow-hidden rounded-2xl border border-[#3E362F] bg-[#14110E] shadow-[0_0_80px_-20px_rgba(251,191,36,0.2)]">
+          <Image
+            src="/images/neyora-app-ui.png"
+            alt={page.studioShowcaseTitle}
+            width={1280}
+            height={784}
+            className="h-auto w-full"
+          />
+        </div>
+      </section>
+
       <section id="neyora-compare" className="mx-auto max-w-6xl px-4 pb-10">
         <h2 className={cn("text-center text-2xl font-semibold", neyoraHeading)}>{page.compareTitle}</h2>
         <div className="mx-auto mt-8 grid max-w-4xl grid-cols-1 gap-6 md:grid-cols-2">
           <div className={cn(neyoraCard, "border-t-4 border-t-[#FBBF24] p-6")}>
-            <span className="rounded-full bg-[#FEF3C7] px-2 py-0.5 text-xs font-semibold text-amber-800 dark:bg-[#2A2420] dark:text-[#FBBF24]">
+            <span className="rounded-full bg-[#FEF3C7] px-2 py-0.5 text-xs font-semibold text-amber-800 dark:bg-[#352E28] dark:text-[#FCD34D]">
               {page.trialCard.badge}
             </span>
             <h3 className={cn("mt-3 text-xl font-semibold", neyoraHeading)}>{page.trialCard.title}</h3>
@@ -165,8 +172,13 @@ export function NeyoraView() {
               </Button>
             ) : null}
           </div>
-          <div className={cn(neyoraCard, "border-t-4 border-t-[#4338CA] p-6")}>
-            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+          <div
+            className={cn(
+              neyoraCard,
+              "border-t-4 border-t-[#D97706] p-6 dark:border-t-[#FF9F1C]",
+            )}
+          >
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:bg-[#352E28] dark:text-[#FCD34D]">
               {page.fullCard.badge}
             </span>
             <h3 className={cn("mt-3 text-xl font-semibold", neyoraHeading)}>{page.fullCard.title}</h3>
@@ -177,14 +189,14 @@ export function NeyoraView() {
             </ul>
             <p className={cn("mt-4 text-sm leading-6", neyoraMuted)}>{page.fullCard.contactNote}</p>
             <LocaleLink href="/contact">
-              <Button type="button" variant="outline" className={cn(neyoraSecondaryBtn, "mt-4 w-full")}>
+              <Button type="button" variant="outline" className={cn(neyoraFullLicenseBtn, "mt-4 w-full")}>
                 {page.fullCard.cta}
               </Button>
             </LocaleLink>
           </div>
         </div>
 
-        <div className="mx-auto mt-6 max-w-4xl rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6">
+        <div className="mx-auto mt-6 max-w-4xl rounded-2xl border border-emerald-500/25 bg-emerald-50/80 p-6 dark:border-emerald-500/20 dark:bg-emerald-950/20">
           <div className="flex items-start gap-3">
             <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700 dark:text-[#4ADE80]" aria-hidden />
             <div>
@@ -231,7 +243,7 @@ export function NeyoraView() {
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="text-slate-700 hover:bg-slate-100 dark:text-[#CBD5E1] dark:hover:bg-[#2A2420]"
+                className="text-slate-700 shadow-none hover:bg-slate-100 dark:bg-transparent dark:text-[#CBD5E1] dark:hover:bg-[#352E28]"
                 onClick={() => setTrialModalOpen(false)}
               >
                 {copy.auth.licensesDeactivateCancel}
@@ -241,6 +253,7 @@ export function NeyoraView() {
               className="mt-4"
               durationDays={days}
               showConsent
+              neyoraTheme
               isLoggedIn={Boolean(user)}
               loginNextPath={localizeHref("/products/neyora", locale)}
             />
