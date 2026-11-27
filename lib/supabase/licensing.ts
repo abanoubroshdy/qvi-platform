@@ -7,6 +7,7 @@ export type UserLicenseSummary = {
   license_key_hint: string;
   starts_at: string;
   expires_at: string | null;
+  is_trial: boolean;
   product: {
     code: string;
     name: string;
@@ -31,7 +32,7 @@ export async function fetchUserLicenses(
   const { data: licenses, error } = await client
     .from("licenses")
     .select(
-      "id, status, max_devices, license_key_hint, starts_at, expires_at, product_id, license_products(code, name, is_free)",
+      "id, status, max_devices, license_key_hint, starts_at, expires_at, is_trial, product_id, license_products(code, name, is_free)",
     )
     .eq("user_id", userId)
     .neq("status", "revoked")
@@ -63,6 +64,7 @@ export async function fetchUserLicenses(
       license_key_hint: row.license_key_hint,
       starts_at: row.starts_at,
       expires_at: row.expires_at,
+      is_trial: Boolean((row as { is_trial?: boolean }).is_trial),
       product,
       devices: (devices ?? []) as UserLicenseDevice[],
     });

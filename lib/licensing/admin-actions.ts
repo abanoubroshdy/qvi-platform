@@ -25,6 +25,7 @@ export async function createLicenseForUser(
     productCode: string;
     expiresAt: string | null;
     maxDevices: number;
+    isTrial?: boolean;
   },
 ): Promise<{ ok: true; licenseKey: string; licenseId: string } | { ok: false; error: string }> {
   if (!isProductCode(input.productCode)) return { ok: false, error: "Unknown product." };
@@ -51,6 +52,7 @@ export async function createLicenseForUser(
       status: "active",
       max_devices: input.maxDevices,
       expires_at: input.expiresAt,
+      is_trial: input.isTrial === true,
     })
     .select("id")
     .single();
@@ -63,7 +65,7 @@ export async function createLicenseForUser(
     product_id: product.id,
     event_type: "license_created",
     success: true,
-    metadata: { productCode: input.productCode },
+    metadata: { productCode: input.productCode, isTrial: input.isTrial === true },
   });
 
   return { ok: true, licenseKey, licenseId: license.id };

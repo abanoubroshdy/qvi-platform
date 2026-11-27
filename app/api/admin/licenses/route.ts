@@ -21,7 +21,7 @@ export async function GET(request: Request) {
   let query = client
     .from("licenses")
     .select(
-      "id, user_id, status, max_devices, license_key_hint, starts_at, expires_at, created_at, license_products(code, name)",
+      "id, user_id, status, max_devices, license_key_hint, starts_at, expires_at, created_at, is_trial, license_products(code, name)",
     )
     .order("created_at", { ascending: false })
     .limit(50);

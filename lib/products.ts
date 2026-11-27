@@ -17,7 +17,7 @@ export const products = {
     slug: "neyora",
     name: "Neyora",
     href: "/products/neyora",
-    status: "In Development",
+    status: "Beta",
     title: "Neyora - DDSP Instrument Synthesis",
     description:
       "Transform text, voice, or MIDI into realistic instrument performance using DDSP technology.",
