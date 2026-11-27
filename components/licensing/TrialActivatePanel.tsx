@@ -90,7 +90,7 @@ export function TrialActivatePanel({
         <LicenseKeyOneTimeBox
           licenseKey={licenseKey}
           title={copy.licenseAdmin.createdKey}
-          warning={auth.licensesOneTimeWarning}
+          warning={auth.licensesKeyNote}
           copyLabel={auth.licensesCopyKey}
           copiedLabel={auth.licensesCopiedKey}
           dismissLabel={auth.licensesDismissKey}

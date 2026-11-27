@@ -24,7 +24,10 @@ export async function GET(
   const reveal = await revealStoredLicenseKey(client, id);
   if (!reveal.ok) {
     if (reveal.reason === "legacy") {
-      return jsonResponse({ error: "Generate a new key to view it.", code: "legacy" }, 404);
+      return jsonResponse(
+        { error: "This license has no stored key. Regenerate the key to view it.", code: "legacy" },
+        404,
+      );
     }
     const status = reveal.reason === "not_configured" ? 503 : reveal.reason === "not_found" ? 404 : 400;
     return jsonResponse({ error: "License key unavailable.", code: reveal.reason }, status);

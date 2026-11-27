@@ -4,8 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { getSupabaseClient } from "@/lib/supabase/client";
-import { fetchUserLicenses, type UserLicenseSummary } from "@/lib/supabase/licensing";
+import type { UserLicenseSummary } from "@/lib/supabase/licensing";
 import { ConfirmActionDialog } from "@/components/licensing/ConfirmActionDialog";
 import { Button } from "@/components/ui/button";
 import { patchUserLicenseDeviceRevoked } from "@/lib/licensing/revoke-ui";
@@ -35,59 +34,23 @@ export function AccountLicensesSection() {
     productName: string;
   } | null>(null);
   const [confirmError, setConfirmError] = useState<string | null>(null);
-  const [confirmRegenerateLicense, setConfirmRegenerateLicense] = useState<UserLicenseSummary | null>(null);
-  const [regenerateError, setRegenerateError] = useState<string | null>(null);
   const [revealedKey, setRevealedKey] = useState<string | null>(null);
-  const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const { settings: trialSettings } = usePublicTrialSettings(PRODUCT_CODES.neyoraPro);
 
   const reload = useCallback(async () => {
     if (!user) return;
-    const supabase = getSupabaseClient();
-    if (!supabase) {
+    const response = await fetch("/api/account/licenses", { credentials: "include" });
+    if (!response.ok) {
       setState({ status: "error" });
       return;
     }
-    const result = await fetchUserLicenses(supabase, user.id);
-    if (result.error) setState({ status: "error" });
-    else setState({ status: "ready", rows: result.rows });
+    const body = (await response.json()) as { licenses?: UserLicenseSummary[] };
+    setState({ status: "ready", rows: body.licenses ?? [] });
   }, [user]);
 
   useEffect(() => {
     void reload();
   }, [reload]);
-
-  async function regenerateLicenseConfirmed(licenseId: string) {
-    setRegeneratingId(licenseId);
-    setRevealedKey(null);
-    setNotice(null);
-    try {
-      const response = await fetch(`/api/account/licenses/${licenseId}/regenerate`, {
-        method: "POST",
-        credentials: "include",
-      });
-      const body = (await response.json()) as {
-        licenseKeyFormatted?: string;
-        licenseKey?: string;
-        error?: string;
-        errorCode?: string;
-      };
-      if (!response.ok) {
-        setRegenerateError(
-          body.errorCode === "rate_limited"
-            ? a.licensesRegenerateRateLimited
-            : body.error ?? a.licensesRegenerateFailed,
-        );
-        return;
-      }
-      setRevealedKey(body.licenseKeyFormatted ?? body.licenseKey ?? null);
-      setConfirmRegenerateLicense(null);
-      setRegenerateError(null);
-      await reload();
-    } finally {
-      setRegeneratingId(null);
-    }
-  }
 
   async function showLicenseKey(licenseId: string) {
     setBusyId(licenseId);
@@ -227,31 +190,13 @@ export function AccountLicensesSection() {
         <LicenseKeyOneTimeBox
           licenseKey={revealedKey}
           title={copy.licenseAdmin.createdKey}
-          warning={a.licensesOneTimeWarning}
+          warning={a.licensesKeyNote}
           copyLabel={a.licensesCopyKey}
           copiedLabel={a.licensesCopiedKey}
           dismissLabel={a.licensesDismissKey}
           onDismiss={() => setRevealedKey(null)}
         />
       ) : null}
-      <ConfirmActionDialog
-        open={confirmRegenerateLicense !== null}
-        title={a.licensesRegenerateConfirmTitle}
-        description={a.licensesRegenerateConfirmDescription}
-        confirmLabel={a.licensesRegenerateConfirmCta}
-        cancelLabel={a.licensesRegenerateCancel}
-        busy={Boolean(regeneratingId)}
-        errorMessage={regenerateError}
-        onConfirm={() => {
-          if (confirmRegenerateLicense) void regenerateLicenseConfirmed(confirmRegenerateLicense.id);
-        }}
-        onCancel={() => {
-          if (!regeneratingId) {
-            setConfirmRegenerateLicense(null);
-            setRegenerateError(null);
-          }
-        }}
-      />
       {state.status === "loading" ? (
         <p className="text-sm text-muted-foreground">{a.loading}</p>
       ) : state.status === "error" ? (
@@ -304,51 +249,37 @@ export function AccountLicensesSection() {
                     })}
                   </p>
                   {license.status === "active" ? (
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        disabled={Boolean(busyId)}
-                        onClick={() => void showLicenseKey(license.id)}
-                      >
-                        {busyId === license.id && !regeneratingId ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                            {a.working}
-                          </>
-                        ) : (
-                          a.licensesShowKey
-                        )}
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        disabled={Boolean(busyId)}
-                        onClick={() => void emailLicenseKey(license.id)}
-                      >
-                        {a.licensesEmailKey}
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="secondary"
-                        disabled={Boolean(regeneratingId) || Boolean(busyId)}
-                        onClick={() => {
-                          setRegenerateError(null);
-                          setConfirmRegenerateLicense(license);
-                        }}
-                      >
-                        {regeneratingId === license.id ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                            {copy.licenseAdmin.working}
-                          </>
-                        ) : (
-                          a.licensesRegenerateKey
-                        )}
-                      </Button>
+                    <div className="flex flex-col items-stretch gap-2 sm:items-end">
+                      {license.hasRetrievableKey ? (
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            disabled={Boolean(busyId)}
+                            onClick={() => void showLicenseKey(license.id)}
+                          >
+                            {busyId === license.id ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                                {a.working}
+                              </>
+                            ) : (
+                              a.licensesShowKey
+                            )}
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            disabled={Boolean(busyId)}
+                            onClick={() => void emailLicenseKey(license.id)}
+                          >
+                            {a.licensesEmailKey}
+                          </Button>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">{a.licensesLegacyKeyNote}</p>
+                      )}
                     </div>
                   ) : null}
                 </div>

@@ -21,7 +21,12 @@ export async function getLicenseKeyForOwner(
   const reveal = await revealStoredLicenseKey(client, licenseId);
   if (!reveal.ok) {
     if (reveal.reason === "legacy") {
-      return { ok: false, error: "Generate a new key to view it.", code: "legacy", status: 404 };
+      return {
+        ok: false,
+        error: "This license has no stored key. Contact support to reset it.",
+        code: "legacy",
+        status: 404,
+      };
     }
     if (reveal.reason === "not_configured") {
       return { ok: false, error: "Key reveal is not configured.", code: "not_configured", status: 503 };
@@ -60,12 +65,15 @@ export async function maybeAutoEmailLicenseKey(
   licenseId: string,
   enabled: boolean,
   locale?: Locale,
-) {
-  if (!enabled) return;
+): Promise<{ ok: true } | { ok: false; warning: string }> {
+  if (!enabled) return { ok: true };
   const result = await emailLicenseKeyToOwner(client, licenseId, { actor: "admin", locale });
   if (!result.ok) {
-    console.warn("[license] auto-email skipped:", result.code ?? result.error);
+    const warning = result.error ?? "Could not email the license key.";
+    console.warn("[license] auto-email skipped:", result.code ?? warning);
+    return { ok: false, warning };
   }
+  return { ok: true };
 }
 
 export async function emailLicenseKeyToOwner(
@@ -88,7 +96,12 @@ export async function emailLicenseKeyToOwner(
   const reveal = await revealStoredLicenseKey(client, licenseId);
   if (!reveal.ok) {
     if (reveal.reason === "legacy") {
-      return { ok: false, error: "Generate a new key to email it.", code: "legacy", status: 404 };
+      return {
+        ok: false,
+        error: "This license has no stored key. Contact support to reset it.",
+        code: "legacy",
+        status: 404,
+      };
     }
     return { ok: false, error: "Could not load license key.", code: reveal.reason, status: 503 };
   }

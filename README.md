@@ -158,6 +158,8 @@ Every name the app reads today. Never commit values.
 
 `SUPABASE_SECRET_KEY` is required for licensing APIs, admin license tools, and protected artifact downloads. See `docs/licensing.md`.
 
+`LICENSE_KEY_ENCRYPTION_KEY` (server only) encrypts license plaintext for owner/admin reveal and email. Generate with `openssl rand -base64 32`, set in production, and run `supabase/migrations/0012_license_key_encrypted.sql`. In `NODE_ENV=production`, creating or regenerating a license fails closed if this key is missing.
+
 ### Worker secrets
 
 After `npm run build:worker`, set runtime secrets on the deployed Worker (names only):

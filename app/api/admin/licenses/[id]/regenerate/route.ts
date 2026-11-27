@@ -34,13 +34,16 @@ export async function POST(
 
   if (!result.ok) return jsonResponse({ error: result.error }, 400);
 
+  let emailWarning: string | undefined;
   if (body.emailKeyToUser !== false) {
-    await maybeAutoEmailLicenseKey(client, id, true, body.locale === "ar" ? "ar" : "en");
+    const emailed = await maybeAutoEmailLicenseKey(client, id, true, body.locale === "ar" ? "ar" : "en");
+    if (!emailed.ok) emailWarning = emailed.warning;
   }
 
   return jsonResponse({
     ok: true,
     licenseKey: result.licenseKey,
     licenseKeyFormatted: formatLicenseKey(result.licenseKey),
+    ...(emailWarning ? { emailWarning } : {}),
   });
 }

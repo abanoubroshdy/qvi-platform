@@ -100,8 +100,10 @@ Runtime only (Worker secrets; not `NEXT_PUBLIC_`):
 | `R2_SECRET_ACCESS_KEY` | R2 API token secret. |
 | `R2_BUCKET` | `qv1-downloads`. |
 | `QV1_OBJECT_KEY` | Optional. Defaults to `qv1/QV1-Setup-Evaluation.exe`. |
+| `LICENSE_KEY_ENCRYPTION_KEY` | Server-only AES key (32 bytes, base64). Required in production to create or rotate stored license keys (`openssl rand -base64 32`). |
+| `SUPABASE_SECRET_KEY` | Service role key when server routes need admin DB access (licensing, admin tools). Mentioned in `.env.example`; wire only when those routes run on the Worker. |
 
-`SUPABASE_SECRET_KEY` is mentioned in `.env.example` and is **not read** by the current server code. Do not set a service-role key on the Worker until a route needs it. The anon key must not be a service-role key; the app rejects those.
+When licensing admin APIs run on the Worker, set both `SUPABASE_SECRET_KEY` and `LICENSE_KEY_ENCRYPTION_KEY`. Otherwise the former alone is noted in `.env.example` and is **not read** by the current server code on Workers without those routes. Do not set a service-role key on the Worker until a route needs it. The anon key must not be a service-role key; the app rejects those.
 
 Do not rely on `VERCEL_URL` or `VERCEL_PROJECT_PRODUCTION_URL` on Cloudflare. Set `NEXT_PUBLIC_SITE_URL` instead.
 

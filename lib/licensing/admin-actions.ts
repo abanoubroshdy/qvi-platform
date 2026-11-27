@@ -40,6 +40,9 @@ export async function createLicenseForUser(
   const licenseKey = generateLicenseKey();
   const licenseKeyHash = await hashLicenseKey(licenseKey);
   const licenseKeyEncrypted = await licenseKeyEncryptedColumn(licenseKey);
+  if (!licenseKeyEncrypted && process.env.NODE_ENV === "production") {
+    return { ok: false, error: "LICENSE_KEY_ENCRYPTION_KEY is not configured" };
+  }
 
   const { data: license, error } = await client
     .from("licenses")
@@ -92,6 +95,9 @@ export async function regenerateLicenseKey(
   const licenseKey = generateLicenseKey();
   const licenseKeyHash = await hashLicenseKey(licenseKey);
   const licenseKeyEncrypted = await licenseKeyEncryptedColumn(licenseKey);
+  if (!licenseKeyEncrypted && process.env.NODE_ENV === "production") {
+    return { ok: false, error: "LICENSE_KEY_ENCRYPTION_KEY is not configured" };
+  }
 
   const { error: updateError } = await client
     .from("licenses")
